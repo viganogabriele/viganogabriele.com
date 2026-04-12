@@ -464,19 +464,19 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: -8 }}
 						transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-						className="lg:hidden mt-2 rounded-2xl border border-white/15 bg-[#0a0a0a]/95 backdrop-blur-2xl p-3 shadow-[0_18px_36px_rgba(0,0,0,0.55)]"
+						className="lg:hidden mt-2 rounded-2xl border border-white/12 bg-[#0a0a0a]/95 backdrop-blur-2xl p-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.55)]"
 					>
-						<nav className="grid grid-cols-2 gap-2">
+						<nav className="flex flex-col gap-1.5">
 							{NAV_LINKS.map((link) => (
 								<a
 									key={link.label}
 									href={link.href}
 									onClick={(e) => handleScrollTo(e, link.href)}
 									className={cn(
-										"px-3 py-2.5 rounded-xl text-[12px] font-medium transition-colors",
+										"px-3 py-2.5 rounded-lg text-[12px] font-medium transition-colors text-left",
 										activeSection === link.href
-											? "text-black bg-white"
-											: "text-zinc-300 hover:text-white hover:bg-white/10",
+											? "text-white bg-white/10 border border-white/20"
+											: "text-zinc-300 hover:text-white hover:bg-white/6",
 									)}
 								>
 									{link.label}
@@ -485,7 +485,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 						</nav>
 						<a
 							href="mailto:info@viganogabriele.com"
-							className="sm:hidden mt-3 w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[12px] font-semibold text-black bg-white hover:bg-zinc-200 transition-colors"
+							className="sm:hidden mt-2 w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-[12px] font-semibold text-black bg-white hover:bg-zinc-200 transition-colors"
 						>
 							Let's talk
 						</a>
@@ -1967,68 +1967,45 @@ function HomePage() {
 
 					{/* ── About ─────────────────────────────────────────────────── */}
 					<section id="about" className="mt-28 pt-16">
-						<SectionHeader
-							label="01 / About"
-							title="Who I Am."
-							subtitle="Computer engineering student focused on building robust products and polished digital experiences."
-						/>
 						<ScrollReveal>
-							<div className="relative py-3 md:py-6">
+							<div className="relative py-2 md:py-4">
 								<motion.div
 									aria-hidden
-									animate={{ x: [0, 18, 0], y: [0, -14, 0] }}
+									animate={{ x: [0, 16, 0], y: [0, -12, 0] }}
 									transition={{
 										duration: 12,
 										repeat: Infinity,
 										ease: "easeInOut",
 									}}
-									className="absolute -top-8 -left-10 h-44 w-44 rounded-full bg-cyan-500/16 blur-3xl"
+									className="absolute -top-6 -left-10 h-40 w-40 rounded-full bg-cyan-500/16 blur-3xl"
 								/>
 								<motion.div
 									aria-hidden
-									animate={{ x: [0, -20, 0], y: [0, 10, 0] }}
+									animate={{ x: [0, -16, 0], y: [0, 10, 0] }}
 									transition={{
 										duration: 14,
 										repeat: Infinity,
 										ease: "easeInOut",
 									}}
-									className="absolute -bottom-10 right-2 h-48 w-48 rounded-full bg-violet-500/14 blur-3xl"
+									className="absolute -bottom-8 right-2 h-44 w-44 rounded-full bg-violet-500/14 blur-3xl"
 								/>
 
 								<div className="relative">
-									<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">
-										A tiny summary before coffee kicks in
+									<p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 mb-2">
+										01 / About
 									</p>
-									<h3 className="text-2xl md:text-3xl font-semibold text-zinc-100 tracking-tight mb-4 bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
-										Engineer by syllabus. Builder by obsession.
-									</h3>
+									<motion.h3
+										initial={{ opacity: 0, y: 10 }}
+										whileInView={{ opacity: 1, y: 0 }}
+										viewport={{ once: true }}
+										transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+										className="text-2xl md:text-3xl font-semibold tracking-tight mb-3 bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent"
+									>
+										I build serious things, without being too serious.
+									</motion.h3>
 									<p className="text-zinc-300 leading-relaxed text-base md:text-[17px] max-w-3xl">
-										I bridge product operations, frontend engineering and
-										infrastructure. My favorite loop is simple: understand
-										constraints, prototype fast, ship clean, then polish until
-										the experience feels effortless.
+										I blend product operations, frontend engineering and infrastructure into fast, reliable experiences. Build, test, refine, repeat.
 									</p>
-
-									<div className="mt-6 flex flex-wrap gap-2.5">
-										{[
-											"ships fast",
-											"breaks less",
-											"debugs late",
-											"espresso-powered",
-										].map((item, idx) => (
-											<motion.span
-												key={item}
-												initial={{ opacity: 0, y: 12 }}
-												whileInView={{ opacity: 1, y: 0 }}
-												viewport={{ once: true }}
-												transition={{ duration: 0.35, delay: idx * 0.06 }}
-												whileHover={{ y: -2, scale: 1.03 }}
-												className="px-3 py-1.5 rounded-full text-xs uppercase tracking-[0.14em] border border-white/15 bg-white/6 text-zinc-200"
-											>
-												{item}
-											</motion.span>
-										))}
-									</div>
 								</div>
 							</div>
 						</ScrollReveal>
