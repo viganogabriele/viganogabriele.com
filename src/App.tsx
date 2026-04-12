@@ -119,18 +119,18 @@ const CustomCursor = () => {
 	const ringY = useSpring(mouseY, { stiffness: 100, damping: 16, mass: 0.9 });
 
 	const baseSize =
-		hoverLevel === "bubble" ? 44 : hoverLevel === "link" ? 36 : 24;
+		hoverLevel === "bubble" ? 36 : hoverLevel === "link" ? 30 : 18;
 	const ringSize = useTransform(
 		smoothVelocity,
 		[0, 1500],
-		[baseSize, baseSize + 70],
+		[baseSize, baseSize + 42],
 	);
 	const ringOp =
-		hoverLevel === "bubble" ? 0.72 : hoverLevel === "link" ? 0.56 : 0.26;
+		hoverLevel === "bubble" ? 0.55 : hoverLevel === "link" ? 0.4 : 0.2;
 	const internalBlur = useTransform(
 		smoothVelocity,
 		[0, 1500],
-		["blur(8px)", "blur(24px)"],
+		["blur(4px)", "blur(16px)"],
 	);
 
 	useEffect(() => {
@@ -207,8 +207,8 @@ const CustomCursor = () => {
 					opacity: ringOp,
 					borderColor:
 						hoverLevel === "none"
-							? "rgba(255,255,255,0.18)"
-							: "rgba(255,255,255,0.4)",
+							? "rgba(255,255,255,0.14)"
+							: "rgba(255,255,255,0.28)",
 				}}
 				transition={{ type: "spring", stiffness: 300, damping: 20 }}
 			/>
@@ -488,6 +488,10 @@ const useMatterPhysics = (
 		});
 
 		let { width, height } = getSize();
+		const bodyWidth = 140;
+		const bodyHeight = 44;
+		const halfBodyWidth = bodyWidth / 2;
+		const halfBodyHeight = bodyHeight / 2;
 
 		const wallOpts = {
 			isStatic: true,
@@ -496,13 +500,31 @@ const useMatterPhysics = (
 			render: { visible: false },
 		};
 		const walls = [
-			Matter.Bodies.rectangle(width / 2, -50, width * 2, 100, wallOpts),
-			Matter.Bodies.rectangle(width / 2, height + 50, width * 2, 100, wallOpts),
-			Matter.Bodies.rectangle(-50, height / 2, 100, height * 2, wallOpts),
 			Matter.Bodies.rectangle(
-				width + 50,
+				width / 2,
+				-halfBodyHeight,
+				width * 2,
+				bodyHeight,
+				wallOpts,
+			),
+			Matter.Bodies.rectangle(
+				width / 2,
+				height + halfBodyHeight,
+				width * 2,
+				bodyHeight,
+				wallOpts,
+			),
+			Matter.Bodies.rectangle(
+				-halfBodyWidth,
 				height / 2,
-				100,
+				bodyWidth,
+				height * 2,
+				wallOpts,
+			),
+			Matter.Bodies.rectangle(
+				width + halfBodyWidth,
+				height / 2,
+				bodyWidth,
 				height * 2,
 				wallOpts,
 			),
@@ -512,7 +534,7 @@ const useMatterPhysics = (
 		const bodies = items.map(() => {
 			const px = 70 + Math.random() * (width - 140);
 			const py = 50 + Math.random() * (height - 100);
-			const b = Matter.Bodies.rectangle(px, py, 140, 44, {
+			const b = Matter.Bodies.rectangle(px, py, bodyWidth, bodyHeight, {
 				chamfer: { radius: 22 },
 				restitution: 0.95,
 				friction: 0.005,
@@ -553,6 +575,22 @@ const useMatterPhysics = (
 			};
 			releasedMouseConstraint.body = null;
 			releasedMouseConstraint.constraint.bodyB = null;
+			releasedMouseConstraint.constraint.pointB = null;
+		};
+
+		const isPointInsideContainer = (x: number, y: number) => {
+			const rect = container.getBoundingClientRect();
+			return (
+				x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+			);
+		};
+
+		const handleTouchMove = (event: TouchEvent) => {
+			const point = event.touches[0];
+			if (!point) return;
+			if (!isPointInsideContainer(point.clientX, point.clientY)) {
+				releaseDraggedBody();
+			}
 		};
 
 		let animationFrameId: number;
@@ -599,18 +637,30 @@ const useMatterPhysics = (
 			const { width: w, height: h } = getSize();
 			width = w;
 			height = h;
-			Matter.Body.setPosition(walls[0], { x: w / 2, y: -50 });
-			Matter.Body.setPosition(walls[1], { x: w / 2, y: h + 50 });
-			Matter.Body.setPosition(walls[2], { x: -50, y: h / 2 });
-			Matter.Body.setPosition(walls[3], { x: w + 50, y: h / 2 });
+			Matter.Body.setPosition(walls[0], { x: w / 2, y: -halfBodyHeight });
+			Matter.Body.setPosition(walls[1], { x: w / 2, y: h + halfBodyHeight });
+			Matter.Body.setPosition(walls[2], { x: -halfBodyWidth, y: h / 2 });
+			Matter.Body.setPosition(walls[3], { x: w + halfBodyWidth, y: h / 2 });
 		};
 
-		// Keep original feel: only release when pointer exits sandbox
+		// Release drag when pointer exits/interruption happens to prevent cards escaping the sandbox.
 		container.addEventListener("mouseleave", releaseDraggedBody);
+		window.addEventListener("mouseup", releaseDraggedBody);
+		window.addEventListener("touchend", releaseDraggedBody, { passive: true });
+		window.addEventListener("touchcancel", releaseDraggedBody, {
+			passive: true,
+		});
+		window.addEventListener("touchmove", handleTouchMove, { passive: true });
+		window.addEventListener("blur", releaseDraggedBody);
 		window.addEventListener("resize", handleResize);
 
 		return () => {
 			container.removeEventListener("mouseleave", releaseDraggedBody);
+			window.removeEventListener("mouseup", releaseDraggedBody);
+			window.removeEventListener("touchend", releaseDraggedBody);
+			window.removeEventListener("touchcancel", releaseDraggedBody);
+			window.removeEventListener("touchmove", handleTouchMove);
+			window.removeEventListener("blur", releaseDraggedBody);
 			window.removeEventListener("scroll", handleScrollMotion);
 			window.removeEventListener("resize", handleResize);
 			cancelAnimationFrame(animationFrameId);
@@ -1334,14 +1384,15 @@ const Footer = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 		<ScrollReveal delay={0.1}>
 			<footer className="mt-40 pb-20 border-t border-white/[0.06] relative overflow-hidden">
 				<div className="pt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative z-10">
-					{/* Brand block */}
+					{/* About block */}
 					<div className="flex flex-col items-start gap-6">
-						<img
-							src={logo}
-							alt="Gabriele Viganò"
-							className="h-8 w-auto filter invert opacity-90"
-						/>
+						<p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+							About
+						</p>
 						<div className="flex flex-col gap-3">
+							<p className="text-lg font-semibold text-zinc-100 leading-tight">
+								Gabriele Viganò
+							</p>
 							<a
 								href="mailto:info@viganogabriele.com"
 								className="text-lg font-medium text-white hover:text-violet-400 transition-colors group flex items-center gap-2"
@@ -1349,10 +1400,6 @@ const Footer = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 								info@viganogabriele.com
 								<ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
 							</a>
-							<p className="text-sm text-zinc-500 max-w-xs leading-relaxed">
-								Computer Engineering student at Politecnico di Milano, focused
-								on building high-performance systems.
-							</p>
 						</div>
 					</div>
 
@@ -1601,11 +1648,25 @@ function App() {
 				<main className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
 					{/* ── Hero ─────────────────────────────────────────────────── */}
 					<motion.section
-						className="min-h-[100vh] flex flex-col md:flex-row items-center justify-between pt-28 pb-16 gap-12"
+						className="min-h-[100vh] flex flex-col md:flex-row items-center justify-between pt-38 sm:pt-40 md:pt-28 pb-16 gap-10 md:gap-12"
 						style={{ y: heroY, opacity: heroOpacity }}
 					>
+						{/* Mobile-first portrait */}
+						<motion.div
+							className="order-1 md:order-2 flex-1 flex justify-center md:justify-end"
+							initial={{ opacity: 0, scale: 0.85, rotate: -2 }}
+							animate={{ opacity: 1, scale: 1, rotate: 0 }}
+							transition={{
+								duration: 1.2,
+								ease: [0.16, 1, 0.3, 1],
+								delay: 0.4,
+							}}
+						>
+							<FloatingPortrait />
+						</motion.div>
+
 						{/* Left Content */}
-						<div className="flex-1 flex flex-col items-start text-left z-10 w-full mb-10 md:mb-0">
+						<div className="order-2 md:order-1 flex-1 flex flex-col items-start text-left z-10 w-full mb-10 md:mb-0">
 							<motion.div
 								initial={{ opacity: 0, y: 20 }}
 								animate={{ opacity: 1, y: 0 }}
@@ -1673,20 +1734,6 @@ function App() {
 								</Magnetic>
 							</motion.div>
 						</div>
-
-						{/* Right Portrait */}
-						<motion.div
-							className="flex-1 flex justify-center md:justify-end"
-							initial={{ opacity: 0, scale: 0.85, rotate: -2 }}
-							animate={{ opacity: 1, scale: 1, rotate: 0 }}
-							transition={{
-								duration: 1.2,
-								ease: [0.16, 1, 0.3, 1],
-								delay: 0.4,
-							}}
-						>
-							<FloatingPortrait />
-						</motion.div>
 					</motion.section>
 
 					{/* ── What I Do ─────────────────────────────────────────────── */}
