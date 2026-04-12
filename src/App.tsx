@@ -336,12 +336,15 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 	const [scrolled, setScrolled] = useState(false);
 	const [mobileOpen, setMobileOpen] = useState(false);
 	const [activeSection, setActiveSection] = useState("#about");
+
 	useEffect(() => {
 		const h = () => setScrolled(window.scrollY > 40);
+		h();
 		window.addEventListener("scroll", h, { passive: true });
 		return () => window.removeEventListener("scroll", h);
 	}, []);
 
+	// IntersectionObserver — keeps activeSection in sync while scrolling
 	useEffect(() => {
 		const sections = NAV_LINKS.map((link) =>
 			document.querySelector<HTMLElement>(link.href),
@@ -352,59 +355,40 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 		const observer = new IntersectionObserver(
 			(entries) => {
 				const visibleEntry = entries
-					.filter((entry) => entry.isIntersecting)
+					.filter((e) => e.isIntersecting)
 					.sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-
 				if (visibleEntry?.target.id) {
 					setActiveSection(`#${visibleEntry.target.id}`);
 				}
 			},
-			{
-				rootMargin: "-35% 0px -45% 0px",
-				threshold: [0.15, 0.35, 0.6],
-			},
+			{ rootMargin: "-30% 0px -40% 0px", threshold: [0.1, 0.3, 0.6] },
 		);
 
-		sections.forEach((section) => observer.observe(section));
+		sections.forEach((s) => observer.observe(s));
 		return () => observer.disconnect();
 	}, []);
 
+	// Close on Escape
 	useEffect(() => {
 		if (!mobileOpen) return;
-		const onEscape = (event: KeyboardEvent) => {
-			if (event.key === "Escape") setMobileOpen(false);
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") setMobileOpen(false);
 		};
-		window.addEventListener("keydown", onEscape);
-		return () => window.removeEventListener("keydown", onEscape);
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
 	}, [mobileOpen]);
 
-	// Lock body scroll when mobile menu is open
-	useEffect(() => {
-		if (mobileOpen) {
-			document.body.style.overflow = "hidden";
-		} else {
-			document.body.style.overflow = "";
-		}
-		return () => { document.body.style.overflow = ""; };
-	}, [mobileOpen]);
+	// NOTE: no body scroll lock — it breaks IntersectionObserver tracking
 
 	const handleScrollTo = (
 		e: React.MouseEvent<HTMLAnchorElement>,
 		target: string,
 	) => {
 		e.preventDefault();
-		// Close menu immediately, then scroll
 		setMobileOpen(false);
-		// Brief flash animation on the link itself
-		e.currentTarget.animate(
-			[
-				{ transform: "scale(1)", filter: "brightness(1)" },
-				{ transform: "scale(0.96)", filter: "brightness(1.18)" },
-				{ transform: "scale(1)", filter: "brightness(1)" },
-			],
-			{ duration: 280, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
-		);
-		// Delay scroll slightly so menu close animation doesn't fight
+		// Optimistic active update so indicator moves immediately on tap
+		const match = NAV_LINKS.find((l) => l.href === target);
+		if (match) setActiveSection(match.href);
 		setTimeout(() => onNavigate(target), 60);
 	};
 
@@ -440,23 +424,23 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 				transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
 				className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[49] w-[92%] max-w-4xl"
 			>
-				{/* Violet glow halo above the pill */}
-				<div className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 w-[70%] h-10 bg-gradient-to-r from-transparent via-violet-500/30 to-transparent blur-2xl" />
+				{/* Subtle glow behind pill */}
+				<div className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 w-[60%] h-8 bg-gradient-to-r from-transparent via-white/8 to-transparent blur-2xl" />
 
-				{/* ── Pill (top bar) ── always rounded-full */}
+				{/* ── Pill ── */}
 				<div
 					className={cn(
-						"px-4 sm:px-5 py-3 rounded-full border transition-all duration-500 relative z-[49]",
+						"px-4 sm:px-5 py-3 rounded-full border transition-all duration-500",
 						scrolled
-							? "border-violet-400/20 shadow-[0_8px_32px_rgba(109,40,217,0.25),0_0_0_0.5px_rgba(139,92,246,0.1)]"
-							: "border-violet-400/12 shadow-[0_4px_24px_rgba(109,40,217,0.15)]",
+							? "border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.55)]"
+							: "border-white/[0.07] shadow-[0_4px_20px_rgba(0,0,0,0.35)]",
 					)}
 					style={{
 						background: scrolled
-							? "rgba(22, 10, 48, 0.82)"
-							: "rgba(18, 8, 38, 0.65)",
-						backdropFilter: "blur(24px) saturate(180%)",
-						WebkitBackdropFilter: "blur(24px) saturate(180%)",
+							? "rgba(12, 10, 18, 0.80)"
+							: "rgba(10, 8, 16, 0.60)",
+						backdropFilter: "blur(22px) saturate(160%)",
+						WebkitBackdropFilter: "blur(22px) saturate(160%)",
 					}}
 				>
 					<div className="flex items-center justify-between">
@@ -474,24 +458,32 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 							/>
 						</a>
 
-						{/* Desktop links */}
+						{/* Desktop links — animated sliding indicator via layoutId */}
 						<div className="hidden lg:flex items-center gap-1">
-							{NAV_LINKS.map((link) => (
-								<a
-									key={link.label}
-									href={link.href}
-									onClick={(e) => handleScrollTo(e, link.href)}
-									data-cursor="hover"
-									className={cn(
-										"px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300",
-										activeSection === link.href
-											? "text-violet-200 bg-violet-500/20"
-											: "text-zinc-400 hover:text-white hover:bg-violet-500/10",
-									)}
-								>
-									{link.label}
-								</a>
-							))}
+							{NAV_LINKS.map((link) => {
+								const isActive = activeSection === link.href;
+								return (
+									<a
+										key={link.label}
+										href={link.href}
+										onClick={(e) => handleScrollTo(e, link.href)}
+										data-cursor="hover"
+										className={cn(
+											"relative px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200",
+											isActive ? "text-white" : "text-zinc-400 hover:text-white",
+										)}
+									>
+										{isActive && (
+											<motion.span
+												layoutId="nav-pill"
+												className="absolute inset-0 rounded-full bg-white/[0.1]"
+												transition={{ type: "spring", stiffness: 380, damping: 34 }}
+											/>
+										)}
+										<span className="relative z-10">{link.label}</span>
+									</a>
+								);
+							})}
 						</div>
 
 						{/* Right side */}
@@ -505,12 +497,12 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 							</a>
 							<button
 								type="button"
-								onClick={() => setMobileOpen((prev) => !prev)}
+								onClick={() => setMobileOpen((p) => !p)}
 								className={cn(
 									"lg:hidden w-9 h-9 rounded-full border transition-all duration-200 flex items-center justify-center",
 									mobileOpen
-										? "border-violet-400/40 bg-violet-500/20 text-violet-200"
-										: "border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-violet-500/15 hover:border-violet-400/30",
+										? "border-white/20 bg-white/10 text-white"
+										: "border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
 								)}
 								aria-label="Toggle navigation menu"
 							>
@@ -544,52 +536,67 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 					</div>
 				</div>
 
-				{/* ── Mobile dropdown — separate card below the pill ── */}
+				{/* ── Mobile dropdown — separate transparent card below the pill ── */}
 				<AnimatePresence>
 					{mobileOpen && (
 						<motion.div
 							key="mobile-menu"
-							initial={{ opacity: 0, y: -8, scale: 0.97 }}
+							initial={{ opacity: 0, y: -6, scale: 0.98 }}
 							animate={{ opacity: 1, y: 0, scale: 1 }}
-							exit={{ opacity: 0, y: -8, scale: 0.97 }}
-							transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-							className="lg:hidden mt-2 p-3 rounded-2xl border border-violet-400/20 overflow-hidden"
+							exit={{ opacity: 0, y: -6, scale: 0.98 }}
+							transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+							className="lg:hidden mt-2 p-2 rounded-2xl border border-white/[0.09] overflow-hidden"
 							style={{
-								background: "rgba(22, 10, 48, 0.90)",
-								backdropFilter: "blur(24px) saturate(180%)",
-								WebkitBackdropFilter: "blur(24px) saturate(180%)",
-								boxShadow: "0 8px 32px rgba(109,40,217,0.2), 0 0 0 0.5px rgba(139,92,246,0.1)",
+								background: "rgba(12, 10, 18, 0.88)",
+								backdropFilter: "blur(24px) saturate(160%)",
+								WebkitBackdropFilter: "blur(24px) saturate(160%)",
+								boxShadow: "0 12px 40px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.06)",
 							}}
 						>
-							<nav className="flex flex-col gap-1">
-								{NAV_LINKS.map((link, i) => (
-									<motion.a
-										key={link.label}
-										href={link.href}
-										onClick={(e) => handleScrollTo(e, link.href)}
-										initial={{ opacity: 0, x: -8 }}
-										animate={{ opacity: 1, x: 0 }}
-										transition={{ delay: i * 0.05, duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-										className={cn(
-											"flex items-center gap-2.5 px-4 py-3 rounded-xl text-[14px] font-medium transition-all duration-200 active:scale-[0.97] select-none",
-											activeSection === link.href
-												? "text-violet-200 bg-violet-500/20 border border-violet-400/25"
-												: "text-zinc-300 hover:text-white hover:bg-violet-500/10",
-										)}
-									>
-										{activeSection === link.href && (
-											<span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
-										)}
-										{link.label}
-									</motion.a>
-								))}
+							{/* Nav links — same layoutId-based sliding pill as desktop */}
+							<nav className="flex flex-col gap-0.5">
+								{NAV_LINKS.map((link, i) => {
+									const isActive = activeSection === link.href;
+									return (
+										<motion.a
+											key={link.label}
+											href={link.href}
+											onClick={(e) => handleScrollTo(e, link.href)}
+											initial={{ opacity: 0, x: -6 }}
+											animate={{ opacity: 1, x: 0 }}
+											transition={{ delay: i * 0.04, duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+											className={cn(
+												"relative flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-medium transition-colors duration-150 active:scale-[0.98] select-none overflow-hidden",
+												isActive ? "text-white" : "text-zinc-400 hover:text-white",
+											)}
+										>
+											{/* Sliding background pill */}
+											{isActive && (
+												<motion.span
+													layoutId="nav-pill-mobile"
+													className="absolute inset-0 rounded-xl bg-white/[0.08]"
+													transition={{ type: "spring", stiffness: 380, damping: 34 }}
+												/>
+											)}
+											{/* Accent dot */}
+											<span
+												className={cn(
+													"relative z-10 w-1.5 h-1.5 rounded-full shrink-0 transition-all duration-300",
+													isActive ? "bg-white opacity-60" : "bg-white/20",
+												)}
+											/>
+											<span className="relative z-10">{link.label}</span>
+										</motion.a>
+									);
+								})}
 							</nav>
-							<div className="mt-2 pt-2 border-t border-violet-400/15">
+							{/* Divider + Let's talk */}
+							<div className="mt-1.5 pt-1.5 border-t border-white/[0.07] px-1">
 								<motion.a
 									href="mailto:info@viganogabriele.com"
 									initial={{ opacity: 0, y: 4 }}
 									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: NAV_LINKS.length * 0.05 + 0.06, duration: 0.22 }}
+									transition={{ delay: NAV_LINKS.length * 0.04 + 0.04, duration: 0.2 }}
 									className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-[14px] font-semibold text-black bg-white hover:bg-zinc-100 transition-colors active:scale-[0.97]"
 								>
 									Let's talk
