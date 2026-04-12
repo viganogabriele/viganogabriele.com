@@ -378,6 +378,14 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 		target: string,
 	) => {
 		e.preventDefault();
+		e.currentTarget.animate(
+			[
+				{ transform: "scale(1)", filter: "brightness(1)" },
+				{ transform: "scale(0.96)", filter: "brightness(1.18)" },
+				{ transform: "scale(1)", filter: "brightness(1)" },
+			],
+			{ duration: 280, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+		);
 		onNavigate(target);
 		setMobileOpen(false);
 	};
@@ -554,14 +562,45 @@ const Magnetic = ({
 
 // ─── Floating Portrait ────────────────────────────────────────────────────────
 const FloatingPortrait = () => {
+	const [eggVisible, setEggVisible] = useState(false);
+	const eggTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		return () => {
+			if (eggTimerRef.current) clearTimeout(eggTimerRef.current);
+		};
+	}, []);
+
+	const handlePortraitClick = () => {
+		setEggVisible(true);
+		if (eggTimerRef.current) clearTimeout(eggTimerRef.current);
+		eggTimerRef.current = setTimeout(() => setEggVisible(false), 1700);
+	};
+
 	return (
 		<motion.div
 			animate={{ y: [0, -15, 0] }}
 			transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-			className="relative z-10 w-60 md:w-80 flex justify-center cursor-default group"
+			className="relative z-10 w-60 md:w-80 flex justify-center cursor-pointer group"
+			onClick={handlePortraitClick}
+			whileTap={{ scale: 0.985 }}
 		>
 			{/* Soft dynamic glow behind silhouette */}
 			<div className="absolute inset-x-0 top-[20%] bottom-0 bg-violet-600/20 blur-[80px] rounded-full scale-90 group-hover:bg-violet-500/30 transition-colors duration-700" />
+
+			<AnimatePresence>
+				{eggVisible && (
+					<motion.div
+						initial={{ opacity: 0, y: -8, scale: 0.95 }}
+						animate={{ opacity: 1, y: -16, scale: 1 }}
+						exit={{ opacity: 0, y: -22, scale: 0.96 }}
+						transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+						className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-violet-300/35 bg-black/60 backdrop-blur-md px-3 py-1 text-[10px] tracking-[0.18em] uppercase text-violet-100"
+					>
+						Homelab mode unlocked
+					</motion.div>
+				)}
+			</AnimatePresence>
 
 			<div className="relative w-full h-[340px] md:h-[470px] flex items-end justify-center">
 				<div
@@ -687,7 +726,6 @@ const TextScramble = ({ text }: { text: string }) => {
 				>
 					{display}
 				</span>
-				<span className="text-zinc-500 animate-pulse ml-1">_</span>
 			</h1>
 		</div>
 	);
@@ -1751,6 +1789,12 @@ function HomePage() {
 	const { scrollYProgress } = useScroll();
 	const heroY = useTransform(scrollYProgress, [0, 0.3], ["0%", "25%"]);
 	const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
+	const bgShiftTop = useTransform(scrollYProgress, [0, 0.5, 1], [0.02, 0.1, 0.04]);
+	const bgShiftBottom = useTransform(
+		scrollYProgress,
+		[0, 0.5, 1],
+		[0.03, 0.08, 0.14],
+	);
 
 	const [isPreloading, setIsPreloading] = useState(true);
 	const [loadingProgress, setLoadingProgress] = useState(0);
@@ -1931,6 +1975,16 @@ function HomePage() {
 
 				{/* Ambient glows */}
 				<div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+					<motion.div
+						aria-hidden
+						style={{ opacity: bgShiftTop }}
+						className="absolute inset-0 bg-[radial-gradient(70%_55%_at_50%_8%,rgba(56,189,248,0.35),rgba(0,0,0,0)_70%)]"
+					/>
+					<motion.div
+						aria-hidden
+						style={{ opacity: bgShiftBottom }}
+						className="absolute inset-0 bg-[radial-gradient(62%_50%_at_50%_92%,rgba(139,92,246,0.3),rgba(0,0,0,0)_72%)]"
+					/>
 					<div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-900/20 blur-[150px] md:opacity-50" />
 					<div className="absolute top-[30%] left-[-18%] w-[52%] h-[52%] rounded-full bg-cyan-500/18 blur-[170px] md:opacity-70" />
 					<div className="absolute bottom-[12%] left-[-12%] w-[46%] h-[46%] rounded-full bg-sky-500/15 blur-[150px] md:opacity-65" />
@@ -2179,10 +2233,10 @@ function HomePage() {
 							title="Engineering Notes."
 							subtitle="Short technical writes on motion systems, architecture decisions, and infrastructure operations."
 						/>
-						<div className="flex items-center justify-end mb-6">
+						<div className="flex items-center justify-end mb-8 -mt-2">
 							<Link
 								to="/notes"
-								className="text-xs uppercase tracking-[0.2em] text-zinc-400 hover:text-white transition-colors"
+								className="text-xs uppercase tracking-[0.2em] text-zinc-400 hover:text-violet-200 transition-colors"
 							>
 								View all notes
 							</Link>
@@ -2194,7 +2248,7 @@ function HomePage() {
 										data-cursor="hover"
 										whileHover={{ y: -4, scale: 1.01 }}
 										transition={{ type: "spring", stiffness: 320, damping: 24 }}
-										className="group h-full flex flex-col rounded-3xl border border-white/5 bg-[#0a0a0a] p-6 hover:border-white/20 transition-colors"
+										className="group h-full flex flex-col rounded-3xl border border-white/5 bg-[#0a0a0a] p-6 hover:border-violet-500/35 transition-colors"
 									>
 										<Link to={`/notes/${note.slug}`} className="contents">
 											<div className="flex items-center justify-between mb-4 text-[11px] font-mono uppercase tracking-wider text-zinc-500">
@@ -2211,7 +2265,7 @@ function HomePage() {
 												{note.tags.map((tag) => (
 													<span
 														key={tag}
-														className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono"
+														className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono group-hover:border-violet-500/40 group-hover:text-violet-200 transition-colors"
 													>
 														{tag}
 													</span>
@@ -2306,7 +2360,7 @@ const NotesIndexPage = () => (
 					<ScrollReveal key={note.slug} delay={index * 0.06}>
 						<Link
 							to={`/notes/${note.slug}`}
-							className="block rounded-3xl border border-white/8 bg-[#0a0a0a] p-6 hover:border-white/20 transition-colors"
+							className="group block rounded-3xl border border-white/8 bg-[#0a0a0a] p-6 hover:border-violet-500/35 transition-colors"
 						>
 							<p className="text-[11px] font-mono uppercase tracking-[0.16em] text-zinc-500 mb-3">
 								{note.date} • {note.readingTime}
@@ -2317,6 +2371,16 @@ const NotesIndexPage = () => (
 							<p className="text-sm text-zinc-400 leading-relaxed">
 								{note.preview}
 							</p>
+							<div className="mt-5 flex flex-wrap gap-2">
+								{note.tags.map((tag) => (
+									<span
+										key={tag}
+										className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono group-hover:border-violet-500/40 group-hover:text-violet-200 transition-colors"
+									>
+										{tag}
+									</span>
+								))}
+							</div>
 						</Link>
 					</ScrollReveal>
 				))}
