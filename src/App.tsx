@@ -386,13 +386,9 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 					scrolled
 						? "border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]"
 						: "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]",
-					mobileOpen && "border-violet-300/45",
-					mobileOpen && "rounded-[1.15rem]",
 				)}
 				style={{
-					background: mobileOpen
-						? "linear-gradient(150deg, rgba(64,38,118,0.62) 0%, rgba(16,14,30,0.94) 100%)"
-						: scrolled
+					background: scrolled
 							? "rgba(8, 8, 8, 0.15)"
 							: "rgba(8, 8, 8, 0.02)",
 					backdropFilter: "blur(30px) saturate(200%)",
@@ -445,9 +441,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 							onClick={() => setMobileOpen((prev) => !prev)}
 							className={cn(
 								"lg:hidden w-10 h-10 rounded-full border transition-colors flex items-center justify-center",
-								mobileOpen
-									? "border-violet-300/55 bg-violet-500/24 text-violet-100"
-									: "border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
+								"border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
 							)}
 							aria-label="Toggle navigation menu"
 						>
@@ -679,7 +673,7 @@ const TextScramble = ({ text }: { text: string }) => {
 					className={cn(
 						"bg-clip-text text-transparent bg-[length:220%_auto] transition-all duration-700 ease-out",
 						isHovered
-							? "bg-gradient-to-r from-cyan-100 via-cyan-300 to-violet-300 bg-[position:100%_center] drop-shadow-[0_0_18px_rgba(56,189,248,0.28)]"
+							? "bg-gradient-to-r from-cyan-100 via-cyan-300 to-violet-300 bg-[position:100%_center]"
 							: "bg-gradient-to-r from-cyan-200 via-cyan-300 to-sky-300 bg-[position:0%_center]",
 					)}
 				>
@@ -1103,24 +1097,18 @@ const ActivityCard = ({
 			data-cursor="hover"
 			className={cn(
 				"relative p-7 rounded-3xl border overflow-hidden group shadow-lg cursor-pointer select-none",
-				highlight
-					? "border-violet-600/30 bg-gradient-to-br from-violet-950/40 via-[#080808] to-[#080808] shadow-violet-900/10"
-					: "border-white/5 bg-[#0a0a0a]",
+				"border-white/5 bg-[#0a0a0a] hover:border-violet-500/35",
+				highlight && "hover:shadow-[0_0_28px_rgba(139,92,246,0.12)]",
 			)}
 		>
-			<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-			{highlight && (
-				<div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-			)}
+			<div className="absolute -inset-8 rounded-[2.5rem] bg-[radial-gradient(circle_at_76%_14%,rgba(139,92,246,0.16)_0%,rgba(139,92,246,0.08)_28%,rgba(0,0,0,0)_62%)] opacity-0 group-hover:opacity-100 blur-2xl transition-opacity duration-700 pointer-events-none" />
 
 			<div className="relative z-10">
 				<div className="flex items-start justify-between mb-6">
 					<div
 						className={cn(
 							"w-12 h-12 rounded-2xl border flex items-center justify-center transition-all duration-300",
-							highlight
-								? "bg-violet-950/80 border-violet-800/60 text-violet-400 group-hover:bg-violet-900 group-hover:text-white"
-								: "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-zinc-800 group-hover:text-white",
+							"bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-violet-900/55 group-hover:border-violet-500/60 group-hover:text-violet-100",
 						)}
 					>
 						<Icon className="w-6 h-6" />
@@ -1130,8 +1118,7 @@ const ActivityCard = ({
 						animate={{ rotate: isOpen ? 180 : 0, opacity: isOpen ? 1 : 0.45 }}
 						transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
 						className={cn(
-							"mt-1",
-							highlight ? "text-violet-400" : "text-zinc-500",
+							"mt-1 text-zinc-500 group-hover:text-violet-300 transition-colors",
 						)}
 					>
 						<ChevronDown className="w-5 h-5" />
@@ -1163,7 +1150,9 @@ const ActivityCard = ({
 								<span
 									className={cn(
 										"mt-2 w-1.5 h-1.5 rounded-full shrink-0",
-										highlight ? "bg-violet-500" : "bg-zinc-600",
+										highlight
+											? "bg-violet-500/80 group-hover:bg-violet-300"
+											: "bg-zinc-600 group-hover:bg-violet-400/80",
 									)}
 								/>
 								{item}
@@ -1178,9 +1167,7 @@ const ActivityCard = ({
 								key={tag}
 								className={cn(
 									"px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors",
-									highlight
-										? "bg-violet-950/40 border-violet-800/30 text-violet-300 group-hover:border-violet-600/50"
-										: "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:border-zinc-600",
+									"bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:border-violet-500/45 group-hover:text-violet-200",
 								)}
 							>
 								{tag}
@@ -1217,18 +1204,19 @@ const ProjectCard = ({
 		}}
 		target={link ? "_blank" : undefined}
 		rel="noreferrer"
-		whileHover={link ? { y: -6, scale: 1.02 } : { y: -2, scale: 1.005 }}
+		whileHover={{ y: -6, scale: 1.02 }}
 		transition={{ type: "spring", stiffness: 350, damping: 25 }}
 		data-cursor="hover"
 		className={cn(
 			"group relative flex flex-col p-7 rounded-3xl border border-white/5 bg-[#0a0a0a] overflow-hidden transition-all duration-500 shadow-lg h-full",
-			link ? "hover:border-white/20" : "cursor-default",
+			"hover:border-violet-500/35",
+			!link && "cursor-default",
 		)}
 	>
 		<motion.div className="absolute inset-0 bg-gradient-to-br from-violet-600/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 		<div className="relative z-10 flex-1">
 			<div className="flex items-start justify-between mb-6">
-				<div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-white group-hover:text-black group-hover:border-white transition-all duration-300">
+				<div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-violet-900/55 group-hover:text-violet-100 group-hover:border-violet-500/60 transition-all duration-300">
 					<Icon className="w-6 h-6" />
 				</div>
 				<div className="flex items-center gap-3">
@@ -1238,7 +1226,7 @@ const ProjectCard = ({
 						</span>
 					)}
 					{link && (
-						<ArrowUpRight className="w-5 h-5 text-zinc-600 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+						<ArrowUpRight className="w-5 h-5 text-zinc-600 group-hover:text-violet-200 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1 group-hover:-translate-y-1" />
 					)}
 				</div>
 			</div>
@@ -1253,7 +1241,7 @@ const ProjectCard = ({
 			{tags.map((tag) => (
 				<span
 					key={tag}
-					className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono"
+					className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono group-hover:border-violet-500/40 group-hover:text-violet-200 transition-colors"
 				>
 					{tag}
 				</span>
@@ -1295,23 +1283,23 @@ const InteractiveTimeline = ({ items }: { items: TimelineItem[] }) => {
 							key={`${item.title}-${item.year}`}
 							delay={index * 0.07}
 						>
-							<div className="relative pl-14 pr-2">
+							<div className="group relative pl-14 pr-2">
 								<div
 									className={cn(
-										"absolute left-[7px] top-7 w-6 h-6 rounded-full border flex items-center justify-center backdrop-blur-lg",
+										"absolute left-[7px] top-7 w-6 h-6 rounded-full border flex items-center justify-center backdrop-blur-lg transition-colors",
 										item.highlight
-											? "border-violet-400/70 bg-violet-500/20 text-violet-300"
-											: "border-zinc-600 bg-zinc-900 text-zinc-300",
+											? "border-zinc-600 bg-zinc-900 text-zinc-300 group-hover:border-violet-400/70 group-hover:bg-violet-500/20 group-hover:text-violet-200"
+											: "border-zinc-600 bg-zinc-900 text-zinc-300 group-hover:border-violet-400/70 group-hover:bg-violet-500/18 group-hover:text-violet-200",
 									)}
 								>
 									<TimelineIcon className="w-3.5 h-3.5" />
 								</div>
 								<div
 									className={cn(
-										"rounded-3xl border p-5 md:p-6",
+										"rounded-3xl border p-5 md:p-6 transition-colors",
 										item.highlight
-											? "border-violet-500/25 bg-violet-950/20"
-											: "border-white/5 bg-[#0b0b0b]",
+											? "border-white/5 bg-[#0b0b0b] group-hover:border-violet-500/35 group-hover:bg-violet-950/18"
+											: "border-white/5 bg-[#0b0b0b] group-hover:border-violet-500/35 group-hover:bg-violet-950/12",
 									)}
 								>
 									<div className="flex items-center justify-between gap-4 mb-3">
@@ -1359,22 +1347,22 @@ const CertCard = ({
 		href={link}
 		target="_blank"
 		rel="noreferrer"
-		whileHover={{ x: 6, backgroundColor: "rgba(255,255,255,0.03)" }}
+		whileHover={{ x: 6, backgroundColor: "rgba(76,29,149,0.14)" }}
 		transition={{ type: "spring", stiffness: 350, damping: 25 }}
 		data-cursor="hover"
 		className={cn(
 			"group flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-5 sm:p-6 rounded-3xl border transition-colors",
 			highlight
-				? "border-violet-500/20 bg-violet-950/10"
-				: "border-white/5 bg-[#0a0a0a]",
+				? "border-white/5 bg-[#0a0a0a] hover:border-violet-500/40"
+				: "border-white/5 bg-[#0a0a0a] hover:border-violet-500/35",
 		)}
 	>
 		<div
 			className={cn(
 				"w-12 h-12 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-300",
 				highlight
-					? "bg-violet-950/80 border-violet-800/60 text-violet-400 group-hover:bg-violet-900"
-					: "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-zinc-800 group-hover:text-white",
+					? "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-violet-900/55 group-hover:border-violet-500/60 group-hover:text-violet-100"
+					: "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-violet-900/45 group-hover:border-violet-500/55 group-hover:text-violet-100",
 			)}
 		>
 			<Icon className="w-5 h-5" />
@@ -1936,6 +1924,8 @@ function HomePage() {
 				{/* Ambient glows */}
 				<div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
 					<div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-900/20 blur-[150px] md:opacity-50" />
+					<div className="absolute top-[30%] left-[-18%] w-[52%] h-[52%] rounded-full bg-cyan-500/18 blur-[170px] md:opacity-70" />
+					<div className="absolute bottom-[12%] left-[-12%] w-[46%] h-[46%] rounded-full bg-sky-500/15 blur-[150px] md:opacity-65" />
 					<div className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/25 blur-[160px] md:opacity-60" />
 					<div className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] rounded-full bg-fuchsia-900/20 blur-[140px] md:opacity-40" />
 				</div>
