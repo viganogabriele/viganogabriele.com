@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   motion,
+  AnimatePresence,
   useScroll,
   useTransform,
   useMotionValue,
@@ -21,16 +22,23 @@ import {
   Award,
   Users,
   Mic2,
+  ChevronDown,
+  Mail,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Matter from 'matter-js';
-import portrait from './photo-without-background.png';
+import portrait from './assets/photo-gabriele.png';
 import logo from './assets/logo-dark.png';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+// ─── Touch detection ──────────────────────────────────────────────────────────
+const isTouchDevice = () =>
+  typeof window !== 'undefined' &&
+  ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 const GithubIcon = ({ className }: { className?: string }) => (
@@ -55,10 +63,11 @@ const FigmaIcon = ({ className, style }: { className?: string; style?: React.CSS
   </svg>
 );
 
-// ─── Custom Cursor ────────────────────────────────────────────────────────────
+// ─── Custom Cursor (desktop only) ────────────────────────────────────────────
 const CustomCursor = () => {
   const dotRef = useRef<HTMLDivElement>(null);
   const [hoverLevel, setHoverLevel] = useState<'none' | 'link' | 'bubble'>('none');
+  const [isTouch, setIsTouch] = useState(true);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -69,6 +78,9 @@ const CustomCursor = () => {
   const ringOp = hoverLevel === 'bubble' ? 1 : hoverLevel === 'link' ? 0.8 : 0.45;
 
   useEffect(() => {
+    setIsTouch(isTouchDevice());
+    if (isTouchDevice()) return;
+
     const move = (e: MouseEvent) => {
       mouseX.set(e.clientX);
       mouseY.set(e.clientY);
@@ -101,6 +113,8 @@ const CustomCursor = () => {
     obs.observe(document.body, { childList: true, subtree: true });
     return () => { window.removeEventListener('mousemove', move); obs.disconnect(); };
   }, [mouseX, mouseY]);
+
+  if (isTouch) return null;
 
   return (
     <>
@@ -144,26 +158,35 @@ const Navbar = () => {
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-      className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-4xl"
+      className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-4xl"
     >
-      <div className={cn(
-        'flex items-center justify-between px-6 py-3 rounded-full border transition-all duration-500',
-        scrolled
-          ? 'bg-zinc-950/70 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-2xl'
-          : 'bg-zinc-950/40 border-white/5 shadow-lg shadow-black/10 backdrop-blur-xl'
-      )}>
+      <div
+        className={cn(
+          'flex items-center justify-between px-5 py-3 rounded-full border transition-all duration-500',
+          scrolled
+            ? 'border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]'
+            : 'border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]'
+        )}
+        style={{
+          background: scrolled
+            ? 'rgba(8, 8, 8, 0.75)'
+            : 'rgba(8, 8, 8, 0.5)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        }}
+      >
         <a href="#" onClick={(e) => handleScrollTo(e, 'body')} data-cursor="hover" className="flex items-center gap-3 group">
-           <img src={logo} alt="Gabriele Viganò" className="h-6 w-auto opacity-90 group-hover:opacity-100 transition-opacity filter invert drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
+           <img src={logo} alt="Gabriele Viganò" className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert" />
         </a>
         
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-1">
           {NAV_LINKS.map(link => (
             <a
               key={link.label}
               href={link.href}
               onClick={(e) => handleScrollTo(e, link.href)}
               data-cursor="hover"
-              className="px-4 py-2 rounded-full text-[13px] font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition-all duration-300"
+              className="px-4 py-2 rounded-full text-[13px] font-medium text-zinc-400 hover:text-white hover:bg-white/[0.07] transition-all duration-300"
             >
               {link.label}
             </a>
@@ -173,7 +196,7 @@ const Navbar = () => {
         <a
           href="mailto:contact@viganogabriele.com"
           data-cursor="hover"
-          className="px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]"
+          className="px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.35)]"
         >
           Let's talk
         </a>
@@ -214,15 +237,18 @@ const FloatingPortrait = () => {
     <motion.div
       animate={{ y: [0, -15, 0] }}
       transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut' }}
-      className="relative z-10 w-64 md:w-80 flex justify-center cursor-default group"
+      className="relative z-10 w-56 md:w-80 flex justify-center cursor-default group"
     >
       {/* Soft dynamic glow behind silhouette */}
       <div className="absolute inset-x-0 top-[20%] bottom-0 bg-violet-600/20 blur-[80px] rounded-full scale-90 group-hover:bg-violet-500/30 transition-colors duration-700" />
       
-      <div className="relative w-full h-[350px] md:h-[450px] overflow-visible flex items-end">
+      <div className="relative w-full h-[320px] md:h-[450px] overflow-visible flex items-end">
         <img
           src={portrait}
           alt="Gabriele Viganò"
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
           style={{ filter: 'drop-shadow(0 25px 35px rgba(0,0,0,0.6))' }}
           className="w-full h-full object-cover object-bottom z-10 transition-transform duration-700 group-hover:scale-105"
         />
@@ -231,13 +257,26 @@ const FloatingPortrait = () => {
   );
 };
 
+// ─── Kinetic Tag ──────────────────────────────────────────────────────────────
+const KineticTag = () => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -30 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.2, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+      className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-8"
+    >
+      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+      <span className="text-zinc-300 text-xs font-semibold tracking-wide uppercase">Computer Engineering Student</span>
+    </motion.div>
+  );
+};
+
 // ─── Gradient Scramble Text ────────────────────────────────────────────────────
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
-const PHRASES = ['Building Systems', 'Designing Experiences'];
 
-const TextScramble = () => {
-  const [display, setDisplay] = useState(PHRASES[0]);
-  const [phraseIdx, setPhraseIdx] = useState(0);
+const TextScramble = ({ text }: { text: string }) => {
+  const [display, setDisplay] = useState(text);
   const [isHovered, setIsHovered] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -265,25 +304,14 @@ const TextScramble = () => {
   }, []);
 
   useEffect(() => {
-    scramble(PHRASES[0]);
+    scramble(text);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [scramble]);
-
-  const handleHover = () => {
-    setIsHovered(true);
-    const nextIdx = (phraseIdx + 1) % PHRASES.length;
-    setPhraseIdx(nextIdx);
-    scramble(PHRASES[nextIdx]);
-  };
-
-  const handleLeave = () => {
-    setIsHovered(false);
-  };
+  }, [scramble, text]);
 
   return (
     <h1
-      onMouseEnter={handleHover}
-      onMouseLeave={handleLeave}
+      onMouseEnter={() => { setIsHovered(true); scramble(text); }}
+      onMouseLeave={() => setIsHovered(false)}
       className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-tight font-mono relative cursor-default"
     >
       <span
@@ -315,11 +343,10 @@ const ScrollReveal = ({ children, delay = 0, className }: { children: React.Reac
 );
 
 
-// ─── Matter.js Physics Logic ───────────────────────────────────────────────────
-// We use a custom hook to manage bodies and sync them with React state
-const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, items: any[]) => {
+// ─── Matter.js Physics Hook ───────────────────────────────────────────────────
+const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, items: { x: number; y: number }[]) => {
   const [positions, setPositions] = useState<{ x: number, y: number, angle: number }[]>(
-    items.map(item => ({ x: item.x, y: item.y, angle: 0 }))
+    items.map((_, i) => ({ x: i * 80 + 80, y: 100, angle: 0 }))
   );
 
   useEffect(() => {
@@ -327,42 +354,47 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
     
     const container = containerRef.current;
     
-    // Engine & World Setup
     const engine = Matter.Engine.create({
-      gravity: { x: 0, y: 0, scale: 0 } // no gravity, top-down view
+      gravity: { x: 0, y: 0, scale: 0 }
     });
     const world = engine.world;
     
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const getSize = () => ({
+      width: container.clientWidth,
+      height: container.clientHeight,
+    });
     
-    // Bounds: Bouncy invisible walls
+    let { width, height } = getSize();
+    
     const wallOpts = { isStatic: true, restitution: 0.8, friction: 0, render: { visible: false } };
     const walls = [
-      Matter.Bodies.rectangle(width/2, -50, width*2, 100, wallOpts), // top
-      Matter.Bodies.rectangle(width/2, height+50, width*2, 100, wallOpts), // bottom
-      Matter.Bodies.rectangle(-50, height/2, 100, height*2, wallOpts), // left
-      Matter.Bodies.rectangle(width+50, height/2, 100, height*2, wallOpts) // right
+      Matter.Bodies.rectangle(width/2, -50, width*2, 100, wallOpts),
+      Matter.Bodies.rectangle(width/2, height+50, width*2, 100, wallOpts),
+      Matter.Bodies.rectangle(-50, height/2, 100, height*2, wallOpts),
+      Matter.Bodies.rectangle(width+50, height/2, 100, height*2, wallOpts)
     ];
     Matter.World.add(world, walls);
     
-    // Bodies
-    const bodies = items.map(item => {
-      const b = Matter.Bodies.rectangle(item.x, item.y, 140, 44, {
+    // Spread items within container bounds
+    const bodies = items.map((_item, i) => {
+      const cols = Math.ceil(Math.sqrt(items.length));
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const px = 80 + (col * (width - 160) / (cols - 1 || 1));
+      const py = 60 + (row * (height - 120) / (Math.ceil(items.length / cols) - 1 || 1));
+      const b = Matter.Bodies.rectangle(px, py, 140, 44, {
         chamfer: { radius: 22 },
-        restitution: 0.95, // more bouncy
+        restitution: 0.95,
         friction: 0.005,
-        frictionAir: 0.015,
+        frictionAir: 0.018,
         density: 0.05
       });
-      Matter.Body.setInertia(b, Infinity); // Prevents spinning!
+      Matter.Body.setInertia(b, Infinity);
       return b;
     });
     Matter.World.add(world, bodies);
     
-    // Mouse Interaction
     const mouse = Matter.Mouse.create(container);
-    // Remove scroll capturing to avoid buggy page scrolling!
     mouse.element.removeEventListener("wheel", (mouse as any).mousewheel);
     mouse.element.removeEventListener("DOMMouseScroll", (mouse as any).mousewheel);
 
@@ -375,7 +407,6 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
     });
     Matter.World.add(world, mouseConstraint);
     
-    // Sync Loop
     let animationFrameId: number;
     const updateSync = () => {
       Matter.Engine.update(engine, 1000 / 60);
@@ -384,21 +415,20 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
     };
     updateSync();
     
-    // Random initial push
     bodies.forEach(b => {
       Matter.Body.applyForce(b, b.position, {
-        x: (Math.random() - 0.5) * 0.1,
-        y: (Math.random() - 0.5) * 0.1
+        x: (Math.random() - 0.5) * 0.08,
+        y: (Math.random() - 0.5) * 0.08
       });
     });
 
     const handleResize = () => {
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      Matter.Body.setPosition(walls[1], { x: w/2, y: h+50 });
-      Matter.Body.setPosition(walls[3], { x: w+50, y: h/2 });
+      const { width: w, height: h } = getSize();
+      width = w; height = h;
       Matter.Body.setPosition(walls[0], { x: w/2, y: -50 });
-      Matter.Body.setVertices(walls[0], Matter.Bodies.rectangle(w/2, -50, w*2, 100).vertices);
+      Matter.Body.setPosition(walls[1], { x: w/2, y: h+50 });
+      Matter.Body.setPosition(walls[2], { x: -50, y: h/2 });
+      Matter.Body.setPosition(walls[3], { x: w+50, y: h/2 });
     };
     window.addEventListener('resize', handleResize);
 
@@ -422,22 +452,26 @@ const SectionHeader = ({ label, title, subtitle }: { label: string; title: strin
   </ScrollReveal>
 );
 
-// ─── Activity Card ─────────────────────────────────────────────────────────────
+// ─── Activity Card (click to expand on mobile) ─────────────────────────────────
 interface ActivityCardProps {
   title: string; role: string; description: string[];
   icon: React.ElementType; tags?: string[]; highlight?: boolean;
 }
 const ActivityCard = ({ title, role, description, icon: Icon, tags, highlight }: ActivityCardProps) => {
   const [hovered, setHovered] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const isOpen = hovered || expanded;
+
   return (
     <motion.div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      whileHover={{ y: -6, scale: 1.01 }}
+      onClick={() => setExpanded(prev => !prev)}
+      whileHover={{ y: -4, scale: 1.005 }}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
       data-cursor="hover"
       className={cn(
-        'relative p-7 rounded-3xl border overflow-hidden group shadow-lg',
+        'relative p-7 rounded-3xl border overflow-hidden group shadow-lg cursor-pointer select-none',
         highlight
           ? 'border-violet-600/30 bg-gradient-to-br from-violet-950/40 via-[#080808] to-[#080808] shadow-violet-900/10'
           : 'border-white/5 bg-[#0a0a0a]'
@@ -463,22 +497,41 @@ const ActivityCard = ({ title, role, description, icon: Icon, tags, highlight }:
           )}>
             <Icon className="w-6 h-6" />
           </div>
-          <motion.div animate={{ opacity: hovered ? 1 : 0, x: hovered ? 0 : 8, y: hovered ? 0 : 8 }} transition={{ duration: 0.2 }}>
-            <ArrowUpRight className={cn('w-5 h-5', highlight ? 'text-violet-400' : 'text-zinc-500')} />
+          {/* Expand / arrow indicator */}
+          <motion.div
+            animate={{ rotate: expanded ? 180 : 0, opacity: isOpen ? 1 : 0.4 }}
+            transition={{ duration: 0.25 }}
+            className={cn('mt-1', highlight ? 'text-violet-400' : 'text-zinc-500')}
+          >
+            <ChevronDown className="w-5 h-5" />
           </motion.div>
         </div>
-        <h3 className="text-xl font-bold text-zinc-100 tracking-tight mb-2">{title}</h3>
+        <h3 className="text-xl font-bold text-zinc-100 tracking-tight mb-1">{title}</h3>
         <p className="text-sm font-medium text-zinc-400 mb-5">{role}</p>
-        <motion.div initial={false} animate={{ height: hovered ? 'auto' : 0, opacity: hovered ? 1 : 0 }} className="overflow-hidden">
-          <ul className="space-y-3 text-sm text-zinc-500 pb-4">
-            {description.map((item, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <span className={cn("mt-2 w-1.5 h-1.5 rounded-full shrink-0", highlight ? "bg-violet-500" : "bg-zinc-600")} />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </motion.div>
+
+        {/* Tap hint (only on touch, only when collapsed) */}
+        <p className="text-[11px] text-zinc-600 mb-3 sm:hidden">{expanded ? 'Tap to collapse' : 'Tap to expand'}</p>
+
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden"
+            >
+              <ul className="space-y-3 text-sm text-zinc-500 pb-4">
+                {description.map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className={cn("mt-2 w-1.5 h-1.5 rounded-full shrink-0", highlight ? "bg-violet-500" : "bg-zinc-600")} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {tags && (
           <div className="flex flex-wrap gap-2 mt-3">
             {tags.map(tag => (
@@ -659,6 +712,83 @@ const skills = [
   { label: 'Figma', icon: FigmaIcon, color: '#A259FF', x: 700, y: 100 },
 ];
 
+// ─── Footer ────────────────────────────────────────────────────────────────────
+const Footer = () => {
+  const links = [
+    { label: 'GitHub', href: 'https://github.com/viganogabriele', icon: GithubIcon },
+    { label: 'LinkedIn', href: 'https://linkedin.com/in/viganogabriele', icon: LinkedinIcon },
+  ];
+
+  return (
+    <ScrollReveal delay={0.1}>
+      <footer className="mt-40 pt-12 border-t border-white/[0.06]">
+        <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-10">
+          {/* Brand block */}
+          <div className="flex flex-col items-center md:items-start gap-3">
+            <img
+              src={logo}
+              alt="Gabriele Viganò"
+              className="h-7 w-auto filter invert opacity-70"
+            />
+            <p className="text-xs text-zinc-600 font-mono tracking-wide text-center md:text-left">
+              Crafted with precision — {new Date().getFullYear()}
+            </p>
+          </div>
+
+          {/* Middle — nav */}
+          <nav className="flex items-center gap-8">
+            {NAV_LINKS.map(l => (
+              <a
+                key={l.label}
+                href={l.href}
+                data-cursor="hover"
+                className="text-[13px] font-medium text-zinc-600 hover:text-white transition-colors duration-300"
+              >
+                {l.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* Socials + CTA */}
+          <div className="flex items-center gap-4">
+            {links.map(({ label, href, icon: Icon }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={label}
+                data-cursor="hover"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+              >
+                <Icon className="w-[18px] h-[18px]" />
+              </a>
+            ))}
+            <a
+              href="mailto:contact@viganogabriele.com"
+              data-cursor="hover"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black text-[13px] font-bold hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            >
+              <Mail className="w-4 h-4" />
+              Say hello
+            </a>
+          </div>
+        </div>
+
+        {/* Bottom strip */}
+        <div className="mt-10 pt-6 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-[11px] text-zinc-700 font-mono">
+            © {new Date().getFullYear()} Gabriele Viganò. All rights reserved.
+          </p>
+          <p className="text-[11px] text-zinc-700 font-mono">
+            Built with React + Vite + Framer Motion
+          </p>
+        </div>
+      </footer>
+    </ScrollReveal>
+  );
+};
+
 // ─── App ────────────────────────────────────────────────────────────────────────
 function App() {
   const { scrollYProgress } = useScroll();
@@ -680,39 +810,33 @@ function App() {
         <div className="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] rounded-full bg-zinc-800/10 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 max-w-6xl mx-auto px-6 pb-40">
+      <main className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
 
         {/* ── Hero ─────────────────────────────────────────────────── */}
         <motion.section
-          className="min-h-[100vh] flex flex-col md:flex-row items-center justify-between pt-32 pb-16 gap-12"
+          className="min-h-[100vh] flex flex-col md:flex-row items-center justify-between pt-28 pb-16 gap-12"
           style={{ y: heroY, opacity: heroOpacity }}
         >
           {/* Left Content */}
           <div className="flex-1 flex flex-col items-start text-left z-10">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-              className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-8"
-            >
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-zinc-300 text-xs font-semibold tracking-wide uppercase">Computer Engineering Student</span>
-            </motion.div>
+            <KineticTag />
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             >
-              <h2 className="text-3xl sm:text-4xl text-white font-medium tracking-tight mb-2">Hey, I'm <span className="font-bold">Gabriele Viganò</span>.</h2>
-              <TextScramble />
+              <h2 className="text-2xl sm:text-3xl text-zinc-400 font-medium tracking-tight mb-2">
+                Hey, I'm <span className="text-white font-bold">Gabriele Viganò</span>.
+              </h2>
+              <TextScramble text="Engineering." />
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-              className="flex items-center gap-4 mt-12"
+              className="flex items-center gap-4 mt-10"
             >
               <Magnetic strength={0.2}>
                 <a href="#expertise" data-cursor="hover" className="px-8 py-4 rounded-full bg-white text-black font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]">
@@ -780,31 +904,31 @@ function App() {
         <section id="stack" className="mt-40 pt-20">
           <SectionHeader
             label="03 / The Toolkit"
-            title="Physics Sandbox."
-            subtitle="Powered by Matter.js. Grab them, throw them, watch them bounce."
+            title="Tech Stack."
+            subtitle="Grab them, throw them, watch them bounce — powered by Matter.js."
           />
           <ScrollReveal>
             <div
               ref={playgroundRef}
               data-cursor-bubble="true"
-              className="relative w-full h-[450px] rounded-[2rem] border border-white/10 bg-[#0a0a0a] overflow-hidden shadow-2xl"
+              className="relative w-full h-[400px] sm:h-[450px] rounded-[2rem] border border-white/10 bg-[#0a0a0a] overflow-hidden shadow-2xl"
               style={{
-                backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 2px, transparent 2px)',
+                backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.025) 2px, transparent 2px)',
                 backgroundSize: '40px 40px',
               }}
             >
               {skills.map((skill, i) => {
                 const pos = physicsPositions[i] || { x: -100, y: -100, angle: 0 };
                 return (
-                 <div
+                  <div
                     key={skill.label}
-                    className="absolute top-0 left-0 flex items-center justify-center gap-2.5 px-6 py-3 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl text-white font-medium text-[15px] select-none touch-none shadow-lg cursor-grab active:cursor-grabbing hover:bg-white/10 transition-colors"
+                    className="absolute top-0 left-0 flex items-center justify-center gap-2.5 px-6 py-3 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl text-white font-medium text-[14px] select-none touch-none shadow-lg cursor-grab active:cursor-grabbing hover:bg-white/10 transition-colors"
                     style={{
-                      transform: `translate(${pos.x - 70}px, ${pos.y - 22}px) rotate(${pos.angle}rad)`, // Centers the pill
+                      transform: `translate(${pos.x - 70}px, ${pos.y - 22}px) rotate(${pos.angle}rad)`,
                       width: '140px', height: '44px'
                     }}
                   >
-                    <skill.icon className="w-5 h-5 shrink-0" style={{ color: skill.color }} />
+                    <skill.icon className="w-4 h-4 shrink-0" style={{ color: skill.color }} />
                     {skill.label}
                   </div>
                 );
@@ -830,29 +954,7 @@ function App() {
         </section>
 
         {/* ── Footer ────────────────────────────────────────────────── */}
-        <ScrollReveal delay={0.1}>
-          <footer className="mt-40 pt-10 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex flex-col items-center md:items-start gap-2">
-              <img src={logo} alt="Logo" className="h-6 w-auto opacity-50 filter invert" />
-              <p className="text-xs text-zinc-600 font-mono tracking-wide">
-                © {new Date().getFullYear()} Gabriele Viganò — Crafted with precision.
-              </p>
-            </div>
-            <div className="flex items-center gap-6">
-              {[
-                { label: 'GitHub', href: 'https://github.com/viganogabriele' },
-                { label: 'LinkedIn', href: 'https://linkedin.com/in/viganogabriele' },
-                { label: 'Email', href: 'mailto:contact@viganogabriele.com' },
-              ].map(l => (
-                <a key={l.label} href={l.href} target={l.href.startsWith('http') ? '_blank' : undefined}
-                  rel="noreferrer" data-cursor="hover"
-                  className="text-sm font-medium text-zinc-500 hover:text-white transition-colors">
-                  {l.label}
-                </a>
-              ))}
-            </div>
-          </footer>
-        </ScrollReveal>
+        <Footer />
 
       </main>
     </div>
