@@ -23,12 +23,11 @@ import {
   Users,
   Mic2,
   ChevronDown,
-  Mail,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Matter from 'matter-js';
-import portrait from './assets/photo-gabriele.png';
+import portrait from './assets/photo-gabriele.webp';
 import logo from './assets/logo-dark.png';
 
 function cn(...inputs: ClassValue[]) {
@@ -169,10 +168,10 @@ const Navbar = () => {
         )}
         style={{
           background: scrolled
-            ? 'rgba(8, 8, 8, 0.75)'
-            : 'rgba(8, 8, 8, 0.5)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            ? 'rgba(8, 8, 8, 0.25)'
+            : 'rgba(8, 8, 8, 0.05)',
+          backdropFilter: 'blur(30px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(200%)',
         }}
       >
         <a href="#" onClick={(e) => handleScrollTo(e, 'body')} data-cursor="hover" className="flex items-center gap-3 group">
@@ -318,7 +317,7 @@ const TextScramble = ({ text }: { text: string }) => {
         className={cn(
           "bg-clip-text text-transparent bg-[length:200%_auto] transition-all duration-700 ease-out",
           isHovered
-            ? "bg-gradient-to-r from-blue-400 via-violet-400 to-fuchsia-400 bg-[position:100%_center]"
+            ? "bg-gradient-to-r from-blue-400 via-emerald-400 to-violet-400 bg-[position:100%_center]"
             : "bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-[position:0%_center]"
         )}
       >
@@ -375,18 +374,15 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
     ];
     Matter.World.add(world, walls);
     
-    // Spread items within container bounds
-    const bodies = items.map((_item, i) => {
-      const cols = Math.ceil(Math.sqrt(items.length));
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const px = 80 + (col * (width - 160) / (cols - 1 || 1));
-      const py = 60 + (row * (height - 120) / (Math.ceil(items.length / cols) - 1 || 1));
+    // Spread items within container bounds randomly
+    const bodies = items.map((_item) => {
+      const px = 70 + Math.random() * (width - 140);
+      const py = 50 + Math.random() * (height - 100);
       const b = Matter.Bodies.rectangle(px, py, 140, 44, {
         chamfer: { radius: 22 },
         restitution: 0.95,
         friction: 0.005,
-        frictionAir: 0.018,
+        frictionAir: 0.015,
         density: 0.05
       });
       Matter.Body.setInertia(b, Infinity);
@@ -417,10 +413,28 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
     
     bodies.forEach(b => {
       Matter.Body.applyForce(b, b.position, {
-        x: (Math.random() - 0.5) * 0.08,
-        y: (Math.random() - 0.5) * 0.08
+        x: (Math.random() - 0.5) * 0.1,
+        y: (Math.random() - 0.5) * 0.1
       });
     });
+
+    let prevScroll = window.scrollY;
+    const handleScrollMotion = () => {
+      const deltaY = window.scrollY - prevScroll;
+      prevScroll = window.scrollY;
+      const forceMag = Math.min(Math.abs(deltaY) * 0.0003, 0.15);
+      if (forceMag > 0.01) {
+        bodies.forEach(b => {
+          if (Math.random() > 0.3) {
+            Matter.Body.applyForce(b, b.position, {
+              x: (Math.random() - 0.5) * forceMag * 2,
+              y: (Math.random() - 0.2) * forceMag * (deltaY > 0 ? -1 : 1)
+            });
+          }
+        });
+      }
+    };
+    window.addEventListener('scroll', handleScrollMotion, { passive: true });
 
     const handleResize = () => {
       const { width: w, height: h } = getSize();
@@ -433,6 +447,7 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
     window.addEventListener('resize', handleResize);
 
     return () => {
+      window.removeEventListener('scroll', handleScrollMotion);
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
       Matter.Engine.clear(engine);
@@ -458,14 +473,15 @@ interface ActivityCardProps {
   icon: React.ElementType; tags?: string[]; highlight?: boolean;
 }
 const ActivityCard = ({ title, role, description, icon: Icon, tags, highlight }: ActivityCardProps) => {
+  const isTouchRef = useRef(isTouchDevice());
   const [hovered, setHovered] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const isOpen = hovered || expanded;
+  const isOpen = (hovered && !isTouchRef.current) || expanded;
 
   return (
     <motion.div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { if (!isTouchRef.current) setHovered(true); }}
+      onMouseLeave={() => { if (!isTouchRef.current) setHovered(false); }}
       onClick={() => setExpanded(prev => !prev)}
       whileHover={{ y: -4, scale: 1.005 }}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
@@ -477,11 +493,6 @@ const ActivityCard = ({ title, role, description, icon: Icon, tags, highlight }:
           : 'border-white/5 bg-[#0a0a0a]'
       )}
     >
-      {highlight && (
-        <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-violet-950 border border-violet-800 text-violet-300 text-[10px] font-bold tracking-widest uppercase">
-          Leadership & Mgmt
-        </div>
-      )}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       {highlight && (
         <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
@@ -562,7 +573,7 @@ const ProjectCard = ({ title, description, tags, icon: Icon, link, status }: Pro
     whileHover={{ y: -6, scale: 1.02 }}
     transition={{ type: 'spring', stiffness: 350, damping: 25 }}
     data-cursor="hover"
-    className="group relative flex flex-col p-7 rounded-3xl border border-white/5 bg-[#0a0a0a] overflow-hidden hover:border-white/20 transition-all duration-300 shadow-lg"
+    className="group relative flex flex-col p-7 rounded-3xl border border-white/5 bg-[#0a0a0a] overflow-hidden hover:border-white/20 transition-all duration-300 shadow-lg h-full"
   >
     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
     <div className="relative z-10 flex-1">
@@ -712,76 +723,57 @@ const skills = [
   { label: 'Figma', icon: FigmaIcon, color: '#A259FF', x: 700, y: 100 },
 ];
 
-// ─── Footer ────────────────────────────────────────────────────────────────────
 const Footer = () => {
   const links = [
-    { label: 'GitHub', href: 'https://github.com/viganogabriele', icon: GithubIcon },
-    { label: 'LinkedIn', href: 'https://linkedin.com/in/viganogabriele', icon: LinkedinIcon },
+    { label: 'github.com/viganogabriele', href: 'https://github.com/viganogabriele', icon: GithubIcon },
+    { label: 'linkedin.com/in/viganogabriele', href: 'https://linkedin.com/in/viganogabriele', icon: LinkedinIcon },
   ];
 
   return (
     <ScrollReveal delay={0.1}>
       <footer className="mt-40 pt-12 border-t border-white/[0.06]">
-        <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-10">
+        <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-10">
           {/* Brand block */}
-          <div className="flex flex-col items-center md:items-start gap-3">
+          <div className="flex flex-col items-center md:items-start gap-4">
             <img
               src={logo}
               alt="Gabriele Viganò"
-              className="h-7 w-auto filter invert opacity-70"
+              className="h-8 w-auto filter invert opacity-80"
             />
-            <p className="text-xs text-zinc-600 font-mono tracking-wide text-center md:text-left">
-              Crafted with precision — {new Date().getFullYear()}
-            </p>
+            <div className="flex flex-col gap-1 items-center md:items-start mt-2">
+              <a href="mailto:info@viganogabriele.com" className="text-zinc-400 hover:text-white transition-colors text-sm font-medium">
+                info@viganogabriele.com
+              </a>
+            </div>
           </div>
 
-          {/* Middle — nav */}
-          <nav className="flex items-center gap-8">
-            {NAV_LINKS.map(l => (
-              <a
-                key={l.label}
-                href={l.href}
-                data-cursor="hover"
-                className="text-[13px] font-medium text-zinc-600 hover:text-white transition-colors duration-300"
-              >
-                {l.label}
-              </a>
-            ))}
-          </nav>
-
-          {/* Socials + CTA */}
-          <div className="flex items-center gap-4">
+          {/* Socials & Handles */}
+          <div className="flex flex-col items-center md:items-end gap-4">
             {links.map(({ label, href, icon: Icon }) => (
               <a
                 key={label}
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                aria-label={label}
                 data-cursor="hover"
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                className="flex items-center gap-3 text-zinc-400 hover:text-white transition-all duration-300 group"
               >
-                <Icon className="w-[18px] h-[18px]" />
+                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 group-hover:border-white/20 transition-all duration-300">
+                  <Icon className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-medium tracking-wide">{label}</span>
               </a>
             ))}
-            <a
-              href="mailto:contact@viganogabriele.com"
-              data-cursor="hover"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black text-[13px] font-bold hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-            >
-              <Mail className="w-4 h-4" />
-              Say hello
-            </a>
           </div>
         </div>
 
         {/* Bottom strip */}
-        <div className="mt-10 pt-6 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="mt-16 pt-6 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-[11px] text-zinc-700 font-mono">
             © {new Date().getFullYear()} Gabriele Viganò. All rights reserved.
           </p>
           <p className="text-[11px] text-zinc-700 font-mono">
-            Built with React + Vite + Framer Motion
+            Built with React & Framer Motion
           </p>
         </div>
       </footer>
@@ -818,9 +810,7 @@ function App() {
           style={{ y: heroY, opacity: heroOpacity }}
         >
           {/* Left Content */}
-          <div className="flex-1 flex flex-col items-start text-left z-10">
-            <KineticTag />
-
+          <div className="flex-1 flex flex-col items-start text-left z-10 w-full mb-10 md:mb-0">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -829,8 +819,12 @@ function App() {
               <h2 className="text-2xl sm:text-3xl text-zinc-400 font-medium tracking-tight mb-2">
                 Hey, I'm <span className="text-white font-bold">Gabriele Viganò</span>.
               </h2>
-              <TextScramble text="Engineering." />
+              <TextScramble text="I build cool things." />
             </motion.div>
+
+            <div className="mt-8">
+              <KineticTag />
+            </div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -911,7 +905,7 @@ function App() {
             <div
               ref={playgroundRef}
               data-cursor-bubble="true"
-              className="relative w-full h-[400px] sm:h-[450px] rounded-[2rem] border border-white/10 bg-[#0a0a0a] overflow-hidden shadow-2xl"
+              className="relative w-full h-[550px] sm:h-[450px] rounded-[2rem] border border-white/10 bg-[#0a0a0a] overflow-hidden shadow-2xl"
               style={{
                 backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.025) 2px, transparent 2px)',
                 backgroundSize: '40px 40px',
