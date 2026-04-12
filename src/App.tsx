@@ -317,6 +317,21 @@ const NAV_LINKS = [
 	{ label: "Stack", href: "#stack" },
 ];
 
+// ─── Scroll Progress Bar ──────────────────────────────────────────────────────
+const ScrollBar = () => {
+	const { scrollYProgress } = useScroll();
+	const scaleX = useSpring(scrollYProgress, { stiffness: 180, damping: 26 });
+	return (
+		<motion.div
+			className="fixed top-0 left-0 right-0 h-[2px] z-[60] origin-left"
+			style={{
+				scaleX,
+				background: "linear-gradient(90deg, #67e8f9, #a78bfa)",
+			}}
+		/>
+	);
+};
+
 const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 	const [scrolled, setScrolled] = useState(false);
 	const [mobileOpen, setMobileOpen] = useState(false);
@@ -363,11 +378,24 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 		return () => window.removeEventListener("keydown", onEscape);
 	}, [mobileOpen]);
 
+	// Lock body scroll when mobile menu is open
+	useEffect(() => {
+		if (mobileOpen) {
+			document.body.style.overflow = "hidden";
+		} else {
+			document.body.style.overflow = "";
+		}
+		return () => { document.body.style.overflow = ""; };
+	}, [mobileOpen]);
+
 	const handleScrollTo = (
 		e: React.MouseEvent<HTMLAnchorElement>,
 		target: string,
 	) => {
 		e.preventDefault();
+		// Close menu immediately, then scroll
+		setMobileOpen(false);
+		// Brief flash animation on the link itself
 		e.currentTarget.animate(
 			[
 				{ transform: "scale(1)", filter: "brightness(1)" },
@@ -376,142 +404,157 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 			],
 			{ duration: 280, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
 		);
-		onNavigate(target);
-		setMobileOpen(false);
+		// Delay scroll slightly so menu close animation doesn't fight
+		setTimeout(() => onNavigate(target), 60);
 	};
 
 	return (
-		<motion.nav
-			initial={{ y: -80, opacity: 0 }}
-			animate={{ y: 0, opacity: 1 }}
-			transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-			className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-4xl"
-		>
-			<div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-[88%] h-12 bg-gradient-to-r from-transparent via-violet-400/22 to-transparent blur-2xl" />
-			<div
-				className={cn(
-					"px-4 sm:px-5 py-3 rounded-full border transition-all duration-500",
-					scrolled
-						? "border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]"
-						: "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]",
-				)}
-				style={{
-					background: scrolled ? "rgba(8, 8, 8, 0.24)" : "rgba(8, 8, 8, 0.05)",
-					backdropFilter: "blur(20px) saturate(170%)",
-					WebkitBackdropFilter: "blur(20px) saturate(170%)",
-				}}
-			>
-				<div className="flex items-center justify-between">
-					<a
-						href="#"
-						onClick={(e) => handleScrollTo(e, "body")}
-						data-cursor="hover"
-						className="flex items-center gap-3 group"
-					>
-						<img
-							src={logo}
-							alt="Gabriele Viganò"
-							className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert"
-						/>
-					</a>
-
-					<div className="hidden lg:flex items-center gap-1">
-						{NAV_LINKS.map((link) => (
-							<a
-								key={link.label}
-								href={link.href}
-								onClick={(e) => handleScrollTo(e, link.href)}
-								data-cursor="hover"
-								className={cn(
-									"px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300",
-									activeSection === link.href
-										? "text-white bg-white/[0.1]"
-										: "text-zinc-400 hover:text-white hover:bg-white/[0.07]",
-								)}
-							>
-								{link.label}
-							</a>
-						))}
-					</div>
-
-					<div className="flex items-center gap-2">
-						<a
-							href="mailto:info@viganogabriele.com"
-							data-cursor="hover"
-							className="hidden sm:inline-flex px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.35)]"
-						>
-							Let's talk
-						</a>
-						<button
-							type="button"
-							onClick={() => setMobileOpen((prev) => !prev)}
-							className={cn(
-								"lg:hidden w-10 h-10 rounded-full border transition-colors flex items-center justify-center",
-								"border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
-							)}
-							aria-label="Toggle navigation menu"
-						>
-							{mobileOpen ? (
-								<X className="w-4 h-4" />
-							) : (
-								<Menu className="w-4 h-4" />
-							)}
-						</button>
-					</div>
-				</div>
-
-				<AnimatePresence>
-					{mobileOpen && (
-						<motion.div
-							initial={{ opacity: 0, height: 0, marginTop: 0 }}
-							animate={{ opacity: 1, height: "auto", marginTop: 10 }}
-							exit={{ opacity: 0, height: 0, marginTop: 0 }}
-							transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-							className="lg:hidden overflow-hidden border-t border-violet-200/25 pt-2"
-						>
-							<nav className="flex flex-col gap-1.5">
-								{NAV_LINKS.map((link) => (
-									<a
-										key={link.label}
-										href={link.href}
-										onClick={(e) => handleScrollTo(e, link.href)}
-										className={cn(
-											"px-3 py-2.5 rounded-lg text-[12px] font-medium transition-colors text-left active:scale-[0.98]",
-											activeSection === link.href
-												? "text-violet-50 bg-violet-300/24 border border-violet-200/40"
-												: "text-zinc-200 hover:text-white hover:bg-white/8",
-										)}
-									>
-										{link.label}
-									</a>
-								))}
-							</nav>
-							<a
-								href="mailto:info@viganogabriele.com"
-								className="sm:hidden mt-2 w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-[12px] font-semibold text-black bg-white hover:bg-zinc-200 transition-colors"
-							>
-								Let's talk
-							</a>
-						</motion.div>
-					)}
-				</AnimatePresence>
-			</div>
-
+		<>
+			{/* Mobile full-screen overlay — rendered OUTSIDE the nav so z-index is independent */}
 			<AnimatePresence>
 				{mobileOpen && (
-					<motion.button
-						type="button"
-						aria-label="Close navigation overlay"
+					<motion.div
+						key="mobile-overlay"
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						exit={{ opacity: 0 }}
-						transition={{ duration: 0.2 }}
+						transition={{ duration: 0.22 }}
 						onClick={() => setMobileOpen(false)}
-						className="fixed inset-0 z-40 bg-black/46 backdrop-blur-[2px]"
+						className="fixed inset-0 z-[48] bg-black/60 backdrop-blur-[3px] lg:hidden"
 					/>
 				)}
 			</AnimatePresence>
-		</motion.nav>
+
+			<motion.nav
+				initial={{ y: -80, opacity: 0 }}
+				animate={{ y: 0, opacity: 1 }}
+				transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+				className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[49] w-[92%] max-w-4xl"
+			>
+				<div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-[88%] h-12 bg-gradient-to-r from-transparent via-violet-400/22 to-transparent blur-2xl" />
+				<div
+					className={cn(
+						"px-4 sm:px-5 py-3 rounded-full border transition-all duration-500 relative z-[49]",
+						scrolled
+							? "border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]"
+							: "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]",
+					)}
+					style={{
+						background: scrolled ? "rgba(8, 8, 8, 0.88)" : "rgba(8, 8, 8, 0.72)",
+						backdropFilter: "blur(20px) saturate(170%)",
+						WebkitBackdropFilter: "blur(20px) saturate(170%)",
+					}}
+				>
+					<div className="flex items-center justify-between">
+						<a
+							href="#"
+							onClick={(e) => handleScrollTo(e, "body")}
+							data-cursor="hover"
+							className="flex items-center gap-3 group"
+						>
+							<img
+								src={logo}
+								alt="Gabriele Viganò"
+								className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert"
+							/>
+						</a>
+
+						<div className="hidden lg:flex items-center gap-1">
+							{NAV_LINKS.map((link) => (
+								<a
+									key={link.label}
+									href={link.href}
+									onClick={(e) => handleScrollTo(e, link.href)}
+									data-cursor="hover"
+									className={cn(
+										"px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300",
+										activeSection === link.href
+											? "text-white bg-white/[0.1]"
+											: "text-zinc-400 hover:text-white hover:bg-white/[0.07]",
+									)}
+								>
+									{link.label}
+								</a>
+							))}
+						</div>
+
+						<div className="flex items-center gap-2">
+							<a
+								href="mailto:info@viganogabriele.com"
+								data-cursor="hover"
+								className="hidden sm:inline-flex px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.35)]"
+							>
+								Let's talk
+							</a>
+							<button
+								type="button"
+								onClick={() => setMobileOpen((prev) => !prev)}
+								className={cn(
+									"lg:hidden w-10 h-10 rounded-full border transition-colors flex items-center justify-center",
+									"border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
+								)}
+								aria-label="Toggle navigation menu"
+							>
+								{mobileOpen ? (
+									<X className="w-4 h-4" />
+								) : (
+									<Menu className="w-4 h-4" />
+								)}
+							</button>
+						</div>
+					</div>
+
+					{/* Mobile dropdown — inside the opaque navbar pill */}
+					<AnimatePresence>
+						{mobileOpen && (
+							<motion.div
+								key="mobile-menu"
+								initial={{ opacity: 0, height: 0, marginTop: 0 }}
+								animate={{ opacity: 1, height: "auto", marginTop: 10 }}
+								exit={{ opacity: 0, height: 0, marginTop: 0 }}
+								transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+								className="lg:hidden overflow-hidden border-t border-violet-200/20 pt-2"
+							>
+								<nav className="flex flex-col gap-1">
+									{NAV_LINKS.map((link, i) => (
+										<motion.a
+											key={link.label}
+											href={link.href}
+											onClick={(e) => handleScrollTo(e, link.href)}
+											initial={{ opacity: 0, x: -8 }}
+											animate={{ opacity: 1, x: 0 }}
+											transition={{ delay: i * 0.04, duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+											className={cn(
+												"flex items-center gap-2 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all active:scale-[0.97] select-none",
+												activeSection === link.href
+													? "text-violet-100 bg-violet-500/18 border border-violet-400/30"
+													: "text-zinc-200 hover:text-white hover:bg-white/8",
+											)}
+										>
+											{/* Active dot indicator */}
+											{activeSection === link.href && (
+												<span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+											)}
+											{link.label}
+										</motion.a>
+									))}
+								</nav>
+								{/* Let's talk — always visible in mobile menu */}
+								<motion.a
+									href="mailto:info@viganogabriele.com"
+									initial={{ opacity: 0, y: 4 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: NAV_LINKS.length * 0.04 + 0.06, duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+									className="mt-2 w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[13px] font-semibold text-black bg-white hover:bg-zinc-100 transition-colors active:scale-[0.97]"
+								>
+									Let's talk
+								</motion.a>
+							</motion.div>
+						)}
+					</AnimatePresence>
+				</div>
+			</motion.nav>
+		</>
 	);
 };
 
@@ -710,8 +753,8 @@ const TextScramble = ({ text }: { text: string }) => {
 					className={cn(
 						"bg-clip-text text-transparent bg-[length:220%_auto] transition-all duration-700 ease-out",
 						isHovered
-							? "bg-gradient-to-r from-cyan-100 via-cyan-300 to-violet-300 bg-[position:100%_center]"
-							: "bg-gradient-to-r from-cyan-200 via-cyan-300 to-sky-300 bg-[position:0%_center]",
+							? "bg-gradient-to-r from-cyan-100 via-cyan-300 to-violet-300 bg-[position:100%_center] drop-shadow-[0_0_20px_rgba(167,139,250,0.3)]"
+							: "bg-gradient-to-r from-cyan-200 via-cyan-300 to-sky-300 bg-[position:0%_center] drop-shadow-none",
 					)}
 				>
 					{display}
@@ -736,11 +779,66 @@ const ScrollReveal = ({
 		initial={{ opacity: 0, y: 30 }}
 		whileInView={{ opacity: 1, y: 0 }}
 		viewport={{ once: true, margin: "-80px" }}
-		transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay }}
+		transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay }}
 	>
 		{children}
 	</motion.div>
 );
+
+// ─── Fade In (lightweight card entrance) ──────────────────────────────────────
+const FadeIn = ({
+	children,
+	delay = 0,
+	className,
+}: {
+	children: React.ReactNode;
+	delay?: number;
+	className?: string;
+}) => (
+	<motion.div
+		className={className}
+		initial={{ opacity: 0, y: 14 }}
+		whileInView={{ opacity: 1, y: 0 }}
+		viewport={{ once: true, margin: "-60px" }}
+		transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay }}
+	>
+		{children}
+	</motion.div>
+);
+
+// ─── Fade Words (word-by-word entrance animation) ─────────────────────────────
+const FadeWords = ({
+	text,
+	className,
+	wordClassName,
+	delay = 0,
+}: {
+	text: string;
+	className?: string;
+	wordClassName?: string;
+	delay?: number;
+}) => {
+	const words = text.split(" ");
+	return (
+		<span className={className}>
+			{words.map((word, i) => (
+				<motion.span
+					key={`${word}-${i}`}
+					initial={{ opacity: 0, y: 14, filter: "blur(4px)" }}
+					animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+					transition={{
+						delay: delay + i * 0.06,
+						duration: 0.55,
+						ease: [0.16, 1, 0.3, 1],
+					}}
+					className={cn("inline-block mr-[0.25em]", wordClassName)}
+				>
+					{word}
+				</motion.span>
+			))}
+		</span>
+	);
+};
 
 // ─── Matter.js Physics Hook ───────────────────────────────────────────────────
 const useMatterPhysics = (
@@ -1052,6 +1150,7 @@ const SectionHeader = ({
 	subtitle?: string;
 }) => {
 	const [isHovered, setIsHovered] = useState(false);
+	const [isTouch] = useState(() => isTouchDevice());
 
 	return (
 		<ScrollReveal className="mb-12">
@@ -1059,36 +1158,37 @@ const SectionHeader = ({
 				{label}
 			</p>
 			<div
-				onMouseEnter={() => setIsHovered(true)}
-				onMouseLeave={() => setIsHovered(false)}
+				onMouseEnter={() => { if (!isTouch) setIsHovered(true); }}
+				onMouseLeave={() => { if (!isTouch) setIsHovered(false); }}
 				className="relative inline-block cursor-default"
 			>
-				<motion.h2
-					animate={{
-						filter: isHovered ? "blur(0px)" : "blur(0px)",
-						opacity: isHovered ? 1 : 1,
-						x: isHovered ? 10 : 0,
-					}}
-					className="text-4xl md:text-5xl font-semibold text-zinc-100 tracking-tight transition-all duration-500"
-				>
+				<h2 className="text-4xl md:text-5xl font-semibold text-zinc-100 tracking-tight">
 					{title}
-				</motion.h2>
-				<motion.div
-					initial={{ width: 0 }}
-					animate={{ width: isHovered ? "100%" : "0%" }}
-					className="absolute -bottom-2 left-0 h-[2px] bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.6)]"
-				/>
+				</h2>
+				{/* Desktop: hover-reveal underline */}
+				{!isTouch && (
+					<motion.div
+						initial={{ width: 0 }}
+						animate={{ width: isHovered ? "100%" : "0%" }}
+						transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+						className="absolute -bottom-2 left-0 h-[2px] bg-gradient-to-r from-cyan-400 to-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]"
+					/>
+				)}
+				{/* Mobile: whileInView-reveal underline */}
+				{isTouch && (
+					<motion.div
+						initial={{ width: 0 }}
+						whileInView={{ width: "60%" }}
+						viewport={{ once: true }}
+						transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+						className="absolute -bottom-2 left-0 h-[2px] bg-gradient-to-r from-violet-500 to-transparent"
+					/>
+				)}
 			</div>
 			{subtitle && (
-				<motion.p
-					animate={{
-						filter: isHovered ? "blur(1px)" : "blur(0px)",
-						opacity: isHovered ? 0.4 : 1,
-					}}
-					className="text-zinc-500 mt-4 text-base max-w-lg transition-all duration-500"
-				>
+				<p className="text-zinc-500 mt-4 text-base max-w-lg">
 					{subtitle}
-				</motion.p>
+				</p>
 			)}
 			<div className="mt-8 h-[1px] bg-gradient-to-r from-zinc-800 via-zinc-800/40 to-transparent w-full" />
 		</ScrollReveal>
@@ -1130,6 +1230,9 @@ const ActivityCard = ({
 			}}
 			whileHover={!isTouch ? { y: -4, scale: 1.009 } : {}}
 			whileTap={isTouch ? { scale: 0.992 } : undefined}
+			// On mobile, add a subtle violet glow when the card enters view
+			whileInView={isTouch ? { boxShadow: "0 0 0 1px rgba(139,92,246,0.2), 0 4px 24px rgba(139,92,246,0.07)" } : {}}
+			viewport={{ once: false, margin: "-20%" }}
 			transition={{ type: "spring", stiffness: 220, damping: 30 }}
 			data-cursor="hover"
 			className={cn(
@@ -1379,7 +1482,6 @@ const CertCard = ({
 	year,
 	link,
 	icon: Icon,
-	highlight,
 }: CertProps) => (
 	<motion.a
 		href={link}
@@ -1389,33 +1491,29 @@ const CertCard = ({
 		transition={{ type: "spring", stiffness: 300, damping: 26 }}
 		data-cursor="hover"
 		className={cn(
-			"group flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-5 sm:p-6 rounded-3xl border transition-colors duration-200 hover:bg-violet-950/14",
-			highlight
-				? "border-white/5 bg-[#0a0a0a] hover:border-violet-500/40"
-				: "border-white/5 bg-[#0a0a0a] hover:border-violet-500/35",
+			"group flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-5 sm:p-6 rounded-3xl border transition-all duration-300",
+			"border-white/5 bg-[#0a0a0a] hover:border-violet-500/40 hover:bg-violet-950/5 hover:shadow-[0_0_20px_rgba(139,92,246,0.08)]",
 		)}
 	>
 		<div
 			className={cn(
-				"w-12 h-12 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-300",
-				highlight
-					? "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-violet-900/55 group-hover:border-violet-500/60 group-hover:text-violet-100"
-					: "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-violet-900/45 group-hover:border-violet-500/55 group-hover:text-violet-100",
+				"w-12 h-12 rounded-full border flex items-center justify-center shrink-0 transition-all duration-300",
+				"bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-violet-600 group-hover:border-violet-500 group-hover:text-white group-hover:shadow-[0_0_15px_rgba(139,92,246,0.4)]",
 			)}
 		>
 			<Icon className="w-5 h-5" />
 		</div>
-		<div className="flex-1 min-w-0 w-full">
-			<p className="text-base font-bold text-zinc-100 mb-1 leading-snug">
+		<div className="flex-1 min-w-0 w-full group-hover:translate-x-1 transition-transform duration-300">
+			<p className="text-base font-bold text-zinc-100 mb-1 leading-snug group-hover:text-violet-50 transition-colors">
 				{title}
 			</p>
-			<p className="text-sm text-zinc-400">{issuer}</p>
-			<div className="mt-3 inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.18em] text-zinc-500 group-hover:text-white transition-colors">
+			<p className="text-sm text-zinc-400 group-hover:text-violet-300/60 transition-colors">{issuer}</p>
+			<div className="mt-3 inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.18em] text-zinc-500 group-hover:text-violet-200 transition-colors">
 				View credential
-				<ArrowUpRight className="w-3.5 h-3.5" />
+				<ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
 			</div>
 		</div>
-		<span className="text-xs text-zinc-600 font-mono font-medium shrink-0 self-start sm:self-center group-hover:text-zinc-400 transition-colors">
+		<span className="text-xs text-zinc-600 font-mono font-medium shrink-0 self-start sm:self-center group-hover:text-violet-400 transition-colors">
 			{year}
 		</span>
 	</motion.a>
@@ -1966,6 +2064,7 @@ function HomePage() {
 				className="noise min-h-screen bg-[#060606] text-zinc-300 selection:bg-violet-900/40 selection:text-white"
 				style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}
 			>
+				<ScrollBar />
 				<CustomCursor />
 				<Navbar onNavigate={scrollToSection} />
 
@@ -1991,7 +2090,7 @@ function HomePage() {
 				<main className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
 					{/* ── Hero ─────────────────────────────────────────────────── */}
 					<motion.section
-						className="min-h-[100vh] flex flex-col md:flex-row items-center justify-between pt-38 sm:pt-40 md:pt-28 pb-16 gap-10 md:gap-12"
+						className="min-h-[100vh] flex flex-col md:flex-row items-center justify-between pt-36 sm:pt-40 md:pt-28 pb-16 gap-10 md:gap-12"
 						style={{ y: heroY, opacity: heroOpacity }}
 					>
 						{/* Mobile-first portrait */}
@@ -2010,21 +2109,20 @@ function HomePage() {
 
 						{/* Left Content */}
 						<div className="order-2 md:order-1 flex-1 flex flex-col items-start text-left z-10 w-full mb-10 md:mb-0">
-							<motion.div
-								initial={{ opacity: 0, y: 20 }}
-								animate={{ opacity: 1, y: 0 }}
-								transition={{
-									delay: 0.3,
-									duration: 0.9,
-									ease: [0.16, 1, 0.3, 1],
-								}}
-							>
+							<div>
 								<h2 className="text-2xl sm:text-3xl text-zinc-400 font-medium tracking-tight mb-2">
-									Hey, I'm{" "}
-									<span className="text-white font-bold">Gabriele Viganò</span>.
+									<FadeWords
+										text="Hey, I'm"
+										delay={0.3}
+									/>
+									<FadeWords
+										text="Gabriele Viganò."
+										delay={0.45}
+										wordClassName="text-white font-bold"
+									/>
 								</h2>
 								<TextScramble text="I build cool things." />
-							</motion.div>
+							</div>
 
 							<div className="mt-8">
 								<KineticTag />
@@ -2137,9 +2235,9 @@ function HomePage() {
 						/>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 							{activities.map((act, i) => (
-								<ScrollReveal key={act.title} delay={i * 0.1}>
+								<FadeIn key={act.title} delay={i * 0.08}>
 									<ActivityCard {...act} />
-								</ScrollReveal>
+								</FadeIn>
 							))}
 						</div>
 					</section>
@@ -2153,9 +2251,9 @@ function HomePage() {
 						/>
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							{projects.map((proj, i) => (
-								<ScrollReveal key={proj.title} delay={i * 0.1}>
+								<FadeIn key={proj.title} delay={i * 0.08}>
 									<ProjectCard {...proj} />
-								</ScrollReveal>
+								</FadeIn>
 							))}
 						</div>
 					</section>
@@ -2239,7 +2337,7 @@ function HomePage() {
 						</div>
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							{notes.map((note, i) => (
-								<ScrollReveal key={note.title} delay={i * 0.08}>
+								<FadeIn key={note.title} delay={i * 0.07}>
 									<motion.div
 										data-cursor="hover"
 										whileHover={{ y: -4, scale: 1.01 }}
@@ -2269,7 +2367,7 @@ function HomePage() {
 											</div>
 										</Link>
 									</motion.div>
-								</ScrollReveal>
+								</FadeIn>
 							))}
 						</div>
 					</section>
@@ -2283,9 +2381,9 @@ function HomePage() {
 						/>
 						<div className="flex flex-col gap-4">
 							{certifications.map((cert, i) => (
-								<ScrollReveal key={cert.title} delay={i * 0.1}>
+								<FadeIn key={cert.title} delay={i * 0.08}>
 									<CertCard {...cert} />
-								</ScrollReveal>
+								</FadeIn>
 							))}
 						</div>
 					</section>
