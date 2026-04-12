@@ -28,6 +28,15 @@ import {
 } from "lucide-react";
 import Matter from "matter-js";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+	BrowserRouter,
+	Link,
+	Navigate,
+	Route,
+	Routes,
+	useLocation,
+	useParams,
+} from "react-router-dom";
 import { twMerge } from "tailwind-merge";
 import logo from "./assets/logo-dark.png";
 import portrait from "./assets/photo-gabriele.webp";
@@ -35,6 +44,65 @@ import portrait from "./assets/photo-gabriele.webp";
 function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
+
+const SITE_URL = "https://viganogabriele.com";
+
+const slugify = (input: string) =>
+	input
+		.toLowerCase()
+		.replace(/[^a-z0-9\s-]/g, "")
+		.trim()
+		.replace(/\s+/g, "-");
+
+const PageMeta = ({
+	title,
+	description,
+	path,
+}: {
+	title: string;
+	description: string;
+	path: string;
+}) => {
+	useEffect(() => {
+		document.title = title;
+
+		const setMeta = (
+			selector: string,
+			content: string,
+			attribute: "name" | "property",
+			attributeValue: string,
+		) => {
+			let element = document.head.querySelector<HTMLMetaElement>(selector);
+			if (!element) {
+				element = document.createElement("meta");
+				element.setAttribute(attribute, attributeValue);
+				document.head.appendChild(element);
+			}
+			element.setAttribute("content", content);
+		};
+
+		setMeta('meta[name="description"]', description, "name", "description");
+		setMeta('meta[property="og:title"]', title, "property", "og:title");
+		setMeta(
+			'meta[property="og:description"]',
+			description,
+			"property",
+			"og:description",
+		);
+
+		let canonical = document.head.querySelector<HTMLLinkElement>(
+			'link[rel="canonical"]',
+		);
+		if (!canonical) {
+			canonical = document.createElement("link");
+			canonical.setAttribute("rel", "canonical");
+			document.head.appendChild(canonical);
+		}
+		canonical.setAttribute("href", `${SITE_URL}${path}`);
+	}, [description, path, title]);
+
+	return null;
+};
 
 // ─── Touch detection ──────────────────────────────────────────────────────────
 const isTouchDevice = () =>
@@ -1061,6 +1129,15 @@ const CaseStudyModal = ({
 							</p>
 						</div>
 					</div>
+
+					<div className="mt-7 flex items-center justify-between">
+						<Link
+							to={`/case-studies/${slugify(selected.title)}`}
+							className="text-xs uppercase tracking-[0.2em] text-zinc-400 hover:text-white transition-colors"
+						>
+							Open full page
+						</Link>
+					</div>
 				</motion.div>
 			</>
 		)}
@@ -1352,43 +1429,66 @@ const timelineItems: TimelineItem[] = [
 ];
 
 interface NoteItem {
+	slug: string;
 	title: string;
 	date: string;
 	readingTime: string;
 	preview: string;
 	tags: string[];
-	link: string;
+	body: string[];
+	sourceLink?: string;
 }
 
 const notes: NoteItem[] = [
 	{
+		slug: "motion-performance",
 		title: "Designing Motion Without Sacrificing Performance",
 		date: "Apr 2026",
 		readingTime: "6 min",
 		preview:
 			"A practical approach to balancing animated UI, physics, and frame budget in React-driven interfaces.",
 		tags: ["Performance", "Framer Motion", "UX"],
-		link: "https://github.com/viganogabriele",
+		body: [
+			"Premium motion should feel effortless, not heavy. The first constraint is always frame budget: every animation in the scene competes for the same rendering pipeline.",
+			"For interactive portfolios, I separate decorative motion from interaction-critical motion. Decorative layers run with gentle timings and low update pressure, while interaction layers get strict spring constraints and shorter lifecycles.",
+			"When physics is involved, containment and fallback behavior matter more than visual novelty. If drag escapes bounds on mobile, the experience breaks trust. Robust constraints and release safety are part of UX quality.",
+		],
+		sourceLink: "https://github.com/viganogabriele",
 	},
 	{
+		slug: "student-platform-peak-load",
 		title: "Operating Student Platforms at Peak Load",
 		date: "Mar 2026",
 		readingTime: "7 min",
 		preview:
 			"Lessons learned from product and operations decisions across student-facing systems during high-traffic events.",
 		tags: ["Architecture", "Ops", "Product"],
-		link: "https://github.com/PoliNetwork",
+		body: [
+			"Traffic spikes expose unclear ownership before they expose weak servers. During event windows, incident response quality depends on team clarity and pre-defined runbooks.",
+			"I prioritize observability that answers product questions, not just infrastructure metrics. Knowing which flows degrade first helps protect the user journey when capacity gets tight.",
+			"Post-event reviews should produce action items tied to product and engineering together. Reliability is a roadmap outcome, not just an ops task.",
+		],
+		sourceLink: "https://github.com/PoliNetwork",
 	},
 	{
+		slug: "homelab-patterns-scale",
 		title: "Homelab Patterns That Scale Better",
 		date: "Feb 2026",
 		readingTime: "5 min",
 		preview:
 			"A concise checklist for virtualization, observability and network segmentation in a resilient personal infrastructure.",
 		tags: ["Infrastructure", "Linux", "Observability"],
-		link: "https://github.com/viganogabriele",
+		body: [
+			"The most useful homelab design principle is graceful degradation. Services should fail independently, with clear boundaries between storage, compute and ingress.",
+			"Segmenting workloads by criticality simplifies maintenance windows and lowers recovery time. Monitoring should include service-level checks, not only host-level signals.",
+			"A small but disciplined platform can outperform a complex one: fewer moving parts, clearer backups, and repeatable deployment flows.",
+		],
+		sourceLink: "https://github.com/viganogabriele",
 	},
 ];
+
+const noteBySlug = new Map(notes.map((note) => [note.slug, note]));
+const projectBySlug = new Map(projects.map((project) => [slugify(project.title), project]));
 
 const skills = [
 	{ label: "JavaScript", icon: Code2, color: "#F7DF1E", x: 100, y: 100 },
@@ -1543,7 +1643,7 @@ const Preloader = ({ progress }: { progress: number }) => (
 );
 
 // ─── App ────────────────────────────────────────────────────────────────────────
-function App() {
+function HomePage() {
 	const prefersReducedMotion = useReducedMotion();
 	const { scrollYProgress } = useScroll();
 	const heroY = useTransform(scrollYProgress, [0, 0.3], ["0%", "25%"]);
@@ -1665,6 +1765,11 @@ function App() {
 
 	return (
 		<>
+			<PageMeta
+				title="Gabriele Vigano | Computer Engineering Student"
+				description="Portfolio of Gabriele Vigano: design engineering, product operations, and infrastructure projects."
+				path="/"
+			/>
 			<AnimatePresence>
 				{isPreloading ? <Preloader progress={loadingProgress} /> : null}
 			</AnimatePresence>
@@ -1872,7 +1977,7 @@ function App() {
 					</section>
 
 					{/* ── Notes ─────────────────────────────────────────────────── */}
-					<section className="mt-40 pt-20">
+					<section id="notes" className="mt-40 pt-20">
 						<SectionHeader
 							label="05 / Notes"
 							title="Engineering Notes."
@@ -1881,15 +1986,16 @@ function App() {
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							{notes.map((note, i) => (
 								<ScrollReveal key={note.title} delay={i * 0.08}>
-									<motion.a
-										href={note.link}
-										target="_blank"
-										rel="noreferrer"
+									<motion.div
 										data-cursor="hover"
 										whileHover={{ y: -4, scale: 1.01 }}
 										transition={{ type: "spring", stiffness: 320, damping: 24 }}
 										className="group h-full flex flex-col rounded-3xl border border-white/5 bg-[#0a0a0a] p-6 hover:border-white/20 transition-colors"
 									>
+										<Link
+											to={`/notes/${note.slug}`}
+											className="contents"
+										>
 										<div className="flex items-center justify-between mb-4 text-[11px] font-mono uppercase tracking-wider text-zinc-500">
 											<span>{note.date}</span>
 											<span>{note.readingTime}</span>
@@ -1910,7 +2016,8 @@ function App() {
 												</span>
 											))}
 										</div>
-									</motion.a>
+										</Link>
+									</motion.div>
 								</ScrollReveal>
 							))}
 						</div>
@@ -1941,6 +2048,242 @@ function App() {
 				/>
 			</div>
 		</>
+	);
+}
+
+const DetailTopBar = () => (
+	<header className="sticky top-0 z-50 border-b border-white/10 backdrop-blur-xl bg-black/40">
+		<div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+			<Link to="/" className="flex items-center gap-3 text-zinc-300 hover:text-white">
+				<img
+					src={logo}
+					alt="Gabriele Vigano"
+					className="h-5 w-auto opacity-80 filter invert"
+				/>
+			</Link>
+			<nav className="flex items-center gap-4 text-xs uppercase tracking-[0.16em] text-zinc-500">
+				<Link to="/#projects" className="hover:text-white transition-colors">
+					Projects
+				</Link>
+				<Link to="/notes" className="hover:text-white transition-colors">
+					Notes
+				</Link>
+				<Link to="/case-studies" className="hover:text-white transition-colors">
+					Case Studies
+				</Link>
+			</nav>
+		</div>
+	</header>
+);
+
+const ContentShell = ({ children }: { children: React.ReactNode }) => (
+	<div
+		className="noise min-h-screen bg-[#060606] text-zinc-300 selection:bg-violet-900/40 selection:text-white"
+		style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}
+	>
+		<CustomCursor />
+		<div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+			<div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-900/20 blur-[150px] md:opacity-50" />
+			<div className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/25 blur-[160px] md:opacity-60" />
+		</div>
+		<div className="relative z-10">{children}</div>
+	</div>
+);
+
+const NotesIndexPage = () => (
+	<ContentShell>
+		<PageMeta
+			title="Engineering Notes | Gabriele Vigano"
+			description="Technical notes on motion systems, architecture decisions and infrastructure operations."
+			path="/notes"
+		/>
+		<DetailTopBar />
+		<main className="max-w-5xl mx-auto px-6 py-14">
+			<SectionHeader
+				label="Notes"
+				title="Engineering Notes."
+				subtitle="A growing collection of practical write-ups from product, frontend motion, and infrastructure work."
+			/>
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
+				{notes.map((note, index) => (
+					<ScrollReveal key={note.slug} delay={index * 0.06}>
+						<Link
+							to={`/notes/${note.slug}`}
+							className="block rounded-3xl border border-white/8 bg-[#0a0a0a] p-6 hover:border-white/20 transition-colors"
+						>
+							<p className="text-[11px] font-mono uppercase tracking-[0.16em] text-zinc-500 mb-3">
+								{note.date} • {note.readingTime}
+							</p>
+							<h3 className="text-xl text-zinc-100 font-semibold tracking-tight mb-3">
+								{note.title}
+							</h3>
+							<p className="text-sm text-zinc-400 leading-relaxed">{note.preview}</p>
+						</Link>
+					</ScrollReveal>
+				))}
+			</div>
+		</main>
+	</ContentShell>
+);
+
+const NoteDetailPage = () => {
+	const { slug = "" } = useParams();
+	const note = noteBySlug.get(slug);
+
+	if (!note) return <Navigate to="/notes" replace />;
+
+	return (
+		<ContentShell>
+			<PageMeta
+				title={`${note.title} | Gabriele Vigano`}
+				description={note.preview}
+				path={`/notes/${note.slug}`}
+			/>
+			<DetailTopBar />
+			<main className="max-w-3xl mx-auto px-6 py-14">
+				<p className="text-[11px] font-mono uppercase tracking-[0.16em] text-zinc-500 mb-3">
+					{note.date} • {note.readingTime}
+				</p>
+				<h1 className="text-4xl md:text-5xl text-zinc-100 font-semibold tracking-tight mb-8">
+					{note.title}
+				</h1>
+				<div className="space-y-5 text-zinc-300 leading-relaxed text-[17px]">
+					{note.body.map((paragraph) => (
+						<p key={paragraph}>{paragraph}</p>
+					))}
+				</div>
+				{note.sourceLink && (
+					<a
+						href={note.sourceLink}
+						target="_blank"
+						rel="noreferrer"
+						className="inline-flex mt-10 text-xs uppercase tracking-[0.2em] text-zinc-400 hover:text-white transition-colors"
+					>
+						Reference Link
+					</a>
+				)}
+			</main>
+		</ContentShell>
+	);
+};
+
+const CaseStudiesIndexPage = () => (
+	<ContentShell>
+		<PageMeta
+			title="Case Studies | Gabriele Vigano"
+			description="Deeper context on selected projects: challenges, approach and outcomes."
+			path="/case-studies"
+		/>
+		<DetailTopBar />
+		<main className="max-w-5xl mx-auto px-6 py-14">
+			<SectionHeader
+				label="Case Studies"
+				title="Selected Project Breakdowns."
+				subtitle="Longer-form context around technical constraints, decisions and impact."
+			/>
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
+				{projects
+					.filter((project) => project.caseStudy)
+					.map((project, index) => (
+						<ScrollReveal key={project.title} delay={index * 0.08}>
+							<Link
+								to={`/case-studies/${slugify(project.title)}`}
+								className="block rounded-3xl border border-white/8 bg-[#0a0a0a] p-6 hover:border-white/20 transition-colors"
+							>
+								<h3 className="text-xl text-zinc-100 font-semibold tracking-tight mb-3">
+									{project.title}
+								</h3>
+								<p className="text-sm text-zinc-400 leading-relaxed">{project.description}</p>
+							</Link>
+						</ScrollReveal>
+					))}
+			</div>
+		</main>
+	</ContentShell>
+);
+
+const CaseStudyDetailPage = () => {
+	const { slug = "" } = useParams();
+	const project = projectBySlug.get(slug);
+
+	if (!project?.caseStudy) return <Navigate to="/case-studies" replace />;
+
+	return (
+		<ContentShell>
+			<PageMeta
+				title={`${project.title} Case Study | Gabriele Vigano`}
+				description={project.description}
+				path={`/case-studies/${slug}`}
+			/>
+			<DetailTopBar />
+			<main className="max-w-3xl mx-auto px-6 py-14">
+				<p className="text-[11px] font-mono uppercase tracking-[0.16em] text-zinc-500 mb-3">
+					Case Study
+				</p>
+				<h1 className="text-4xl md:text-5xl text-zinc-100 font-semibold tracking-tight mb-8">
+					{project.title}
+				</h1>
+				<div className="space-y-8">
+					<div>
+						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">Challenge</p>
+						<p className="text-zinc-300 leading-relaxed">{project.caseStudy.challenge}</p>
+					</div>
+					<div>
+						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">Approach</p>
+						<p className="text-zinc-300 leading-relaxed">{project.caseStudy.approach}</p>
+					</div>
+					<div>
+						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">Impact</p>
+						<p className="text-zinc-300 leading-relaxed">{project.caseStudy.impact}</p>
+					</div>
+				</div>
+			</main>
+		</ContentShell>
+	);
+};
+
+const RouteTransitionController = () => {
+	const location = useLocation();
+
+	useEffect(() => {
+		if (!location.hash) {
+			window.scrollTo({ top: 0, behavior: "auto" });
+			return;
+		}
+
+		const id = location.hash;
+		const frame = window.requestAnimationFrame(() => {
+			const section = document.querySelector<HTMLElement>(id);
+			if (!section) return;
+			const y = section.getBoundingClientRect().top + window.scrollY - 100;
+			window.scrollTo({ top: y, behavior: "smooth" });
+		});
+
+		return () => window.cancelAnimationFrame(frame);
+	}, [location.hash, location.pathname]);
+
+	return null;
+};
+
+const AppRoutes = () => (
+	<>
+		<RouteTransitionController />
+		<Routes>
+			<Route path="/" element={<HomePage />} />
+			<Route path="/notes" element={<NotesIndexPage />} />
+			<Route path="/notes/:slug" element={<NoteDetailPage />} />
+			<Route path="/case-studies" element={<CaseStudiesIndexPage />} />
+			<Route path="/case-studies/:slug" element={<CaseStudyDetailPage />} />
+			<Route path="*" element={<Navigate to="/" replace />} />
+		</Routes>
+	</>
+);
+
+function App() {
+	return (
+		<BrowserRouter>
+			<AppRoutes />
+		</BrowserRouter>
 	);
 }
 
