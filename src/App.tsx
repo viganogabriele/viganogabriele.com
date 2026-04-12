@@ -311,9 +311,9 @@ const CustomCursor = () => {
 
 // ─── Glassmorphism Navbar ─────────────────────────────────────────────────────
 const NAV_LINKS = [
-	{ label: "Projects", href: "#projects" },
 	{ label: "About", href: "#about" },
 	{ label: "What I Do", href: "#expertise" },
+	{ label: "Projects", href: "#projects" },
 	{ label: "Stack", href: "#stack" },
 ];
 
@@ -537,21 +537,32 @@ const FloatingPortrait = () => {
 		<motion.div
 			animate={{ y: [0, -15, 0] }}
 			transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-			className="relative z-10 w-56 md:w-80 flex justify-center cursor-default group"
+			className="relative z-10 w-60 md:w-80 flex justify-center cursor-default group"
 		>
 			{/* Soft dynamic glow behind silhouette */}
 			<div className="absolute inset-x-0 top-[20%] bottom-0 bg-violet-600/20 blur-[80px] rounded-full scale-90 group-hover:bg-violet-500/30 transition-colors duration-700" />
 
-			<div className="relative w-full h-[320px] md:h-[450px] overflow-visible flex items-end">
-				<img
-					src={portrait}
-					alt="Gabriele Viganò"
-					loading="eager"
-					decoding="async"
-					fetchPriority="high"
-					style={{ filter: "drop-shadow(0 25px 35px rgba(0,0,0,0.6))" }}
-					className="w-full h-full object-cover object-bottom z-10 transition-transform duration-700 group-hover:scale-105"
-				/>
+			<div className="relative w-full h-[340px] md:h-[470px] flex items-end justify-center">
+				<div
+					className="relative w-full h-full rounded-[44%_44%_16%_16%/34%_34%_18%_18%] overflow-hidden border border-white/10 bg-white/[0.02]"
+					style={{
+						maskImage:
+							"linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%)",
+						WebkitMaskImage:
+							"linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%)",
+						filter: "drop-shadow(0 24px 34px rgba(0,0,0,0.55))",
+					}}
+				>
+					<img
+						src={portrait}
+						alt="Gabriele Viganò"
+						loading="eager"
+						decoding="async"
+						fetchPriority="high"
+						className="w-full h-full object-cover object-[50%_18%] z-10 transition-transform duration-700 group-hover:scale-104"
+					/>
+					<div className="absolute inset-0 bg-gradient-to-t from-[#060606]/25 via-transparent to-transparent pointer-events-none" />
+				</div>
 			</div>
 		</motion.div>
 	);
@@ -2004,7 +2015,9 @@ function HomePage() {
 										I build serious things, without being too serious.
 									</motion.h3>
 									<p className="text-zinc-300 leading-relaxed text-base md:text-[17px] max-w-3xl">
-										I blend product operations, frontend engineering and infrastructure into fast, reliable experiences. Build, test, refine, repeat.
+										I blend product operations, frontend engineering and
+										infrastructure into fast, reliable experiences. Build, test,
+										refine, repeat.
 									</p>
 								</div>
 							</div>
