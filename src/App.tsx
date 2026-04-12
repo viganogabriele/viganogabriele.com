@@ -70,17 +70,37 @@ const CustomCursor = () => {
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  
+  // Velocity-based scaling
+  const lastTime = useRef(performance.now());
+  const lastPos = useRef({ x: 0, y: 0 });
+  const velocity = useMotionValue(0);
+  const smoothVelocity = useSpring(velocity, { stiffness: 60, damping: 20 });
+  
   const ringX = useSpring(mouseX, { stiffness: 100, damping: 16, mass: 0.9 });
   const ringY = useSpring(mouseY, { stiffness: 100, damping: 16, mass: 0.9 });
 
-  const ringSize = hoverLevel === 'bubble' ? 64 : hoverLevel === 'link' ? 56 : 36;
+  const baseSize = hoverLevel === 'bubble' ? 64 : hoverLevel === 'link' ? 56 : 36;
+  const ringSize = useTransform(smoothVelocity, [0, 1500], [baseSize, baseSize + 180]); // Massive expansion
   const ringOp = hoverLevel === 'bubble' ? 1 : hoverLevel === 'link' ? 0.8 : 0.45;
+  const internalBlur = useTransform(smoothVelocity, [0, 1500], ['blur(15px)', 'blur(45px)']); // Deep blur
 
   useEffect(() => {
     setIsTouch(isTouchDevice());
     if (isTouchDevice()) return;
 
     const move = (e: MouseEvent) => {
+      const now = performance.now();
+      const dt = now - lastTime.current;
+      const dx = e.clientX - lastPos.current.x;
+      const dy = e.clientY - lastPos.current.y;
+      const v = Math.sqrt(dx*dx + dy*dy) / (dt || 1) * 100;
+      
+      velocity.set(Math.min(v, 2000));
+      
+      lastTime.current = now;
+      lastPos.current = { x: e.clientX, y: e.clientY };
+      
       mouseX.set(e.clientX);
       mouseY.set(e.clientY);
       if (dotRef.current) {
@@ -111,7 +131,7 @@ const CustomCursor = () => {
     const obs = new MutationObserver(bind);
     obs.observe(document.body, { childList: true, subtree: true });
     return () => { window.removeEventListener('mousemove', move); obs.disconnect(); };
-  }, [mouseX, mouseY]);
+  }, [mouseX, mouseY, velocity]);
 
   if (isTouch) return null;
 
@@ -120,8 +140,18 @@ const CustomCursor = () => {
       <div ref={dotRef} className="cursor-dot" />
       <motion.div
         className="cursor-ring"
-        style={{ left: ringX, top: ringY }}
-        animate={{ width: ringSize, height: ringSize, opacity: ringOp, borderColor: hoverLevel === 'none' ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.8)', backdropFilter: hoverLevel !== 'none' ? 'blur(3px)' : 'blur(0px)' }}
+        style={{ 
+          left: ringX, 
+          top: ringY,
+          width: ringSize,
+          height: ringSize,
+          backdropFilter: internalBlur,
+          WebkitBackdropFilter: internalBlur
+        }}
+        animate={{ 
+          opacity: ringOp, 
+          borderColor: hoverLevel === 'none' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.7)',
+        }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       />
     </>
@@ -168,8 +198,8 @@ const Navbar = () => {
         )}
         style={{
           background: scrolled
-            ? 'rgba(8, 8, 8, 0.25)'
-            : 'rgba(8, 8, 8, 0.05)',
+            ? 'rgba(8, 8, 8, 0.15)'
+            : 'rgba(8, 8, 8, 0.02)',
           backdropFilter: 'blur(30px) saturate(200%)',
           WebkitBackdropFilter: 'blur(30px) saturate(200%)',
         }}
@@ -468,14 +498,48 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
 };
 
 // ─── Section Header ────────────────────────────────────────────────────────────
-const SectionHeader = ({ label, title, subtitle }: { label: string; title: string; subtitle?: string }) => (
-  <ScrollReveal className="mb-12">
-    <p className="text-[10px] font-semibold text-zinc-600 tracking-[0.2em] mb-3 uppercase">{label}</p>
-    <h2 className="text-4xl md:text-5xl font-semibold text-zinc-100 tracking-tight">{title}</h2>
-    {subtitle && <p className="text-zinc-500 mt-4 text-base max-w-lg">{subtitle}</p>}
-    <div className="mt-8 h-[1px] bg-gradient-to-r from-zinc-800 via-zinc-800/40 to-transparent w-full" />
-  </ScrollReveal>
-);
+const SectionHeader = ({ label, title, subtitle }: { label: string; title: string; subtitle?: string }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <ScrollReveal className="mb-12">
+      <p className="text-[10px] font-semibold text-zinc-600 tracking-[0.2em] mb-3 uppercase">{label}</p>
+      <div 
+        onMouseEnter={() => setIsHovered(true)} 
+        onMouseLeave={() => setIsHovered(false)}
+        className="relative inline-block cursor-default"
+      >
+        <motion.h2 
+          animate={{ 
+            filter: isHovered ? 'blur(0px)' : 'blur(0px)',
+            opacity: isHovered ? 1 : 1,
+            x: isHovered ? 10 : 0
+          }}
+          className="text-4xl md:text-5xl font-semibold text-zinc-100 tracking-tight transition-all duration-500"
+        >
+          {title}
+        </motion.h2>
+        <motion.div 
+          initial={{ width: 0 }}
+          animate={{ width: isHovered ? '100%' : '0%' }}
+          className="absolute -bottom-2 left-0 h-[2px] bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.6)]"
+        />
+      </div>
+      {subtitle && (
+        <motion.p 
+          animate={{ 
+            filter: isHovered ? 'blur(1px)' : 'blur(0px)',
+            opacity: isHovered ? 0.4 : 1
+          }}
+          className="text-zinc-500 mt-4 text-base max-w-lg transition-all duration-500"
+        >
+          {subtitle}
+        </motion.p>
+      )}
+      <div className="mt-8 h-[1px] bg-gradient-to-r from-zinc-800 via-zinc-800/40 to-transparent w-full" />
+    </ScrollReveal>
+  );
+};
 
 // ─── Activity Card (click to expand on mobile) ─────────────────────────────────
 interface ActivityCardProps {
@@ -744,11 +808,6 @@ const Footer = () => {
   return (
     <ScrollReveal delay={0.1}>
       <footer className="mt-40 pb-20 border-t border-white/[0.06] relative overflow-hidden">
-        {/* Large Background Branding */}
-        <div className="absolute -bottom-10 -right-20 text-[12vw] font-black text-white/[0.02] select-none pointer-events-none tracking-tighter uppercase whitespace-nowrap">
-          Gabriele Viganò
-        </div>
-
         <div className="pt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative z-10">
           {/* Brand block */}
           <div className="flex flex-col items-start gap-6">
@@ -815,15 +874,12 @@ const Footer = () => {
 
         {/* Bottom strip */}
         <div className="mt-20 pt-8 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[11px] text-zinc-600 font-mono tracking-wider">
-            © {new Date().getFullYear()} GABRIELE VIGANÒ. ALL RIGHTS RESERVED.
+          <p className="text-[11px] text-zinc-600 font-mono tracking-wider uppercase">
+            © {new Date().getFullYear()} Gabriele Viganò. All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
-            <p className="text-[11px] text-zinc-600 font-mono">
-              MADE WITH REACT & FRAMER MOTION
-            </p>
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
-          </div>
+          <p className="text-[11px] text-zinc-600 font-mono tracking-wider uppercase">
+            Made with React & Framer Motion
+          </p>
         </div>
       </footer>
     </ScrollReveal>
@@ -846,9 +902,9 @@ function App() {
 
       {/* Ambient glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-900/10 blur-[150px]" />
-        <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-900/10 blur-[150px]" />
-        <div className="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] rounded-full bg-zinc-800/10 blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-900/20 blur-[150px] md:opacity-50" />
+        <div className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/25 blur-[160px] md:opacity-60" />
+        <div className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] rounded-full bg-fuchsia-900/20 blur-[140px] md:opacity-40" />
       </div>
 
       <main className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
@@ -954,12 +1010,18 @@ function App() {
             <div
               ref={playgroundRef}
               data-cursor-bubble="true"
-              className="relative w-full h-[550px] sm:h-[450px] rounded-[2rem] border border-white/10 bg-[#0a0a0a] overflow-hidden shadow-2xl"
+              className="relative w-full h-[550px] sm:h-[450px] rounded-[2rem] border border-white/10 bg-[#0a0a0a] overflow-hidden shadow-2xl touch-pan-y"
               style={{
                 backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.025) 2px, transparent 2px)',
                 backgroundSize: '40px 40px',
               }}
             >
+              {/* Mobile Interaction Shield - shows message or hint */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none sm:hidden">
+                <p className="text-[10px] text-zinc-500 font-mono bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/5">
+                  Drag icons to play • Scroll outside to move
+                </p>
+              </div>
               {skills.map((skill, i) => {
                 const pos = physicsPositions[i] || { x: -100, y: -100, angle: 0 };
                 return (
