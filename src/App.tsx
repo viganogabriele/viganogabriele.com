@@ -410,7 +410,16 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 
 	return (
 		<>
-			{/* Mobile full-screen overlay — rendered OUTSIDE the nav so z-index is independent */}
+			{/* Top edge gradient fade — blends page top into navbar */}
+			<div
+				className="fixed top-0 left-0 right-0 h-28 pointer-events-none z-[47]"
+				style={{
+					background:
+						"linear-gradient(to bottom, rgba(10,6,20,0.95) 0%, rgba(10,6,20,0.6) 50%, transparent 100%)",
+				}}
+			/>
+
+			{/* Mobile full-screen overlay */}
 			<AnimatePresence>
 				{mobileOpen && (
 					<motion.div
@@ -420,7 +429,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 						exit={{ opacity: 0 }}
 						transition={{ duration: 0.22 }}
 						onClick={() => setMobileOpen(false)}
-						className="fixed inset-0 z-[48] bg-black/60 backdrop-blur-[3px] lg:hidden"
+						className="fixed inset-0 z-[48] bg-black/50 backdrop-blur-[2px] lg:hidden"
 					/>
 				)}
 			</AnimatePresence>
@@ -431,21 +440,27 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 				transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
 				className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[49] w-[92%] max-w-4xl"
 			>
-				<div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-[88%] h-12 bg-gradient-to-r from-transparent via-violet-400/22 to-transparent blur-2xl" />
+				{/* Violet glow halo above the pill */}
+				<div className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 w-[70%] h-10 bg-gradient-to-r from-transparent via-violet-500/30 to-transparent blur-2xl" />
+
+				{/* ── Pill (top bar) ── always rounded-full */}
 				<div
 					className={cn(
 						"px-4 sm:px-5 py-3 rounded-full border transition-all duration-500 relative z-[49]",
 						scrolled
-							? "border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]"
-							: "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]",
+							? "border-violet-400/20 shadow-[0_8px_32px_rgba(109,40,217,0.25),0_0_0_0.5px_rgba(139,92,246,0.1)]"
+							: "border-violet-400/12 shadow-[0_4px_24px_rgba(109,40,217,0.15)]",
 					)}
 					style={{
-						background: scrolled ? "rgba(8, 8, 8, 0.88)" : "rgba(8, 8, 8, 0.72)",
-						backdropFilter: "blur(20px) saturate(170%)",
-						WebkitBackdropFilter: "blur(20px) saturate(170%)",
+						background: scrolled
+							? "rgba(22, 10, 48, 0.82)"
+							: "rgba(18, 8, 38, 0.65)",
+						backdropFilter: "blur(24px) saturate(180%)",
+						WebkitBackdropFilter: "blur(24px) saturate(180%)",
 					}}
 				>
 					<div className="flex items-center justify-between">
+						{/* Logo */}
 						<a
 							href="#"
 							onClick={(e) => handleScrollTo(e, "body")}
@@ -459,6 +474,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 							/>
 						</a>
 
+						{/* Desktop links */}
 						<div className="hidden lg:flex items-center gap-1">
 							{NAV_LINKS.map((link) => (
 								<a
@@ -469,8 +485,8 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 									className={cn(
 										"px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300",
 										activeSection === link.href
-											? "text-white bg-white/[0.1]"
-											: "text-zinc-400 hover:text-white hover:bg-white/[0.07]",
+											? "text-violet-200 bg-violet-500/20"
+											: "text-zinc-400 hover:text-white hover:bg-violet-500/10",
 									)}
 								>
 									{link.label}
@@ -478,6 +494,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 							))}
 						</div>
 
+						{/* Right side */}
 						<div className="flex items-center gap-2">
 							<a
 								href="mailto:info@viganogabriele.com"
@@ -490,69 +507,97 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 								type="button"
 								onClick={() => setMobileOpen((prev) => !prev)}
 								className={cn(
-									"lg:hidden w-10 h-10 rounded-full border transition-colors flex items-center justify-center",
-									"border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
+									"lg:hidden w-9 h-9 rounded-full border transition-all duration-200 flex items-center justify-center",
+									mobileOpen
+										? "border-violet-400/40 bg-violet-500/20 text-violet-200"
+										: "border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-violet-500/15 hover:border-violet-400/30",
 								)}
 								aria-label="Toggle navigation menu"
 							>
-								{mobileOpen ? (
-									<X className="w-4 h-4" />
-								) : (
-									<Menu className="w-4 h-4" />
-								)}
+								<AnimatePresence mode="wait" initial={false}>
+									{mobileOpen ? (
+										<motion.span
+											key="close"
+											initial={{ rotate: -90, opacity: 0 }}
+											animate={{ rotate: 0, opacity: 1 }}
+											exit={{ rotate: 90, opacity: 0 }}
+											transition={{ duration: 0.18 }}
+											className="flex"
+										>
+											<X className="w-4 h-4" />
+										</motion.span>
+									) : (
+										<motion.span
+											key="open"
+											initial={{ rotate: 90, opacity: 0 }}
+											animate={{ rotate: 0, opacity: 1 }}
+											exit={{ rotate: -90, opacity: 0 }}
+											transition={{ duration: 0.18 }}
+											className="flex"
+										>
+											<Menu className="w-4 h-4" />
+										</motion.span>
+									)}
+								</AnimatePresence>
 							</button>
 						</div>
 					</div>
+				</div>
 
-					{/* Mobile dropdown — inside the opaque navbar pill */}
-					<AnimatePresence>
-						{mobileOpen && (
-							<motion.div
-								key="mobile-menu"
-								initial={{ opacity: 0, height: 0, marginTop: 0 }}
-								animate={{ opacity: 1, height: "auto", marginTop: 10 }}
-								exit={{ opacity: 0, height: 0, marginTop: 0 }}
-								transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-								className="lg:hidden overflow-hidden border-t border-violet-200/20 pt-2"
-							>
-								<nav className="flex flex-col gap-1">
-									{NAV_LINKS.map((link, i) => (
-										<motion.a
-											key={link.label}
-											href={link.href}
-											onClick={(e) => handleScrollTo(e, link.href)}
-											initial={{ opacity: 0, x: -8 }}
-											animate={{ opacity: 1, x: 0 }}
-											transition={{ delay: i * 0.04, duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-											className={cn(
-												"flex items-center gap-2 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all active:scale-[0.97] select-none",
-												activeSection === link.href
-													? "text-violet-100 bg-violet-500/18 border border-violet-400/30"
-													: "text-zinc-200 hover:text-white hover:bg-white/8",
-											)}
-										>
-											{/* Active dot indicator */}
-											{activeSection === link.href && (
-												<span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
-											)}
-											{link.label}
-										</motion.a>
-									))}
-								</nav>
-								{/* Let's talk — always visible in mobile menu */}
+				{/* ── Mobile dropdown — separate card below the pill ── */}
+				<AnimatePresence>
+					{mobileOpen && (
+						<motion.div
+							key="mobile-menu"
+							initial={{ opacity: 0, y: -8, scale: 0.97 }}
+							animate={{ opacity: 1, y: 0, scale: 1 }}
+							exit={{ opacity: 0, y: -8, scale: 0.97 }}
+							transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+							className="lg:hidden mt-2 p-3 rounded-2xl border border-violet-400/20 overflow-hidden"
+							style={{
+								background: "rgba(22, 10, 48, 0.90)",
+								backdropFilter: "blur(24px) saturate(180%)",
+								WebkitBackdropFilter: "blur(24px) saturate(180%)",
+								boxShadow: "0 8px 32px rgba(109,40,217,0.2), 0 0 0 0.5px rgba(139,92,246,0.1)",
+							}}
+						>
+							<nav className="flex flex-col gap-1">
+								{NAV_LINKS.map((link, i) => (
+									<motion.a
+										key={link.label}
+										href={link.href}
+										onClick={(e) => handleScrollTo(e, link.href)}
+										initial={{ opacity: 0, x: -8 }}
+										animate={{ opacity: 1, x: 0 }}
+										transition={{ delay: i * 0.05, duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+										className={cn(
+											"flex items-center gap-2.5 px-4 py-3 rounded-xl text-[14px] font-medium transition-all duration-200 active:scale-[0.97] select-none",
+											activeSection === link.href
+												? "text-violet-200 bg-violet-500/20 border border-violet-400/25"
+												: "text-zinc-300 hover:text-white hover:bg-violet-500/10",
+										)}
+									>
+										{activeSection === link.href && (
+											<span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+										)}
+										{link.label}
+									</motion.a>
+								))}
+							</nav>
+							<div className="mt-2 pt-2 border-t border-violet-400/15">
 								<motion.a
 									href="mailto:info@viganogabriele.com"
 									initial={{ opacity: 0, y: 4 }}
 									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: NAV_LINKS.length * 0.04 + 0.06, duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-									className="mt-2 w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[13px] font-semibold text-black bg-white hover:bg-zinc-100 transition-colors active:scale-[0.97]"
+									transition={{ delay: NAV_LINKS.length * 0.05 + 0.06, duration: 0.22 }}
+									className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-[14px] font-semibold text-black bg-white hover:bg-zinc-100 transition-colors active:scale-[0.97]"
 								>
 									Let's talk
 								</motion.a>
-							</motion.div>
-						)}
-					</AnimatePresence>
-				</div>
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
 			</motion.nav>
 		</>
 	);
