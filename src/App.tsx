@@ -363,6 +363,16 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 		return () => window.removeEventListener("keydown", onEscape);
 	}, [mobileOpen]);
 
+	useEffect(() => {
+		const previousOverflow = document.body.style.overflow;
+		if (mobileOpen) document.body.style.overflow = "hidden";
+		else document.body.style.overflow = previousOverflow || "";
+
+		return () => {
+			document.body.style.overflow = previousOverflow;
+		};
+	}, [mobileOpen]);
+
 	const handleScrollTo = (
 		e: React.MouseEvent<HTMLAnchorElement>,
 		target: string,
@@ -388,11 +398,9 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 						: "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]",
 				)}
 				style={{
-					background: scrolled
-							? "rgba(8, 8, 8, 0.15)"
-							: "rgba(8, 8, 8, 0.02)",
-					backdropFilter: "blur(30px) saturate(200%)",
-					WebkitBackdropFilter: "blur(30px) saturate(200%)",
+					background: scrolled ? "rgba(8, 8, 8, 0.24)" : "rgba(8, 8, 8, 0.05)",
+					backdropFilter: "blur(20px) saturate(170%)",
+					WebkitBackdropFilter: "blur(20px) saturate(170%)",
 				}}
 			>
 				<div className="flex items-center justify-between">
@@ -1092,8 +1100,8 @@ const ActivityCard = ({
 			onClick={() => {
 				if (isTouch) setExpanded((prev) => !prev);
 			}}
-			whileHover={!isTouch ? { y: -4, scale: 1.005 } : {}}
-			transition={{ type: "spring", stiffness: 260, damping: 28 }}
+			whileHover={!isTouch ? { y: -5, scale: 1.012 } : {}}
+			transition={{ type: "spring", stiffness: 300, damping: 26 }}
 			data-cursor="hover"
 			className={cn(
 				"relative p-7 rounded-3xl border overflow-hidden group shadow-lg cursor-pointer select-none",
@@ -1141,7 +1149,7 @@ const ActivityCard = ({
 						opacity: isOpen ? 1 : 0,
 						marginBottom: isOpen ? 8 : 0,
 					}}
-					transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+					transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
 					className="overflow-hidden"
 				>
 					<ul className="space-y-3 text-sm text-zinc-500 pb-2">
@@ -1204,8 +1212,8 @@ const ProjectCard = ({
 		}}
 		target={link ? "_blank" : undefined}
 		rel="noreferrer"
-		whileHover={{ y: -6, scale: 1.02 }}
-		transition={{ type: "spring", stiffness: 350, damping: 25 }}
+		whileHover={{ y: -5, scale: 1.012 }}
+		transition={{ type: "spring", stiffness: 300, damping: 26 }}
 		data-cursor="hover"
 		className={cn(
 			"group relative flex flex-col p-7 rounded-3xl border border-white/5 bg-[#0a0a0a] overflow-hidden transition-all duration-500 shadow-lg h-full",
@@ -1347,11 +1355,11 @@ const CertCard = ({
 		href={link}
 		target="_blank"
 		rel="noreferrer"
-		whileHover={{ x: 6, backgroundColor: "rgba(76,29,149,0.14)" }}
-		transition={{ type: "spring", stiffness: 350, damping: 25 }}
+		whileHover={{ x: 6 }}
+		transition={{ type: "spring", stiffness: 300, damping: 26 }}
 		data-cursor="hover"
 		className={cn(
-			"group flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-5 sm:p-6 rounded-3xl border transition-colors",
+			"group flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-5 sm:p-6 rounded-3xl border transition-colors duration-200 hover:bg-violet-950/14",
 			highlight
 				? "border-white/5 bg-[#0a0a0a] hover:border-violet-500/40"
 				: "border-white/5 bg-[#0a0a0a] hover:border-violet-500/35",
