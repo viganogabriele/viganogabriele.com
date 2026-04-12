@@ -19,12 +19,14 @@ import {
 	Globe,
 	HardDrive,
 	Layers,
+	Menu,
 	Mic2,
 	Network,
 	Palette,
 	Server,
 	Terminal,
 	Users,
+	X,
 } from "lucide-react";
 import Matter from "matter-js";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -291,16 +293,28 @@ const NAV_LINKS = [
 	{ label: "Expertise", href: "#expertise" },
 	{ label: "Projects", href: "#projects" },
 	{ label: "Stack", href: "#stack" },
-	{ label: "Recognition", href: "#certifications" },
+	{ label: "Journey", href: "#journey" },
+	{ label: "Notes", href: "#notes" },
+	{ label: "Certifications", href: "#certifications" },
 ];
 
 const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 	const [scrolled, setScrolled] = useState(false);
+	const [mobileOpen, setMobileOpen] = useState(false);
 	useEffect(() => {
 		const h = () => setScrolled(window.scrollY > 40);
 		window.addEventListener("scroll", h, { passive: true });
 		return () => window.removeEventListener("scroll", h);
 	}, []);
+
+	useEffect(() => {
+		if (!mobileOpen) return;
+		const onEscape = (event: KeyboardEvent) => {
+			if (event.key === "Escape") setMobileOpen(false);
+		};
+		window.addEventListener("keydown", onEscape);
+		return () => window.removeEventListener("keydown", onEscape);
+	}, [mobileOpen]);
 
 	const handleScrollTo = (
 		e: React.MouseEvent<HTMLAnchorElement>,
@@ -308,6 +322,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 	) => {
 		e.preventDefault();
 		onNavigate(target);
+		setMobileOpen(false);
 	};
 
 	return (
@@ -319,7 +334,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 		>
 			<div
 				className={cn(
-					"flex items-center justify-between px-5 py-3 rounded-full border transition-all duration-500",
+					"flex items-center justify-between px-4 sm:px-5 py-3 rounded-full border transition-all duration-500",
 					scrolled
 						? "border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]"
 						: "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]",
@@ -343,7 +358,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 					/>
 				</a>
 
-				<div className="hidden sm:flex items-center gap-1">
+				<div className="hidden lg:flex items-center gap-1">
 					{NAV_LINKS.map((link) => (
 						<a
 							key={link.label}
@@ -357,14 +372,73 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 					))}
 				</div>
 
-				<a
-					href="mailto:info@viganogabriele.com"
-					data-cursor="hover"
-					className="px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.35)]"
-				>
-					Let's talk
-				</a>
+				<div className="flex items-center gap-2">
+					<a
+						href="mailto:info@viganogabriele.com"
+						data-cursor="hover"
+						className="hidden sm:inline-flex px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.35)]"
+					>
+						Let's talk
+					</a>
+					<button
+						type="button"
+						onClick={() => setMobileOpen((prev) => !prev)}
+						className="lg:hidden w-10 h-10 rounded-full border border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center"
+						aria-label="Toggle navigation menu"
+					>
+						{mobileOpen ? (
+							<X className="w-4 h-4" />
+						) : (
+							<Menu className="w-4 h-4" />
+						)}
+					</button>
+				</div>
 			</div>
+
+			<AnimatePresence>
+				{mobileOpen && (
+					<motion.div
+						initial={{ opacity: 0, y: -8 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -8 }}
+						transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+						className="lg:hidden mt-2 rounded-2xl border border-white/10 bg-black/75 backdrop-blur-2xl p-3"
+					>
+						<nav className="grid grid-cols-2 gap-2">
+							{NAV_LINKS.map((link) => (
+								<a
+									key={link.label}
+									href={link.href}
+									onClick={(e) => handleScrollTo(e, link.href)}
+									className="px-3 py-2.5 rounded-xl text-[12px] font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
+								>
+									{link.label}
+								</a>
+							))}
+							<Link
+								to="/notes"
+								onClick={() => setMobileOpen(false)}
+								className="px-3 py-2.5 rounded-xl text-[12px] font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
+							>
+								All notes
+							</Link>
+							<Link
+								to="/case-studies"
+								onClick={() => setMobileOpen(false)}
+								className="px-3 py-2.5 rounded-xl text-[12px] font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
+							>
+								Case studies
+							</Link>
+						</nav>
+						<a
+							href="mailto:info@viganogabriele.com"
+							className="sm:hidden mt-3 w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[12px] font-semibold text-black bg-white hover:bg-zinc-200 transition-colors"
+						>
+							Let's talk
+						</a>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</motion.nav>
 	);
 };
@@ -1225,6 +1299,7 @@ interface CertProps {
 	title: string;
 	issuer: string;
 	year: string;
+	link: string;
 	icon: React.ElementType;
 	highlight?: boolean;
 }
@@ -1232,15 +1307,19 @@ const CertCard = ({
 	title,
 	issuer,
 	year,
+	link,
 	icon: Icon,
 	highlight,
 }: CertProps) => (
-	<motion.div
+	<motion.a
+		href={link}
+		target="_blank"
+		rel="noreferrer"
 		whileHover={{ x: 6, backgroundColor: "rgba(255,255,255,0.03)" }}
 		transition={{ type: "spring", stiffness: 350, damping: 25 }}
 		data-cursor="hover"
 		className={cn(
-			"group flex items-center gap-6 p-6 rounded-3xl border transition-colors cursor-default",
+			"group flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-5 sm:p-6 rounded-3xl border transition-colors",
 			highlight
 				? "border-violet-500/20 bg-violet-950/10"
 				: "border-white/5 bg-[#0a0a0a]",
@@ -1256,14 +1335,20 @@ const CertCard = ({
 		>
 			<Icon className="w-5 h-5" />
 		</div>
-		<div className="flex-1 min-w-0">
-			<p className="text-base font-bold text-zinc-100 truncate mb-1">{title}</p>
+		<div className="flex-1 min-w-0 w-full">
+			<p className="text-base font-bold text-zinc-100 mb-1 leading-snug">
+				{title}
+			</p>
 			<p className="text-sm text-zinc-400">{issuer}</p>
+			<div className="mt-3 inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.18em] text-zinc-500 group-hover:text-white transition-colors">
+				View credential
+				<ArrowUpRight className="w-3.5 h-3.5" />
+			</div>
 		</div>
-		<span className="text-xs text-zinc-600 font-mono font-medium shrink-0 group-hover:text-zinc-400 transition-colors">
+		<span className="text-xs text-zinc-600 font-mono font-medium shrink-0 self-start sm:self-center group-hover:text-zinc-400 transition-colors">
 			{year}
 		</span>
-	</motion.div>
+	</motion.a>
 );
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
@@ -1374,6 +1459,7 @@ const certifications: CertProps[] = [
 		title: "Leadership & Project Management",
 		issuer: "PoliNetwork APS – Student Association",
 		year: "2024",
+		link: "https://polinetwork.org",
 		icon: Award,
 		highlight: true,
 	},
@@ -1381,12 +1467,14 @@ const certifications: CertProps[] = [
 		title: "Public Speaking & Communication",
 		issuer: "Politecnico di Milano",
 		year: "2024",
+		link: "https://www.polimi.it",
 		icon: Mic2,
 	},
 	{
 		title: "Team Coordination Dynamics",
 		issuer: "IEEE Student Branch",
 		year: "2023",
+		link: "https://www.ieee.org",
 		icon: Users,
 	},
 ];
@@ -1969,7 +2057,7 @@ function HomePage() {
 					</section>
 
 					{/* ── Interactive Timeline ───────────────────────────────────── */}
-					<section className="mt-40 pt-20">
+					<section id="journey" className="mt-40 pt-20">
 						<SectionHeader
 							label="04 / Journey"
 							title="Interactive Timeline."
