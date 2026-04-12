@@ -115,23 +115,18 @@ const CustomCursor = () => {
 	const velocity = useMotionValue(0);
 	const smoothVelocity = useSpring(velocity, { stiffness: 45, damping: 24 });
 
-	const ringX = useSpring(mouseX, { stiffness: 85, damping: 19, mass: 1.1 });
-	const ringY = useSpring(mouseY, { stiffness: 85, damping: 19, mass: 1.1 });
-	const haloX = useSpring(mouseX, { stiffness: 42, damping: 20, mass: 1.5 });
-	const haloY = useSpring(mouseY, { stiffness: 42, damping: 20, mass: 1.5 });
+	const ringX = useSpring(mouseX, { stiffness: 75, damping: 20, mass: 1.2 });
+	const ringY = useSpring(mouseY, { stiffness: 75, damping: 20, mass: 1.2 });
 
 	const baseSize =
 		hoverLevel === "bubble" ? 36 : hoverLevel === "link" ? 28 : 18;
 	const ringSize = useTransform(
 		smoothVelocity,
 		[0, 1500],
-		[baseSize, baseSize + 56],
+		[baseSize, baseSize + 64],
 	);
-	const haloSize = useTransform(smoothVelocity, [0, 1500], [82, 160]);
 	const ringOp =
-		hoverLevel === "bubble" ? 0.58 : hoverLevel === "link" ? 0.44 : 0.24;
-	const haloOp =
-		hoverLevel === "bubble" ? 0.42 : hoverLevel === "link" ? 0.28 : 0.18;
+		hoverLevel === "bubble" ? 0.74 : hoverLevel === "link" ? 0.6 : 0.38;
 	const internalBlur = useTransform(
 		smoothVelocity,
 		[0, 1500],
@@ -165,13 +160,10 @@ const CustomCursor = () => {
 
 		const enter = (e: Event) => {
 			const el = e.currentTarget as HTMLElement;
-			el.classList.add("cursor-shine");
 			if (el.dataset.cursorBubble !== undefined) setHoverLevel("bubble");
 			else setHoverLevel("link");
 		};
-		const leave = (e: Event) => {
-			const el = e.currentTarget as HTMLElement;
-			el.classList.remove("cursor-shine");
+		const leave = () => {
 			setHoverLevel("none");
 		};
 
@@ -202,16 +194,6 @@ const CustomCursor = () => {
 
 	return (
 		<>
-			<motion.div
-				className="cursor-halo"
-				style={{
-					left: haloX,
-					top: haloY,
-					width: haloSize,
-					height: haloSize,
-				}}
-				animate={{ opacity: haloOp }}
-			/>
 			<div ref={dotRef} className="cursor-dot" />
 			<motion.div
 				className="cursor-ring"
@@ -227,8 +209,8 @@ const CustomCursor = () => {
 					opacity: ringOp,
 					borderColor:
 						hoverLevel === "none"
-							? "rgba(255,255,255,0.16)"
-							: "rgba(255,255,255,0.38)",
+							? "rgba(255,255,255,0.24)"
+							: "rgba(255,255,255,0.66)",
 				}}
 				transition={{ type: "spring", stiffness: 300, damping: 20 }}
 			/>
@@ -513,6 +495,7 @@ const useMatterPhysics = (
 		const halfBodyWidth = bodyWidth / 2;
 		const halfBodyHeight = bodyHeight / 2;
 
+		const wallThickness = 220;
 		const wallOpts = {
 			isStatic: true,
 			restitution: 0.8,
@@ -522,29 +505,29 @@ const useMatterPhysics = (
 		const walls = [
 			Matter.Bodies.rectangle(
 				width / 2,
-				-halfBodyHeight,
+				-wallThickness / 2,
 				width * 2,
-				bodyHeight,
+				wallThickness,
 				wallOpts,
 			),
 			Matter.Bodies.rectangle(
 				width / 2,
-				height + halfBodyHeight,
+				height + wallThickness / 2,
 				width * 2,
-				bodyHeight,
+				wallThickness,
 				wallOpts,
 			),
 			Matter.Bodies.rectangle(
-				-halfBodyWidth,
+				-wallThickness / 2,
 				height / 2,
-				bodyWidth,
+				wallThickness,
 				height * 2,
 				wallOpts,
 			),
 			Matter.Bodies.rectangle(
-				width + halfBodyWidth,
+				width + wallThickness / 2,
 				height / 2,
-				bodyWidth,
+				wallThickness,
 				height * 2,
 				wallOpts,
 			),
@@ -614,8 +597,42 @@ const useMatterPhysics = (
 		};
 
 		let animationFrameId: number;
+		const clampBodyToBounds = (body: Matter.Body) => {
+			const minX = halfBodyWidth;
+			const maxX = Math.max(halfBodyWidth, width - halfBodyWidth);
+			const minY = halfBodyHeight;
+			const maxY = Math.max(halfBodyHeight, height - halfBodyHeight);
+
+			let nextX = body.position.x;
+			let nextY = body.position.y;
+			let nextVelX = body.velocity.x;
+			let nextVelY = body.velocity.y;
+
+			if (body.position.x < minX) {
+				nextX = minX;
+				nextVelX = Math.abs(body.velocity.x) * 0.55;
+			} else if (body.position.x > maxX) {
+				nextX = maxX;
+				nextVelX = -Math.abs(body.velocity.x) * 0.55;
+			}
+
+			if (body.position.y < minY) {
+				nextY = minY;
+				nextVelY = Math.abs(body.velocity.y) * 0.55;
+			} else if (body.position.y > maxY) {
+				nextY = maxY;
+				nextVelY = -Math.abs(body.velocity.y) * 0.55;
+			}
+
+			if (nextX !== body.position.x || nextY !== body.position.y) {
+				Matter.Body.setPosition(body, { x: nextX, y: nextY });
+				Matter.Body.setVelocity(body, { x: nextVelX, y: nextVelY });
+			}
+		};
+
 		const updateSync = () => {
 			Matter.Engine.update(engine, 1000 / 60);
+			bodies.forEach(clampBodyToBounds);
 			setPositions(
 				bodies.map((b) => ({
 					x: b.position.x,
@@ -657,10 +674,11 @@ const useMatterPhysics = (
 			const { width: w, height: h } = getSize();
 			width = w;
 			height = h;
-			Matter.Body.setPosition(walls[0], { x: w / 2, y: -halfBodyHeight });
-			Matter.Body.setPosition(walls[1], { x: w / 2, y: h + halfBodyHeight });
-			Matter.Body.setPosition(walls[2], { x: -halfBodyWidth, y: h / 2 });
-			Matter.Body.setPosition(walls[3], { x: w + halfBodyWidth, y: h / 2 });
+			Matter.Body.setPosition(walls[0], { x: w / 2, y: -wallThickness / 2 });
+			Matter.Body.setPosition(walls[1], { x: w / 2, y: h + wallThickness / 2 });
+			Matter.Body.setPosition(walls[2], { x: -wallThickness / 2, y: h / 2 });
+			Matter.Body.setPosition(walls[3], { x: w + wallThickness / 2, y: h / 2 });
+			bodies.forEach(clampBodyToBounds);
 		};
 
 		// Release drag when pointer exits/interruption happens to prevent cards escaping the sandbox.
@@ -780,7 +798,7 @@ const ActivityCard = ({
 				if (isTouch) setExpanded((prev) => !prev);
 			}}
 			whileHover={!isTouch ? { y: -4, scale: 1.005 } : {}}
-			transition={{ type: "spring", stiffness: 350, damping: 25 }}
+			transition={{ type: "spring", stiffness: 260, damping: 28 }}
 			data-cursor="hover"
 			className={cn(
 				"relative p-7 rounded-3xl border overflow-hidden group shadow-lg cursor-pointer select-none",
@@ -809,7 +827,7 @@ const ActivityCard = ({
 					{/* Expand / arrow indicator */}
 					<motion.div
 						animate={{ rotate: isOpen ? 180 : 0, opacity: isOpen ? 1 : 0.45 }}
-						transition={{ duration: 0.25 }}
+						transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
 						className={cn(
 							"mt-1",
 							highlight ? "text-violet-400" : "text-zinc-500",
@@ -835,7 +853,7 @@ const ActivityCard = ({
 						opacity: isOpen ? 1 : 0,
 						marginBottom: isOpen ? 8 : 0,
 					}}
-					transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+					transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
 					className="overflow-hidden"
 				>
 					<ul className="space-y-3 text-sm text-zinc-500 pb-2">
