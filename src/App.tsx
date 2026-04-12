@@ -385,11 +385,11 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 					scrolled
 						? "border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]"
 						: "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]",
-					mobileOpen && "border-violet-300/30",
+					mobileOpen && "border-violet-300/45",
 				)}
 				style={{
 					background: mobileOpen
-						? "rgba(7, 7, 10, 0.88)"
+						? "linear-gradient(150deg, rgba(64,38,118,0.62) 0%, rgba(16,14,30,0.94) 100%)"
 						: scrolled
 							? "rgba(8, 8, 8, 0.15)"
 							: "rgba(8, 8, 8, 0.02)",
@@ -443,7 +443,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 						className={cn(
 							"lg:hidden w-10 h-10 rounded-full border transition-colors flex items-center justify-center",
 							mobileOpen
-								? "border-violet-300/50 bg-violet-500/20 text-violet-100"
+								? "border-violet-300/55 bg-violet-500/24 text-violet-100"
 								: "border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
 						)}
 						aria-label="Toggle navigation menu"
@@ -459,37 +459,49 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 
 			<AnimatePresence>
 				{mobileOpen && (
-					<motion.div
-						initial={{ opacity: 0, y: -8 }}
-						animate={{ opacity: 1, y: 0 }}
-						exit={{ opacity: 0, y: -8 }}
-						transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-						className="lg:hidden mt-2 rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(18,18,24,0.97)_0%,rgba(10,10,12,0.96)_100%)] backdrop-blur-2xl p-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.55)]"
-					>
-						<nav className="flex flex-col gap-1.5">
-							{NAV_LINKS.map((link) => (
-								<a
-									key={link.label}
-									href={link.href}
-									onClick={(e) => handleScrollTo(e, link.href)}
-									className={cn(
-										"px-3 py-2.5 rounded-lg text-[12px] font-medium transition-colors text-left",
-										activeSection === link.href
-											? "text-violet-100 bg-violet-500/20 border border-violet-300/35"
-											: "text-zinc-300 hover:text-white hover:bg-white/6",
-									)}
-								>
-									{link.label}
-								</a>
-							))}
-						</nav>
-						<a
-							href="mailto:info@viganogabriele.com"
-							className="sm:hidden mt-2 w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-[12px] font-semibold text-black bg-white hover:bg-zinc-200 transition-colors"
+					<>
+						<motion.button
+							type="button"
+							aria-label="Close navigation overlay"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							transition={{ duration: 0.2 }}
+							onClick={() => setMobileOpen(false)}
+							className="fixed inset-0 z-[-1] bg-black/46 backdrop-blur-[2px]"
+						/>
+						<motion.div
+							initial={{ opacity: 0, y: -8 }}
+							animate={{ opacity: 1, y: 0 }}
+							exit={{ opacity: 0, y: -8 }}
+							transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+							className="lg:hidden mt-1 rounded-[1.1rem] border border-violet-200/28 bg-[linear-gradient(165deg,rgba(77,47,138,0.64)_0%,rgba(24,20,38,0.96)_100%)] backdrop-blur-2xl p-2.5 shadow-[0_20px_40px_rgba(0,0,0,0.58)]"
 						>
-							Let's talk
-						</a>
-					</motion.div>
+							<nav className="flex flex-col gap-1.5">
+								{NAV_LINKS.map((link) => (
+									<a
+										key={link.label}
+										href={link.href}
+										onClick={(e) => handleScrollTo(e, link.href)}
+										className={cn(
+											"px-3 py-2.5 rounded-lg text-[12px] font-medium transition-colors text-left",
+											activeSection === link.href
+												? "text-violet-50 bg-violet-300/24 border border-violet-200/40"
+												: "text-zinc-200 hover:text-white hover:bg-white/8",
+										)}
+									>
+										{link.label}
+									</a>
+								))}
+							</nav>
+							<a
+								href="mailto:info@viganogabriele.com"
+								className="sm:hidden mt-2 w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-[12px] font-semibold text-black bg-white hover:bg-zinc-200 transition-colors"
+							>
+								Let's talk
+							</a>
+						</motion.div>
+					</>
 				)}
 			</AnimatePresence>
 		</motion.nav>
@@ -627,26 +639,34 @@ const TextScramble = ({ text }: { text: string }) => {
 	}, [scramble, text]);
 
 	return (
-		<h1
-			onMouseEnter={() => {
-				setIsHovered(true);
-				scramble(text);
-			}}
-			onMouseLeave={() => setIsHovered(false)}
-			className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-tight font-mono relative cursor-default"
-		>
-			<span
-				className={cn(
-					"bg-clip-text text-transparent bg-[length:200%_auto] transition-all duration-700 ease-out",
-					isHovered
-						? "bg-gradient-to-r from-blue-400 via-emerald-400 to-violet-400 bg-[position:100%_center]"
-						: "bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-[position:0%_center]",
-				)}
+		<div className="relative inline-block">
+			<motion.div
+				aria-hidden
+				animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.96, 1.03, 0.96] }}
+				transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut" }}
+				className="absolute -inset-x-8 -inset-y-5 bg-gradient-to-r from-cyan-500/22 via-blue-400/14 to-violet-500/26 blur-2xl pointer-events-none"
+			/>
+			<h1
+				onMouseEnter={() => {
+					setIsHovered(true);
+					scramble(text);
+				}}
+				onMouseLeave={() => setIsHovered(false)}
+				className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-tight font-mono relative cursor-default"
 			>
-				{display}
-			</span>
-			<span className="text-zinc-600 animate-pulse ml-1">_</span>
-		</h1>
+				<span
+					className={cn(
+						"bg-clip-text text-transparent bg-[length:200%_auto] transition-all duration-700 ease-out drop-shadow-[0_0_20px_rgba(56,189,248,0.2)]",
+						isHovered
+							? "bg-gradient-to-r from-cyan-200 via-blue-300 to-violet-300 bg-[position:100%_center]"
+							: "bg-gradient-to-r from-sky-300 via-cyan-200 to-violet-300 bg-[position:0%_center]",
+					)}
+				>
+					{display}
+				</span>
+				<span className="text-zinc-500 animate-pulse ml-1">_</span>
+			</h1>
+		</div>
 	);
 };
 
@@ -1824,6 +1844,20 @@ function HomePage() {
 			const element = document.querySelector<HTMLElement>(selector);
 			if (!element) return;
 
+			if (selector !== "body") {
+				element.animate(
+					[
+						{ filter: "brightness(1)", transform: "translateY(0px)" },
+						{ filter: "brightness(1.2)", transform: "translateY(-2px)" },
+						{ filter: "brightness(1)", transform: "translateY(0px)" },
+					],
+					{
+						duration: 420,
+						easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+					},
+				);
+			}
+
 			if (lenisRef.current && !prefersReducedMotion) {
 				lenisRef.current.scrollTo(element, { offset: -100, duration: 1.1 });
 				return;
@@ -2008,6 +2042,7 @@ function HomePage() {
 									<motion.h3
 										initial={{ opacity: 0, y: 10 }}
 										whileInView={{ opacity: 1, y: 0 }}
+										whileTap={{ scale: 0.985, filter: "brightness(1.15)" }}
 										viewport={{ once: true }}
 										transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
 										className="text-2xl md:text-3xl font-semibold tracking-tight mb-3 bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent"
