@@ -363,16 +363,6 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 		return () => window.removeEventListener("keydown", onEscape);
 	}, [mobileOpen]);
 
-	useEffect(() => {
-		const previousOverflow = document.body.style.overflow;
-		if (mobileOpen) document.body.style.overflow = "hidden";
-		else document.body.style.overflow = previousOverflow || "";
-
-		return () => {
-			document.body.style.overflow = previousOverflow;
-		};
-	}, [mobileOpen]);
-
 	const handleScrollTo = (
 		e: React.MouseEvent<HTMLAnchorElement>,
 		target: string,
@@ -486,7 +476,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 										href={link.href}
 										onClick={(e) => handleScrollTo(e, link.href)}
 										className={cn(
-											"px-3 py-2.5 rounded-lg text-[12px] font-medium transition-colors text-left",
+											"px-3 py-2.5 rounded-lg text-[12px] font-medium transition-colors text-left active:scale-[0.98]",
 											activeSection === link.href
 												? "text-violet-50 bg-violet-300/24 border border-violet-200/40"
 												: "text-zinc-200 hover:text-white hover:bg-white/8",
@@ -517,7 +507,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 						exit={{ opacity: 0 }}
 						transition={{ duration: 0.2 }}
 						onClick={() => setMobileOpen(false)}
-						className="fixed inset-0 z-[-1] bg-black/46 backdrop-blur-[2px]"
+						className="fixed inset-0 z-40 bg-black/46 backdrop-blur-[2px]"
 					/>
 				)}
 			</AnimatePresence>
@@ -597,7 +587,7 @@ const FloatingPortrait = () => {
 						transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
 						className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-violet-300/35 bg-black/60 backdrop-blur-md px-3 py-1 text-[10px] tracking-[0.18em] uppercase text-violet-100"
 					>
-						Homelab mode unlocked
+						Hi, I'm 21 from Italy
 					</motion.div>
 				)}
 			</AnimatePresence>
@@ -1138,8 +1128,9 @@ const ActivityCard = ({
 			onClick={() => {
 				if (isTouch) setExpanded((prev) => !prev);
 			}}
-			whileHover={!isTouch ? { y: -5, scale: 1.012 } : {}}
-			transition={{ type: "spring", stiffness: 300, damping: 26 }}
+			whileHover={!isTouch ? { y: -4, scale: 1.009 } : {}}
+			whileTap={isTouch ? { scale: 0.992 } : undefined}
+			transition={{ type: "spring", stiffness: 220, damping: 30 }}
 			data-cursor="hover"
 			className={cn(
 				"relative p-7 rounded-3xl border overflow-hidden group shadow-lg cursor-pointer select-none",
@@ -1187,7 +1178,7 @@ const ActivityCard = ({
 						opacity: isOpen ? 1 : 0,
 						marginBottom: isOpen ? 8 : 0,
 					}}
-					transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+					transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
 					className="overflow-hidden"
 				>
 					<ul className="space-y-3 text-sm text-zinc-500 pb-2">
@@ -1250,8 +1241,9 @@ const ProjectCard = ({
 		}}
 		target={link ? "_blank" : undefined}
 		rel="noreferrer"
-		whileHover={{ y: -5, scale: 1.012 }}
-		transition={{ type: "spring", stiffness: 300, damping: 26 }}
+		whileHover={{ y: -5, scale: 1.014 }}
+		whileTap={{ scale: 0.988 }}
+		transition={{ type: "spring", stiffness: 380, damping: 23 }}
 		data-cursor="hover"
 		className={cn(
 			"group relative flex flex-col p-7 rounded-3xl border border-white/5 bg-[#0a0a0a] overflow-hidden transition-all duration-500 shadow-lg h-full",
@@ -1789,7 +1781,11 @@ function HomePage() {
 	const { scrollYProgress } = useScroll();
 	const heroY = useTransform(scrollYProgress, [0, 0.3], ["0%", "25%"]);
 	const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
-	const bgShiftTop = useTransform(scrollYProgress, [0, 0.5, 1], [0.02, 0.1, 0.04]);
+	const bgShiftTop = useTransform(
+		scrollYProgress,
+		[0, 0.5, 1],
+		[0.02, 0.1, 0.04],
+	);
 	const bgShiftBottom = useTransform(
 		scrollYProgress,
 		[0, 0.5, 1],
