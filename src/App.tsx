@@ -1,1069 +1,1721 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { type ClassValue, clsx } from "clsx";
 import {
-  motion,
-  AnimatePresence,
-  useScroll,
-  useTransform,
-  useMotionValue,
-  useSpring,
-} from 'framer-motion';
+	AnimatePresence,
+	motion,
+	useMotionValue,
+	useReducedMotion,
+	useScroll,
+	useSpring,
+	useTransform,
+} from "framer-motion";
+import Lenis from "lenis";
 import {
-  Network,
-  Server,
-  Terminal,
-  Palette,
-  Code2,
-  GitMerge,
-  ArrowUpRight,
-  Layers,
-  Cpu,
-  Globe,
-  HardDrive,
-  Award,
-  Users,
-  Mic2,
-  ChevronDown,
-} from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import Matter from 'matter-js';
-import portrait from './assets/photo-gabriele.webp';
-import logo from './assets/logo-dark.png';
+	ArrowUpRight,
+	Award,
+	ChevronDown,
+	Code2,
+	Cpu,
+	GitMerge,
+	Globe,
+	HardDrive,
+	Layers,
+	Mic2,
+	Network,
+	Palette,
+	Server,
+	Terminal,
+	Users,
+} from "lucide-react";
+import Matter from "matter-js";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { twMerge } from "tailwind-merge";
+import logo from "./assets/logo-dark.png";
+import portrait from "./assets/photo-gabriele.webp";
 
 function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+	return twMerge(clsx(inputs));
 }
 
 // ─── Touch detection ──────────────────────────────────────────────────────────
 const isTouchDevice = () =>
-  typeof window !== 'undefined' &&
-  ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+	typeof window !== "undefined" &&
+	("ontouchstart" in window || navigator.maxTouchPoints > 0);
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 const GithubIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.02c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A4.8 4.8 0 0 0 9 18v4" />
-  </svg>
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="2"
+		strokeLinecap="round"
+		strokeLinejoin="round"
+		className={className}
+	>
+		<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.02c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A4.8 4.8 0 0 0 9 18v4" />
+	</svg>
 );
 const LinkedinIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-    <rect x="2" y="9" width="4" height="12" />
-    <circle cx="4" cy="4" r="2" />
-  </svg>
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="2"
+		strokeLinecap="round"
+		strokeLinejoin="round"
+		className={className}
+	>
+		<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+		<rect x="2" y="9" width="4" height="12" />
+		<circle cx="4" cy="4" r="2" />
+	</svg>
 );
-const FigmaIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-    <path d="M5 5.5A3.5 3.5 0 0 1 8.5 2H12v7H8.5A3.5 3.5 0 0 1 5 5.5z" />
-    <path d="M12 2h3.5a3.5 3.5 0 1 1 0 7H12V2z" />
-    <path d="M12 12.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 1 1-7 0z" />
-    <path d="M5 19.5A3.5 3.5 0 0 1 8.5 16H12v3.5a3.5 3.5 0 1 1-7 0z" />
-    <path d="M5 12.5A3.5 3.5 0 0 1 8.5 9H12v7H8.5A3.5 3.5 0 0 1 5 12.5z" />
-  </svg>
+const FigmaIcon = ({
+	className,
+	style,
+}: {
+	className?: string;
+	style?: React.CSSProperties;
+}) => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="2"
+		strokeLinecap="round"
+		strokeLinejoin="round"
+		className={className}
+		style={style}
+	>
+		<path d="M5 5.5A3.5 3.5 0 0 1 8.5 2H12v7H8.5A3.5 3.5 0 0 1 5 5.5z" />
+		<path d="M12 2h3.5a3.5 3.5 0 1 1 0 7H12V2z" />
+		<path d="M12 12.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 1 1-7 0z" />
+		<path d="M5 19.5A3.5 3.5 0 0 1 8.5 16H12v3.5a3.5 3.5 0 1 1-7 0z" />
+		<path d="M5 12.5A3.5 3.5 0 0 1 8.5 9H12v7H8.5A3.5 3.5 0 0 1 5 12.5z" />
+	</svg>
 );
 
 // ─── Custom Cursor (desktop only) ────────────────────────────────────────────
 const CustomCursor = () => {
-  const dotRef = useRef<HTMLDivElement>(null);
-  const [hoverLevel, setHoverLevel] = useState<'none' | 'link' | 'bubble'>('none');
-  const [isTouch, setIsTouch] = useState(true);
+	const dotRef = useRef<HTMLDivElement>(null);
+	const [hoverLevel, setHoverLevel] = useState<"none" | "link" | "bubble">(
+		"none",
+	);
+	const [isTouch] = useState(() => isTouchDevice());
 
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  
-  // Velocity-based scaling
-  const lastTime = useRef(performance.now());
-  const lastPos = useRef({ x: 0, y: 0 });
-  const velocity = useMotionValue(0);
-  const smoothVelocity = useSpring(velocity, { stiffness: 60, damping: 20 });
-  
-  const ringX = useSpring(mouseX, { stiffness: 100, damping: 16, mass: 0.9 });
-  const ringY = useSpring(mouseY, { stiffness: 100, damping: 16, mass: 0.9 });
+	const mouseX = useMotionValue(0);
+	const mouseY = useMotionValue(0);
 
-  const baseSize = hoverLevel === 'bubble' ? 64 : hoverLevel === 'link' ? 56 : 36;
-  const ringSize = useTransform(smoothVelocity, [0, 1500], [baseSize, baseSize + 180]); // Massive expansion
-  const ringOp = hoverLevel === 'bubble' ? 1 : hoverLevel === 'link' ? 0.8 : 0.45;
-  const internalBlur = useTransform(smoothVelocity, [0, 1500], ['blur(15px)', 'blur(45px)']); // Deep blur
+	// Velocity-based scaling
+	const lastTime = useRef(0);
+	const lastPos = useRef({ x: 0, y: 0 });
+	const velocity = useMotionValue(0);
+	const smoothVelocity = useSpring(velocity, { stiffness: 60, damping: 20 });
 
-  useEffect(() => {
-    setIsTouch(isTouchDevice());
-    if (isTouchDevice()) return;
+	const ringX = useSpring(mouseX, { stiffness: 100, damping: 16, mass: 0.9 });
+	const ringY = useSpring(mouseY, { stiffness: 100, damping: 16, mass: 0.9 });
 
-    const move = (e: MouseEvent) => {
-      const now = performance.now();
-      const dt = now - lastTime.current;
-      const dx = e.clientX - lastPos.current.x;
-      const dy = e.clientY - lastPos.current.y;
-      const v = Math.sqrt(dx*dx + dy*dy) / (dt || 1) * 100;
-      
-      velocity.set(Math.min(v, 2000));
-      
-      lastTime.current = now;
-      lastPos.current = { x: e.clientX, y: e.clientY };
-      
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
-      if (dotRef.current) {
-        dotRef.current.style.left = `${e.clientX}px`;
-        dotRef.current.style.top = `${e.clientY}px`;
-      }
-    };
-    window.addEventListener('mousemove', move);
+	const baseSize =
+		hoverLevel === "bubble" ? 44 : hoverLevel === "link" ? 36 : 24;
+	const ringSize = useTransform(
+		smoothVelocity,
+		[0, 1500],
+		[baseSize, baseSize + 70],
+	);
+	const ringOp =
+		hoverLevel === "bubble" ? 0.72 : hoverLevel === "link" ? 0.56 : 0.26;
+	const internalBlur = useTransform(
+		smoothVelocity,
+		[0, 1500],
+		["blur(8px)", "blur(24px)"],
+	);
 
-    const enter = (e: Event) => {
-      const el = e.currentTarget as HTMLElement;
-      if (el.dataset.cursorBubble !== undefined) setHoverLevel('bubble');
-      else setHoverLevel('link');
-    };
-    const leave = () => setHoverLevel('none');
+	useEffect(() => {
+		if (isTouch) return;
+		lastTime.current = performance.now();
 
-    const bind = () => {
-      document.querySelectorAll<HTMLElement>('[data-cursor-bubble]').forEach(el => {
-        el.addEventListener('mouseenter', enter);
-        el.addEventListener('mouseleave', leave);
-      });
-      document.querySelectorAll<HTMLElement>('a, button, [data-cursor="hover"]').forEach(el => {
-        el.addEventListener('mouseenter', enter);
-        el.addEventListener('mouseleave', leave);
-      });
-    };
-    bind();
-    const obs = new MutationObserver(bind);
-    obs.observe(document.body, { childList: true, subtree: true });
-    return () => { window.removeEventListener('mousemove', move); obs.disconnect(); };
-  }, [mouseX, mouseY, velocity]);
+		const move = (e: MouseEvent) => {
+			const now = performance.now();
+			const dt = now - lastTime.current;
+			const dx = e.clientX - lastPos.current.x;
+			const dy = e.clientY - lastPos.current.y;
+			const v = (Math.sqrt(dx * dx + dy * dy) / (dt || 1)) * 100;
 
-  if (isTouch) return null;
+			velocity.set(Math.min(v, 2000));
 
-  return (
-    <>
-      <div ref={dotRef} className="cursor-dot" />
-      <motion.div
-        className="cursor-ring"
-        style={{ 
-          left: ringX, 
-          top: ringY,
-          width: ringSize,
-          height: ringSize,
-          backdropFilter: internalBlur,
-          WebkitBackdropFilter: internalBlur
-        }}
-        animate={{ 
-          opacity: ringOp, 
-          borderColor: hoverLevel === 'none' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.7)',
-        }}
-        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      />
-    </>
-  );
+			lastTime.current = now;
+			lastPos.current = { x: e.clientX, y: e.clientY };
+
+			mouseX.set(e.clientX);
+			mouseY.set(e.clientY);
+			if (dotRef.current) {
+				dotRef.current.style.left = `${e.clientX}px`;
+				dotRef.current.style.top = `${e.clientY}px`;
+			}
+		};
+		window.addEventListener("mousemove", move);
+
+		const enter = (e: Event) => {
+			const el = e.currentTarget as HTMLElement;
+			if (el.dataset.cursorBubble !== undefined) setHoverLevel("bubble");
+			else setHoverLevel("link");
+		};
+		const leave = () => setHoverLevel("none");
+
+		const bind = () => {
+			document
+				.querySelectorAll<HTMLElement>("[data-cursor-bubble]")
+				.forEach((el) => {
+					el.addEventListener("mouseenter", enter);
+					el.addEventListener("mouseleave", leave);
+				});
+			document
+				.querySelectorAll<HTMLElement>('a, button, [data-cursor="hover"]')
+				.forEach((el) => {
+					el.addEventListener("mouseenter", enter);
+					el.addEventListener("mouseleave", leave);
+				});
+		};
+		bind();
+		const obs = new MutationObserver(bind);
+		obs.observe(document.body, { childList: true, subtree: true });
+		return () => {
+			window.removeEventListener("mousemove", move);
+			obs.disconnect();
+		};
+	}, [isTouch, mouseX, mouseY, velocity]);
+
+	if (isTouch) return null;
+
+	return (
+		<>
+			<div ref={dotRef} className="cursor-dot" />
+			<motion.div
+				className="cursor-ring"
+				style={{
+					left: ringX,
+					top: ringY,
+					width: ringSize,
+					height: ringSize,
+					backdropFilter: internalBlur,
+					WebkitBackdropFilter: internalBlur,
+				}}
+				animate={{
+					opacity: ringOp,
+					borderColor:
+						hoverLevel === "none"
+							? "rgba(255,255,255,0.18)"
+							: "rgba(255,255,255,0.4)",
+				}}
+				transition={{ type: "spring", stiffness: 300, damping: 20 }}
+			/>
+		</>
+	);
 };
 
 // ─── Glassmorphism Navbar ─────────────────────────────────────────────────────
 const NAV_LINKS = [
-  { label: 'Expertise', href: '#expertise' },
-  { label: 'Projects', href: '#projects' },
-  { label: 'Stack', href: '#stack' },
-  { label: 'Recognition', href: '#certifications' },
+	{ label: "Expertise", href: "#expertise" },
+	{ label: "Projects", href: "#projects" },
+	{ label: "Stack", href: "#stack" },
+	{ label: "Recognition", href: "#certifications" },
 ];
 
-const Navbar = () => {
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', h, { passive: true });
-    return () => window.removeEventListener('scroll', h);
-  }, []);
+const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
+	const [scrolled, setScrolled] = useState(false);
+	useEffect(() => {
+		const h = () => setScrolled(window.scrollY > 40);
+		window.addEventListener("scroll", h, { passive: true });
+		return () => window.removeEventListener("scroll", h);
+	}, []);
 
-  const handleScrollTo = (e: React.MouseEvent<HTMLAnchorElement>, target: string) => {
-    e.preventDefault();
-    const el = document.querySelector(target);
-    if (!el) return;
-    const y = el.getBoundingClientRect().top + window.scrollY - 100;
-    window.scrollTo({ top: y, behavior: 'smooth' });
-  };
+	const handleScrollTo = (
+		e: React.MouseEvent<HTMLAnchorElement>,
+		target: string,
+	) => {
+		e.preventDefault();
+		onNavigate(target);
+	};
 
-  return (
-    <motion.nav
-      initial={{ y: -80, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-      className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-4xl"
-    >
-      <div
-        className={cn(
-          'flex items-center justify-between px-5 py-3 rounded-full border transition-all duration-500',
-          scrolled
-            ? 'border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]'
-            : 'border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]'
-        )}
-        style={{
-          background: scrolled
-            ? 'rgba(8, 8, 8, 0.15)'
-            : 'rgba(8, 8, 8, 0.02)',
-          backdropFilter: 'blur(30px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(30px) saturate(200%)',
-        }}
-      >
-        <a href="#" onClick={(e) => handleScrollTo(e, 'body')} data-cursor="hover" className="flex items-center gap-3 group">
-          <img src={logo} alt="Gabriele Viganò" className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert" />
-        </a>
+	return (
+		<motion.nav
+			initial={{ y: -80, opacity: 0 }}
+			animate={{ y: 0, opacity: 1 }}
+			transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+			className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-4xl"
+		>
+			<div
+				className={cn(
+					"flex items-center justify-between px-5 py-3 rounded-full border transition-all duration-500",
+					scrolled
+						? "border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]"
+						: "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]",
+				)}
+				style={{
+					background: scrolled ? "rgba(8, 8, 8, 0.15)" : "rgba(8, 8, 8, 0.02)",
+					backdropFilter: "blur(30px) saturate(200%)",
+					WebkitBackdropFilter: "blur(30px) saturate(200%)",
+				}}
+			>
+				<a
+					href="#"
+					onClick={(e) => handleScrollTo(e, "body")}
+					data-cursor="hover"
+					className="flex items-center gap-3 group"
+				>
+					<img
+						src={logo}
+						alt="Gabriele Viganò"
+						className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert"
+					/>
+				</a>
 
-        <div className="hidden sm:flex items-center gap-1">
-          {NAV_LINKS.map(link => (
-            <a
-              key={link.label}
-              href={link.href}
-              onClick={(e) => handleScrollTo(e, link.href)}
-              data-cursor="hover"
-              className="px-4 py-2 rounded-full text-[13px] font-medium text-zinc-400 hover:text-white hover:bg-white/[0.07] transition-all duration-300"
-            >
-              {link.label}
-            </a>
-          ))}
-        </div>
+				<div className="hidden sm:flex items-center gap-1">
+					{NAV_LINKS.map((link) => (
+						<a
+							key={link.label}
+							href={link.href}
+							onClick={(e) => handleScrollTo(e, link.href)}
+							data-cursor="hover"
+							className="px-4 py-2 rounded-full text-[13px] font-medium text-zinc-400 hover:text-white hover:bg-white/[0.07] transition-all duration-300"
+						>
+							{link.label}
+						</a>
+					))}
+				</div>
 
-        <a
-          href="mailto:info@viganogabriele.com"
-          data-cursor="hover"
-          className="px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.35)]"
-        >
-          Let's talk
-        </a>
-      </div>
-    </motion.nav>
-  );
+				<a
+					href="mailto:info@viganogabriele.com"
+					data-cursor="hover"
+					className="px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.35)]"
+				>
+					Let's talk
+				</a>
+			</div>
+		</motion.nav>
+	);
 };
 
 // ─── Magnetic Wrapper ─────────────────────────────────────────────────────────
-const Magnetic = ({ children, strength = 0.4 }: { children: React.ReactElement; strength?: number }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const sx = useSpring(x, { stiffness: 150, damping: 15, mass: 0.5 });
-  const sy = useSpring(y, { stiffness: 150, damping: 15, mass: 0.5 });
+const Magnetic = ({
+	children,
+	strength = 0.4,
+}: {
+	children: React.ReactElement;
+	strength?: number;
+}) => {
+	const ref = useRef<HTMLDivElement>(null);
+	const x = useMotionValue(0);
+	const y = useMotionValue(0);
+	const sx = useSpring(x, { stiffness: 150, damping: 15, mass: 0.5 });
+	const sy = useSpring(y, { stiffness: 150, damping: 15, mass: 0.5 });
 
-  return (
-    <motion.div
-      ref={ref}
-      onMouseMove={e => {
-        if (!ref.current) return;
-        const r = ref.current.getBoundingClientRect();
-        x.set((e.clientX - r.left - r.width / 2) * strength);
-        y.set((e.clientY - r.top - r.height / 2) * strength);
-      }}
-      onMouseLeave={() => { x.set(0); y.set(0); }}
-      style={{ x: sx, y: sy }}
-      className="inline-block"
-    >
-      {children}
-    </motion.div>
-  );
+	return (
+		<motion.div
+			ref={ref}
+			onMouseMove={(e) => {
+				if (!ref.current) return;
+				const r = ref.current.getBoundingClientRect();
+				x.set((e.clientX - r.left - r.width / 2) * strength);
+				y.set((e.clientY - r.top - r.height / 2) * strength);
+			}}
+			onMouseLeave={() => {
+				x.set(0);
+				y.set(0);
+			}}
+			style={{ x: sx, y: sy }}
+			className="inline-block"
+		>
+			{children}
+		</motion.div>
+	);
 };
 
 // ─── Floating Portrait ────────────────────────────────────────────────────────
 const FloatingPortrait = () => {
-  return (
-    <motion.div
-      animate={{ y: [0, -15, 0] }}
-      transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut' }}
-      className="relative z-10 w-56 md:w-80 flex justify-center cursor-default group"
-    >
-      {/* Soft dynamic glow behind silhouette */}
-      <div className="absolute inset-x-0 top-[20%] bottom-0 bg-violet-600/20 blur-[80px] rounded-full scale-90 group-hover:bg-violet-500/30 transition-colors duration-700" />
+	return (
+		<motion.div
+			animate={{ y: [0, -15, 0] }}
+			transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+			className="relative z-10 w-56 md:w-80 flex justify-center cursor-default group"
+		>
+			{/* Soft dynamic glow behind silhouette */}
+			<div className="absolute inset-x-0 top-[20%] bottom-0 bg-violet-600/20 blur-[80px] rounded-full scale-90 group-hover:bg-violet-500/30 transition-colors duration-700" />
 
-      <div className="relative w-full h-[320px] md:h-[450px] overflow-visible flex items-end">
-        <img
-          src={portrait}
-          alt="Gabriele Viganò"
-          loading="eager"
-          decoding="async"
-          fetchPriority="high"
-          style={{ filter: 'drop-shadow(0 25px 35px rgba(0,0,0,0.6))' }}
-          className="w-full h-full object-cover object-bottom z-10 transition-transform duration-700 group-hover:scale-105"
-        />
-      </div>
-    </motion.div>
-  );
+			<div className="relative w-full h-[320px] md:h-[450px] overflow-visible flex items-end">
+				<img
+					src={portrait}
+					alt="Gabriele Viganò"
+					loading="eager"
+					decoding="async"
+					fetchPriority="high"
+					style={{ filter: "drop-shadow(0 25px 35px rgba(0,0,0,0.6))" }}
+					className="w-full h-full object-cover object-bottom z-10 transition-transform duration-700 group-hover:scale-105"
+				/>
+			</div>
+		</motion.div>
+	);
 };
 
 // ─── Kinetic Tag ──────────────────────────────────────────────────────────────
 const KineticTag = () => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -30 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.2, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-      className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-8"
-    >
-      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-      <span className="text-zinc-300 text-xs font-semibold tracking-wide uppercase">Computer Engineering Student</span>
-    </motion.div>
-  );
+	return (
+		<motion.div
+			initial={{ opacity: 0, x: -30 }}
+			animate={{ opacity: 1, x: 0 }}
+			transition={{ delay: 0.2, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+			className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-8"
+		>
+			<div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+			<span className="text-zinc-300 text-xs font-semibold tracking-wide uppercase">
+				Computer Engineering Student
+			</span>
+		</motion.div>
+	);
 };
 
 // ─── Gradient Scramble Text ────────────────────────────────────────────────────
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
+const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
 
 const TextScramble = ({ text }: { text: string }) => {
-  const [display, setDisplay] = useState(text);
-  const [isHovered, setIsHovered] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [display, setDisplay] = useState(text);
+	const [isHovered, setIsHovered] = useState(false);
+	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const scramble = useCallback((target: string) => {
-    const frames = 18;
-    let i = 0;
-    const tick = () => {
-      i++;
-      const p = i / frames;
-      setDisplay(
-        target.split('').map((c, idx) => {
-          if (c === ' ') return ' ';
-          if (idx / target.length < p) return c;
-          return CHARS[Math.floor(Math.random() * CHARS.length)];
-        }).join('')
-      );
-      if (i < frames) {
-        timerRef.current = setTimeout(tick, 35);
-      } else {
-        setDisplay(target);
-      }
-    };
-    if (timerRef.current) clearTimeout(timerRef.current);
-    tick();
-  }, []);
+	const scramble = useCallback((target: string) => {
+		const frames = 18;
+		let i = 0;
+		const tick = () => {
+			i++;
+			const p = i / frames;
+			setDisplay(
+				target
+					.split("")
+					.map((c, idx) => {
+						if (c === " ") return " ";
+						if (idx / target.length < p) return c;
+						return CHARS[Math.floor(Math.random() * CHARS.length)];
+					})
+					.join(""),
+			);
+			if (i < frames) {
+				timerRef.current = setTimeout(tick, 35);
+			} else {
+				setDisplay(target);
+			}
+		};
+		if (timerRef.current) clearTimeout(timerRef.current);
+		tick();
+	}, []);
 
-  useEffect(() => {
-    scramble(text);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [scramble, text]);
+	useEffect(() => {
+		scramble(text);
+		return () => {
+			if (timerRef.current) clearTimeout(timerRef.current);
+		};
+	}, [scramble, text]);
 
-  return (
-    <h1
-      onMouseEnter={() => { setIsHovered(true); scramble(text); }}
-      onMouseLeave={() => setIsHovered(false)}
-      className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-tight font-mono relative cursor-default"
-    >
-      <span
-        className={cn(
-          "bg-clip-text text-transparent bg-[length:200%_auto] transition-all duration-700 ease-out",
-          isHovered
-            ? "bg-gradient-to-r from-blue-400 via-emerald-400 to-violet-400 bg-[position:100%_center]"
-            : "bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-[position:0%_center]"
-        )}
-      >
-        {display}
-      </span>
-      <span className="text-zinc-600 animate-pulse ml-1">_</span>
-    </h1>
-  );
+	return (
+		<h1
+			onMouseEnter={() => {
+				setIsHovered(true);
+				scramble(text);
+			}}
+			onMouseLeave={() => setIsHovered(false)}
+			className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-tight font-mono relative cursor-default"
+		>
+			<span
+				className={cn(
+					"bg-clip-text text-transparent bg-[length:200%_auto] transition-all duration-700 ease-out",
+					isHovered
+						? "bg-gradient-to-r from-blue-400 via-emerald-400 to-violet-400 bg-[position:100%_center]"
+						: "bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-[position:0%_center]",
+				)}
+			>
+				{display}
+			</span>
+			<span className="text-zinc-600 animate-pulse ml-1">_</span>
+		</h1>
+	);
 };
 
 // ─── Scroll Reveal ─────────────────────────────────────────────────────────────
-const ScrollReveal = ({ children, delay = 0, className }: { children: React.ReactNode; delay?: number; className?: string }) => (
-  <motion.div
-    className={className}
-    initial={{ opacity: 0, y: 30 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: '-80px' }}
-    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay }}
-  >
-    {children}
-  </motion.div>
+const ScrollReveal = ({
+	children,
+	delay = 0,
+	className,
+}: {
+	children: React.ReactNode;
+	delay?: number;
+	className?: string;
+}) => (
+	<motion.div
+		className={className}
+		initial={{ opacity: 0, y: 30 }}
+		whileInView={{ opacity: 1, y: 0 }}
+		viewport={{ once: true, margin: "-80px" }}
+		transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay }}
+	>
+		{children}
+	</motion.div>
 );
 
-
 // ─── Matter.js Physics Hook ───────────────────────────────────────────────────
-const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, items: { x: number; y: number }[]) => {
-  const [positions, setPositions] = useState<{ x: number, y: number, angle: number }[]>(
-    items.map((_, i) => ({ x: i * 80 + 80, y: 100, angle: 0 }))
-  );
+const useMatterPhysics = (
+	containerRef: React.RefObject<HTMLDivElement | null>,
+	items: { x: number; y: number }[],
+) => {
+	const [positions, setPositions] = useState<
+		{ x: number; y: number; angle: number }[]
+	>(items.map((_, i) => ({ x: i * 80 + 80, y: 100, angle: 0 })));
 
-  useEffect(() => {
-    if (!containerRef.current) return;
+	useEffect(() => {
+		if (!containerRef.current) return;
 
-    const container = containerRef.current;
+		const container = containerRef.current;
 
-    const engine = Matter.Engine.create({
-      gravity: { x: 0, y: 0, scale: 0 }
-    });
-    const world = engine.world;
+		const engine = Matter.Engine.create({
+			gravity: { x: 0, y: 0, scale: 0 },
+		});
+		const world = engine.world;
 
-    const getSize = () => ({
-      width: container.clientWidth,
-      height: container.clientHeight,
-    });
+		const getSize = () => ({
+			width: container.clientWidth,
+			height: container.clientHeight,
+		});
 
-    let { width, height } = getSize();
+		let { width, height } = getSize();
 
-    const wallOpts = { isStatic: true, restitution: 0.8, friction: 0, render: { visible: false } };
-    const walls = [
-      Matter.Bodies.rectangle(width / 2, -50, width * 2, 100, wallOpts),
-      Matter.Bodies.rectangle(width / 2, height + 50, width * 2, 100, wallOpts),
-      Matter.Bodies.rectangle(-50, height / 2, 100, height * 2, wallOpts),
-      Matter.Bodies.rectangle(width + 50, height / 2, 100, height * 2, wallOpts)
-    ];
-    Matter.World.add(world, walls);
+		const wallOpts = {
+			isStatic: true,
+			restitution: 0.8,
+			friction: 0,
+			render: { visible: false },
+		};
+		const walls = [
+			Matter.Bodies.rectangle(width / 2, -50, width * 2, 100, wallOpts),
+			Matter.Bodies.rectangle(width / 2, height + 50, width * 2, 100, wallOpts),
+			Matter.Bodies.rectangle(-50, height / 2, 100, height * 2, wallOpts),
+			Matter.Bodies.rectangle(
+				width + 50,
+				height / 2,
+				100,
+				height * 2,
+				wallOpts,
+			),
+		];
+		Matter.World.add(world, walls);
 
-    // Spread items within container bounds randomly
-    const bodies = items.map((_item) => {
-      const px = 70 + Math.random() * (width - 140);
-      const py = 50 + Math.random() * (height - 100);
-      const b = Matter.Bodies.rectangle(px, py, 140, 44, {
-        chamfer: { radius: 22 },
-        restitution: 0.95,
-        friction: 0.005,
-        frictionAir: 0.015,
-        density: 0.05
-      });
-      Matter.Body.setInertia(b, Infinity);
-      return b;
-    });
-    Matter.World.add(world, bodies);
+		const bodies = items.map(() => {
+			const px = 70 + Math.random() * (width - 140);
+			const py = 50 + Math.random() * (height - 100);
+			const b = Matter.Bodies.rectangle(px, py, 140, 44, {
+				chamfer: { radius: 22 },
+				restitution: 0.95,
+				friction: 0.005,
+				frictionAir: 0.015,
+				density: 0.05,
+			});
+			Matter.Body.setInertia(b, Infinity);
+			return b;
+		});
+		Matter.World.add(world, bodies);
 
-    const mouse = Matter.Mouse.create(container);
-    mouse.element.removeEventListener("wheel", (mouse as any).mousewheel);
-    mouse.element.removeEventListener("DOMMouseScroll", (mouse as any).mousewheel);
+		const mouse = Matter.Mouse.create(container);
+		const mouseWithWheel = mouse as Matter.Mouse & {
+			mousewheel?: EventListener;
+		};
+		if (mouseWithWheel.mousewheel) {
+			mouse.element.removeEventListener("wheel", mouseWithWheel.mousewheel);
+			mouse.element.removeEventListener(
+				"DOMMouseScroll",
+				mouseWithWheel.mousewheel,
+			);
+		}
 
-    const mouseConstraint = Matter.MouseConstraint.create(engine, {
-      mouse: mouse,
-      constraint: {
-        stiffness: 0.2,
-        render: { visible: false }
-      }
-    });
-    Matter.World.add(world, mouseConstraint);
+		const mouseConstraint = Matter.MouseConstraint.create(engine, {
+			mouse: mouse,
+			constraint: {
+				stiffness: 0.2,
+				render: { visible: false },
+			},
+		});
+		Matter.World.add(world, mouseConstraint);
 
-    let animationFrameId: number;
-    const updateSync = () => {
-      Matter.Engine.update(engine, 1000 / 60);
-      setPositions(bodies.map(b => ({ x: b.position.x, y: b.position.y, angle: b.angle })));
-      animationFrameId = requestAnimationFrame(updateSync);
-    };
-    updateSync();
+		const releaseDraggedBody = () => {
+			mouseConstraint.mouse.button = -1;
+			const releasedMouseConstraint = mouseConstraint as unknown as {
+				body: Matter.Body | null;
+				constraint: { bodyB: Matter.Body | null; pointB: Matter.Vector | null };
+			};
+			releasedMouseConstraint.body = null;
+			releasedMouseConstraint.constraint.bodyB = null;
+		};
 
-    bodies.forEach(b => {
-      Matter.Body.applyForce(b, b.position, {
-        x: (Math.random() - 0.5) * 0.1,
-        y: (Math.random() - 0.5) * 0.1
-      });
-    });
+		let animationFrameId: number;
+		const updateSync = () => {
+			Matter.Engine.update(engine, 1000 / 60);
+			setPositions(
+				bodies.map((b) => ({
+					x: b.position.x,
+					y: b.position.y,
+					angle: b.angle,
+				})),
+			);
+			animationFrameId = requestAnimationFrame(updateSync);
+		};
+		updateSync();
 
-    let prevScroll = window.scrollY;
-    const handleScrollMotion = () => {
-      const deltaY = window.scrollY - prevScroll;
-      prevScroll = window.scrollY;
-      const forceMag = Math.min(Math.abs(deltaY) * 0.0006, 0.2); // Increased force
-      if (forceMag > 0.005) {
-        bodies.forEach(b => {
-          // Add some randomness but generally push in the direction of scroll
-          Matter.Body.applyForce(b, b.position, {
-            x: (Math.random() - 0.5) * forceMag * 3,
-            y: (Math.random() - 0.5) * forceMag * 2 + (deltaY > 0 ? -forceMag : forceMag)
-          });
-        });
-      }
-    };
-    window.addEventListener('scroll', handleScrollMotion, { passive: true });
+		bodies.forEach((b) => {
+			Matter.Body.applyForce(b, b.position, {
+				x: (Math.random() - 0.5) * 0.1,
+				y: (Math.random() - 0.5) * 0.1,
+			});
+		});
 
-    const handleResize = () => {
-      const { width: w, height: h } = getSize();
-      width = w; height = h;
-      Matter.Body.setPosition(walls[0], { x: w / 2, y: -50 });
-      Matter.Body.setPosition(walls[1], { x: w / 2, y: h + 50 });
-      Matter.Body.setPosition(walls[2], { x: -50, y: h / 2 });
-      Matter.Body.setPosition(walls[3], { x: w + 50, y: h / 2 });
-    };
+		let prevScroll = window.scrollY;
+		const handleScrollMotion = () => {
+			const deltaY = window.scrollY - prevScroll;
+			prevScroll = window.scrollY;
+			const forceMag = Math.min(Math.abs(deltaY) * 0.0006, 0.2); // Increased force
+			if (forceMag > 0.005) {
+				bodies.forEach((b) => {
+					// Add some randomness but generally push in the direction of scroll
+					Matter.Body.applyForce(b, b.position, {
+						x: (Math.random() - 0.5) * forceMag * 3,
+						y:
+							(Math.random() - 0.5) * forceMag * 2 +
+							(deltaY > 0 ? -forceMag : forceMag),
+					});
+				});
+			}
+		};
+		window.addEventListener("scroll", handleScrollMotion, { passive: true });
 
-    // Fix for "stuck" items: release mouse constraint if mouse leaves container
-    const handleMouseLeaveSandbox = () => {
-      mouseConstraint.mouse.button = -1;
-      (mouseConstraint as any).body = null;
-      (mouseConstraint as any).constraint.bodyB = null;
-    };
+		const handleResize = () => {
+			const { width: w, height: h } = getSize();
+			width = w;
+			height = h;
+			Matter.Body.setPosition(walls[0], { x: w / 2, y: -50 });
+			Matter.Body.setPosition(walls[1], { x: w / 2, y: h + 50 });
+			Matter.Body.setPosition(walls[2], { x: -50, y: h / 2 });
+			Matter.Body.setPosition(walls[3], { x: w + 50, y: h / 2 });
+		};
 
-    container.addEventListener('mouseleave', handleMouseLeaveSandbox);
-    window.addEventListener('resize', handleResize);
+		// Keep original feel: only release when pointer exits sandbox
+		container.addEventListener("mouseleave", releaseDraggedBody);
+		window.addEventListener("resize", handleResize);
 
-    return () => {
-      container.removeEventListener('mouseleave', handleMouseLeaveSandbox);
-      window.removeEventListener('scroll', handleScrollMotion);
-      window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(animationFrameId);
-      Matter.Engine.clear(engine);
-      Matter.World.clear(world, false);
-    };
-  }, [containerRef, items]);
+		return () => {
+			container.removeEventListener("mouseleave", releaseDraggedBody);
+			window.removeEventListener("scroll", handleScrollMotion);
+			window.removeEventListener("resize", handleResize);
+			cancelAnimationFrame(animationFrameId);
+			Matter.Engine.clear(engine);
+			Matter.World.clear(world, false);
+		};
+	}, [containerRef, items]);
 
-  return positions;
+	return positions;
 };
 
 // ─── Section Header ────────────────────────────────────────────────────────────
-const SectionHeader = ({ label, title, subtitle }: { label: string; title: string; subtitle?: string }) => {
-  const [isHovered, setIsHovered] = useState(false);
+const SectionHeader = ({
+	label,
+	title,
+	subtitle,
+}: {
+	label: string;
+	title: string;
+	subtitle?: string;
+}) => {
+	const [isHovered, setIsHovered] = useState(false);
 
-  return (
-    <ScrollReveal className="mb-12">
-      <p className="text-[10px] font-semibold text-zinc-600 tracking-[0.2em] mb-3 uppercase">{label}</p>
-      <div 
-        onMouseEnter={() => setIsHovered(true)} 
-        onMouseLeave={() => setIsHovered(false)}
-        className="relative inline-block cursor-default"
-      >
-        <motion.h2 
-          animate={{ 
-            filter: isHovered ? 'blur(0px)' : 'blur(0px)',
-            opacity: isHovered ? 1 : 1,
-            x: isHovered ? 10 : 0
-          }}
-          className="text-4xl md:text-5xl font-semibold text-zinc-100 tracking-tight transition-all duration-500"
-        >
-          {title}
-        </motion.h2>
-        <motion.div 
-          initial={{ width: 0 }}
-          animate={{ width: isHovered ? '100%' : '0%' }}
-          className="absolute -bottom-2 left-0 h-[2px] bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.6)]"
-        />
-      </div>
-      {subtitle && (
-        <motion.p 
-          animate={{ 
-            filter: isHovered ? 'blur(1px)' : 'blur(0px)',
-            opacity: isHovered ? 0.4 : 1
-          }}
-          className="text-zinc-500 mt-4 text-base max-w-lg transition-all duration-500"
-        >
-          {subtitle}
-        </motion.p>
-      )}
-      <div className="mt-8 h-[1px] bg-gradient-to-r from-zinc-800 via-zinc-800/40 to-transparent w-full" />
-    </ScrollReveal>
-  );
+	return (
+		<ScrollReveal className="mb-12">
+			<p className="text-[10px] font-semibold text-zinc-600 tracking-[0.2em] mb-3 uppercase">
+				{label}
+			</p>
+			<div
+				onMouseEnter={() => setIsHovered(true)}
+				onMouseLeave={() => setIsHovered(false)}
+				className="relative inline-block cursor-default"
+			>
+				<motion.h2
+					animate={{
+						filter: isHovered ? "blur(0px)" : "blur(0px)",
+						opacity: isHovered ? 1 : 1,
+						x: isHovered ? 10 : 0,
+					}}
+					className="text-4xl md:text-5xl font-semibold text-zinc-100 tracking-tight transition-all duration-500"
+				>
+					{title}
+				</motion.h2>
+				<motion.div
+					initial={{ width: 0 }}
+					animate={{ width: isHovered ? "100%" : "0%" }}
+					className="absolute -bottom-2 left-0 h-[2px] bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.6)]"
+				/>
+			</div>
+			{subtitle && (
+				<motion.p
+					animate={{
+						filter: isHovered ? "blur(1px)" : "blur(0px)",
+						opacity: isHovered ? 0.4 : 1,
+					}}
+					className="text-zinc-500 mt-4 text-base max-w-lg transition-all duration-500"
+				>
+					{subtitle}
+				</motion.p>
+			)}
+			<div className="mt-8 h-[1px] bg-gradient-to-r from-zinc-800 via-zinc-800/40 to-transparent w-full" />
+		</ScrollReveal>
+	);
 };
 
 // ─── Activity Card (click to expand on mobile) ─────────────────────────────────
 interface ActivityCardProps {
-  title: string; role: string; description: string[];
-  icon: React.ElementType; tags?: string[]; highlight?: boolean;
+	title: string;
+	role: string;
+	description: string[];
+	icon: React.ElementType;
+	tags?: string[];
+	highlight?: boolean;
 }
-const ActivityCard = ({ title, role, description, icon: Icon, tags, highlight }: ActivityCardProps) => {
-  const isTouchRef = useRef(isTouchDevice());
-  const [hovered, setHovered] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const isOpen = (hovered && !isTouchRef.current) || expanded;
+const ActivityCard = ({
+	title,
+	role,
+	description,
+	icon: Icon,
+	tags,
+	highlight,
+}: ActivityCardProps) => {
+	const [isTouch] = useState(() => isTouchDevice());
+	const [hovered, setHovered] = useState(false);
+	const [expanded, setExpanded] = useState(false);
+	const isOpen = (hovered && !isTouch) || expanded;
 
-  return (
-    <motion.div
-  onMouseEnter={() => { if (!isTouchRef.current) setHovered(true); }}
-  onMouseLeave={() => { if (!isTouchRef.current) setHovered(false); }}
-  onClick={() => { if (isTouchRef.current) setExpanded(prev => !prev); }}
-  whileHover={!isTouchRef.current ? { y: -4, scale: 1.005 } : {}}
-      transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-      data-cursor="hover"
-      className={cn(
-        'relative p-7 rounded-3xl border overflow-hidden group shadow-lg cursor-pointer select-none',
-        highlight
-          ? 'border-violet-600/30 bg-gradient-to-br from-violet-950/40 via-[#080808] to-[#080808] shadow-violet-900/10'
-          : 'border-white/5 bg-[#0a0a0a]'
-      )}
-    >
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      {highlight && (
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-      )}
+	return (
+		<motion.div
+			onMouseEnter={() => {
+				if (!isTouch) setHovered(true);
+			}}
+			onMouseLeave={() => {
+				if (!isTouch) setHovered(false);
+			}}
+			onClick={() => {
+				if (isTouch) setExpanded((prev) => !prev);
+			}}
+			whileHover={!isTouch ? { y: -4, scale: 1.005 } : {}}
+			transition={{ type: "spring", stiffness: 350, damping: 25 }}
+			data-cursor="hover"
+			className={cn(
+				"relative p-7 rounded-3xl border overflow-hidden group shadow-lg cursor-pointer select-none",
+				highlight
+					? "border-violet-600/30 bg-gradient-to-br from-violet-950/40 via-[#080808] to-[#080808] shadow-violet-900/10"
+					: "border-white/5 bg-[#0a0a0a]",
+			)}
+		>
+			<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+			{highlight && (
+				<div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+			)}
 
-      <div className="relative z-10">
-        <div className="flex items-start justify-between mb-6">
-          <div className={cn(
-            'w-12 h-12 rounded-2xl border flex items-center justify-center transition-all duration-300',
-            highlight
-              ? 'bg-violet-950/80 border-violet-800/60 text-violet-400 group-hover:bg-violet-900 group-hover:text-white'
-              : 'bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-zinc-800 group-hover:text-white'
-          )}>
-            <Icon className="w-6 h-6" />
-          </div>
-          {/* Expand / arrow indicator */}
-          <motion.div
-            animate={{ rotate: expanded ? 180 : 0, opacity: isOpen ? 1 : 0.4 }}
-            transition={{ duration: 0.25 }}
-            className={cn('mt-1', highlight ? 'text-violet-400' : 'text-zinc-500')}
-          >
-            <ChevronDown className="w-5 h-5" />
-          </motion.div>
-        </div>
-        <h3 className="text-xl font-bold text-zinc-100 tracking-tight mb-1">{title}</h3>
-        <p className="text-sm font-medium text-zinc-400 mb-5">{role}</p>
+			<div className="relative z-10">
+				<div className="flex items-start justify-between mb-6">
+					<div
+						className={cn(
+							"w-12 h-12 rounded-2xl border flex items-center justify-center transition-all duration-300",
+							highlight
+								? "bg-violet-950/80 border-violet-800/60 text-violet-400 group-hover:bg-violet-900 group-hover:text-white"
+								: "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-zinc-800 group-hover:text-white",
+						)}
+					>
+						<Icon className="w-6 h-6" />
+					</div>
+					{/* Expand / arrow indicator */}
+					<motion.div
+						animate={{ rotate: expanded ? 180 : 0, opacity: isOpen ? 1 : 0.4 }}
+						transition={{ duration: 0.25 }}
+						className={cn(
+							"mt-1",
+							highlight ? "text-violet-400" : "text-zinc-500",
+						)}
+					>
+						<ChevronDown className="w-5 h-5" />
+					</motion.div>
+				</div>
+				<h3 className="text-xl font-bold text-zinc-100 tracking-tight mb-1">
+					{title}
+				</h3>
+				<p className="text-sm font-medium text-zinc-400 mb-5">{role}</p>
 
-        {/* Tap hint (only on touch, only when collapsed) */}
-        <p className="text-[11px] text-zinc-600 mb-3 sm:hidden">{expanded ? 'Tap to collapse' : 'Tap to expand'}</p>
+				{/* Tap hint (only on touch, only when collapsed) */}
+				<p className="text-[11px] text-zinc-600 mb-3 sm:hidden">
+					{expanded ? "Tap to collapse" : "Tap to expand"}
+				</p>
 
-        <AnimatePresence initial={false}>
-          {isOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="overflow-hidden"
-            >
-              <ul className="space-y-3 text-sm text-zinc-500 pb-4">
-                {description.map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className={cn("mt-2 w-1.5 h-1.5 rounded-full shrink-0", highlight ? "bg-violet-500" : "bg-zinc-600")} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        {tags && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {tags.map(tag => (
-              <span key={tag} className={cn(
-                'px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors',
-                highlight ? 'bg-violet-950/40 border-violet-800/30 text-violet-300 group-hover:border-violet-600/50' : 'bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:border-zinc-600'
-              )}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
+				<AnimatePresence initial={false}>
+					{isOpen && (
+						<motion.div
+							initial={{ height: 0, opacity: 0 }}
+							animate={{ height: "auto", opacity: 1 }}
+							exit={{ height: 0, opacity: 0 }}
+							transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+							className="overflow-hidden"
+						>
+							<ul className="space-y-3 text-sm text-zinc-500 pb-4">
+								{description.map((item, i) => (
+									<li key={i} className="flex items-start gap-3">
+										<span
+											className={cn(
+												"mt-2 w-1.5 h-1.5 rounded-full shrink-0",
+												highlight ? "bg-violet-500" : "bg-zinc-600",
+											)}
+										/>
+										{item}
+									</li>
+								))}
+							</ul>
+						</motion.div>
+					)}
+				</AnimatePresence>
+				{tags && (
+					<div className="flex flex-wrap gap-2 mt-3">
+						{tags.map((tag) => (
+							<span
+								key={tag}
+								className={cn(
+									"px-2.5 py-1 rounded-lg border text-xs font-mono transition-colors",
+									highlight
+										? "bg-violet-950/40 border-violet-800/30 text-violet-300 group-hover:border-violet-600/50"
+										: "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:border-zinc-600",
+								)}
+							>
+								{tag}
+							</span>
+						))}
+					</div>
+				)}
+			</div>
+		</motion.div>
+	);
 };
 
 // ─── Project Card ──────────────────────────────────────────────────────────────
 interface ProjectCardProps {
-  title: string; description: string; tags: string[];
-  icon: React.ElementType; link?: string; status?: string;
+	title: string;
+	description: string;
+	tags: string[];
+	icon: React.ElementType;
+	link?: string;
+	status?: string;
 }
-const ProjectCard = ({ title, description, tags, icon: Icon, link, status }: ProjectCardProps) => (
-  <motion.a
-    href={link ?? '#'}
-    target={link ? '_blank' : undefined}
-    rel="noreferrer"
-    whileHover={{ y: -6, scale: 1.02 }}
-    transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-    data-cursor="hover"
-    className="group relative flex flex-col p-7 rounded-3xl border border-white/5 bg-[#0a0a0a] overflow-hidden hover:border-white/20 transition-all duration-500 shadow-lg h-full"
-  >
-    <motion.div 
-      className="absolute inset-0 bg-gradient-to-br from-violet-600/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" 
-    />
-    <div className="relative z-10 flex-1">
-      <div className="flex items-start justify-between mb-6">
-        <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-white group-hover:text-black group-hover:border-white transition-all duration-300">
-          <Icon className="w-6 h-6" />
-        </div>
-        <div className="flex items-center gap-3">
-          {status && (
-            <span className="px-2.5 py-1 rounded-full bg-emerald-950 border border-emerald-800/60 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
-              {status}
-            </span>
-          )}
-          <ArrowUpRight className="w-5 h-5 text-zinc-600 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-        </div>
-      </div>
-      <h3 className="text-xl font-bold text-white tracking-tight mb-3">{title}</h3>
-      <p className="text-sm text-zinc-400 leading-relaxed mb-6">{description}</p>
-    </div>
-    <div className="relative z-10 flex flex-wrap gap-2">
-      {tags.map(tag => (
-        <span key={tag} className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono">
-          {tag}
-        </span>
-      ))}
-    </div>
-  </motion.a>
+const ProjectCard = ({
+	title,
+	description,
+	tags,
+	icon: Icon,
+	link,
+	status,
+}: ProjectCardProps) => (
+	<motion.a
+		href={link}
+		onClick={(event) => {
+			if (!link) event.preventDefault();
+		}}
+		target={link ? "_blank" : undefined}
+		rel="noreferrer"
+		whileHover={link ? { y: -6, scale: 1.02 } : { y: -2, scale: 1.005 }}
+		transition={{ type: "spring", stiffness: 350, damping: 25 }}
+		data-cursor="hover"
+		className={cn(
+			"group relative flex flex-col p-7 rounded-3xl border border-white/5 bg-[#0a0a0a] overflow-hidden transition-all duration-500 shadow-lg h-full",
+			link ? "hover:border-white/20" : "cursor-default",
+		)}
+	>
+		<motion.div className="absolute inset-0 bg-gradient-to-br from-violet-600/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+		<div className="relative z-10 flex-1">
+			<div className="flex items-start justify-between mb-6">
+				<div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-white group-hover:text-black group-hover:border-white transition-all duration-300">
+					<Icon className="w-6 h-6" />
+				</div>
+				<div className="flex items-center gap-3">
+					{status && (
+						<span className="px-2.5 py-1 rounded-full bg-emerald-950 border border-emerald-800/60 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+							{status}
+						</span>
+					)}
+					{link && (
+						<ArrowUpRight className="w-5 h-5 text-zinc-600 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+					)}
+				</div>
+			</div>
+			<h3 className="text-xl font-bold text-white tracking-tight mb-3">
+				{title}
+			</h3>
+			<p className="text-sm text-zinc-400 leading-relaxed mb-6">
+				{description}
+			</p>
+		</div>
+		<div className="relative z-10 flex flex-wrap gap-2">
+			{tags.map((tag) => (
+				<span
+					key={tag}
+					className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono"
+				>
+					{tag}
+				</span>
+			))}
+		</div>
+	</motion.a>
 );
 
+interface TimelineItem {
+	year: string;
+	title: string;
+	subtitle: string;
+	description: string;
+	icon: React.ElementType;
+	highlight?: boolean;
+}
+
+const InteractiveTimeline = ({ items }: { items: TimelineItem[] }) => {
+	const ref = useRef<HTMLDivElement>(null);
+	const { scrollYProgress } = useScroll({
+		target: ref,
+		offset: ["start 75%", "end 30%"],
+	});
+	const lineScale = useTransform(scrollYProgress, [0, 1], [0, 1]);
+
+	return (
+		<div ref={ref} className="relative">
+			<div className="absolute left-[19px] top-0 bottom-0 w-px bg-zinc-800/80" />
+			<motion.div
+				className="absolute left-[19px] top-0 w-px origin-top bg-gradient-to-b from-cyan-300 via-indigo-400 to-violet-500"
+				style={{ scaleY: lineScale, height: "100%" }}
+			/>
+
+			<div className="space-y-5">
+				{items.map((item, index) => {
+					const TimelineIcon = item.icon;
+					return (
+						<ScrollReveal
+							key={`${item.title}-${item.year}`}
+							delay={index * 0.07}
+						>
+							<div className="relative pl-14 pr-2">
+								<div
+									className={cn(
+										"absolute left-[7px] top-7 w-6 h-6 rounded-full border flex items-center justify-center backdrop-blur-lg",
+										item.highlight
+											? "border-violet-400/70 bg-violet-500/20 text-violet-300"
+											: "border-zinc-600 bg-zinc-900 text-zinc-300",
+									)}
+								>
+									<TimelineIcon className="w-3.5 h-3.5" />
+								</div>
+								<div
+									className={cn(
+										"rounded-3xl border p-5 md:p-6",
+										item.highlight
+											? "border-violet-500/25 bg-violet-950/20"
+											: "border-white/5 bg-[#0b0b0b]",
+									)}
+								>
+									<div className="flex items-center justify-between gap-4 mb-3">
+										<p className="text-sm font-semibold text-zinc-200 tracking-tight">
+											{item.title}
+										</p>
+										<span className="text-[11px] font-mono uppercase tracking-wider text-zinc-500">
+											{item.year}
+										</span>
+									</div>
+									<p className="text-xs uppercase tracking-[0.18em] text-zinc-500 mb-3">
+										{item.subtitle}
+									</p>
+									<p className="text-sm text-zinc-400 leading-relaxed">
+										{item.description}
+									</p>
+								</div>
+							</div>
+						</ScrollReveal>
+					);
+				})}
+			</div>
+		</div>
+	);
+};
+
 // ─── Certification Card ────────────────────────────────────────────────────────
-interface CertProps { title: string; issuer: string; year: string; icon: React.ElementType; highlight?: boolean; }
-const CertCard = ({ title, issuer, year, icon: Icon, highlight }: CertProps) => (
-  <motion.div
-    whileHover={{ x: 6, backgroundColor: 'rgba(255,255,255,0.03)' }}
-    transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-    data-cursor="hover"
-    className={cn(
-      "group flex items-center gap-6 p-6 rounded-3xl border transition-colors cursor-default",
-      highlight ? "border-violet-500/20 bg-violet-950/10" : "border-white/5 bg-[#0a0a0a]"
-    )}
-  >
-    <div className={cn(
-      "w-12 h-12 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-300",
-      highlight ? "bg-violet-950/80 border-violet-800/60 text-violet-400 group-hover:bg-violet-900" : "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-zinc-800 group-hover:text-white"
-    )}>
-      <Icon className="w-5 h-5" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-base font-bold text-zinc-100 truncate mb-1">{title}</p>
-      <p className="text-sm text-zinc-400">{issuer}</p>
-    </div>
-    <span className="text-xs text-zinc-600 font-mono font-medium shrink-0 group-hover:text-zinc-400 transition-colors">{year}</span>
-  </motion.div>
+interface CertProps {
+	title: string;
+	issuer: string;
+	year: string;
+	icon: React.ElementType;
+	highlight?: boolean;
+}
+const CertCard = ({
+	title,
+	issuer,
+	year,
+	icon: Icon,
+	highlight,
+}: CertProps) => (
+	<motion.div
+		whileHover={{ x: 6, backgroundColor: "rgba(255,255,255,0.03)" }}
+		transition={{ type: "spring", stiffness: 350, damping: 25 }}
+		data-cursor="hover"
+		className={cn(
+			"group flex items-center gap-6 p-6 rounded-3xl border transition-colors cursor-default",
+			highlight
+				? "border-violet-500/20 bg-violet-950/10"
+				: "border-white/5 bg-[#0a0a0a]",
+		)}
+	>
+		<div
+			className={cn(
+				"w-12 h-12 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-300",
+				highlight
+					? "bg-violet-950/80 border-violet-800/60 text-violet-400 group-hover:bg-violet-900"
+					: "bg-zinc-900 border-zinc-800 text-zinc-400 group-hover:bg-zinc-800 group-hover:text-white",
+			)}
+		>
+			<Icon className="w-5 h-5" />
+		</div>
+		<div className="flex-1 min-w-0">
+			<p className="text-base font-bold text-zinc-100 truncate mb-1">{title}</p>
+			<p className="text-sm text-zinc-400">{issuer}</p>
+		</div>
+		<span className="text-xs text-zinc-600 font-mono font-medium shrink-0 group-hover:text-zinc-400 transition-colors">
+			{year}
+		</span>
+	</motion.div>
 );
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 const activities: ActivityCardProps[] = [
-  {
-    title: 'PoliNetwork',
-    role: 'Product & Operations Lead',
-    icon: Network,
-    highlight: true,
-    description: [
-      'Architecting a robust open-source web ecosystem serving thousands of students.',
-      'Scaling technical operations for massive events gathering 1,000+ people.',
-      'Leading cross-functional student engineering teams and managing active sprints.',
-      'Defining product vision and executing long-term roadmaps.',
-    ],
-    tags: ['Leadership', 'System Architecture', 'Agile', 'Open Source'],
-  },
-  {
-    title: 'Digital Craftsmanship',
-    role: 'Design & Frontend Engineering',
-    icon: Layers,
-    description: [
-      'Bridging the gap between engineering complexity and polished interfaces.',
-      'Prototyping dynamic flows in Figma before writing a single line of code.',
-      'Obsessing over kinetic typography, physics animations, and micro-interactions.',
-    ],
-    tags: ['React', 'Framer Motion', 'Figma', 'TypeScript'],
-  },
-  {
-    title: 'Homelab Infrastructure',
-    role: 'Sysadmin & Architecture',
-    icon: Server,
-    description: [
-      'Self-hosting complex environments with high availability.',
-      'Configuring Proxmox hypervisor, TrueNAS storage arrays, and containerized apps.',
-      'Automating deployments, setting up reverse proxies, and maintaining zero-trust VLANs.',
-    ],
-    tags: ['Proxmox', 'Docker', 'Linux', 'Networking'],
-  },
-  {
-    title: 'Systems Programming',
-    role: 'Low-Level Engineering',
-    icon: Cpu,
-    description: [
-      'Writing performant C code for systems and embedded contexts.',
-      'Mastering memory management, custom data structures, and algorithm design.',
-      'Deep dive into OS fundamentals: scheduling, process synchronization, IPC.',
-    ],
-    tags: ['C', 'POSIX', 'GDB', 'Make'],
-  },
+	{
+		title: "PoliNetwork",
+		role: "Product & Operations Lead",
+		icon: Network,
+		highlight: true,
+		description: [
+			"Architecting a robust open-source web ecosystem serving thousands of students.",
+			"Scaling technical operations for massive events gathering 1,000+ people.",
+			"Leading cross-functional student engineering teams and managing active sprints.",
+			"Defining product vision and executing long-term roadmaps.",
+		],
+		tags: ["Leadership", "System Architecture", "Agile", "Open Source"],
+	},
+	{
+		title: "Digital Craftsmanship",
+		role: "Design & Frontend Engineering",
+		icon: Layers,
+		description: [
+			"Bridging the gap between engineering complexity and polished interfaces.",
+			"Prototyping dynamic flows in Figma before writing a single line of code.",
+			"Obsessing over kinetic typography, physics animations, and micro-interactions.",
+		],
+		tags: ["React", "Framer Motion", "Figma", "TypeScript"],
+	},
+	{
+		title: "Homelab Infrastructure",
+		role: "Sysadmin & Architecture",
+		icon: Server,
+		description: [
+			"Self-hosting complex environments with high availability.",
+			"Configuring Proxmox hypervisor, TrueNAS storage arrays, and containerized apps.",
+			"Automating deployments, setting up reverse proxies, and maintaining zero-trust VLANs.",
+		],
+		tags: ["Proxmox", "Docker", "Linux", "Networking"],
+	},
+	{
+		title: "Systems Programming",
+		role: "Low-Level Engineering",
+		icon: Cpu,
+		description: [
+			"Writing performant C code for systems and embedded contexts.",
+			"Mastering memory management, custom data structures, and algorithm design.",
+			"Deep dive into OS fundamentals: scheduling, process synchronization, IPC.",
+		],
+		tags: ["C", "POSIX", "GDB", "Make"],
+	},
 ];
 
 const projects: ProjectCardProps[] = [
-  {
-    title: 'PoliNetwork Ecosystem',
-    description: 'An expansive open-source web platform serving the Politecnico di Milano student body. Built for high performance and scalability under load during massive university events.',
-    tags: ['React', 'Node.js', 'Docker', 'PostgreSQL'],
-    icon: Globe,
-    link: 'https://github.com/PoliNetwork',
-    status: 'PRODUCTION',
-  },
-  {
-    title: 'Personal Infrastructure',
-    description: 'A production-grade, self-hosted data center running in my home. Leveraging Proxmox VMs, TrueNAS storage, Traefik ingress, and comprehensive Grafana observability dashboards.',
-    tags: ['Proxmox', 'TrueNAS', 'Traefik', 'Prometheus'],
-    icon: HardDrive,
-    status: 'SYSADMIN',
-  },
-  {
-    title: 'Interactive Portfolio',
-    description: 'A performance-obsessed, design-forward website featuring a full 2D physics sandbox using Matter.js, kinetic typography, and fluid Framer Motion animations.',
-    tags: ['React', 'Matter.js', 'Vite', 'Tailwind'],
-    icon: Code2,
-    link: 'https://github.com/viganogabriele',
-    status: 'V2 LIVE',
-  },
+	{
+		title: "PoliNetwork Ecosystem",
+		description:
+			"An expansive open-source web platform serving the Politecnico di Milano student body. Built for high performance and scalability under load during massive university events.",
+		tags: ["React", "Node.js", "Docker", "PostgreSQL"],
+		icon: Globe,
+		link: "https://github.com/PoliNetwork",
+		status: "PRODUCTION",
+	},
+	{
+		title: "Personal Infrastructure",
+		description:
+			"A production-grade, self-hosted data center running in my home. Leveraging Proxmox VMs, TrueNAS storage, Traefik ingress, and comprehensive Grafana observability dashboards.",
+		tags: ["Proxmox", "TrueNAS", "Traefik", "Prometheus"],
+		icon: HardDrive,
+		status: "SYSADMIN",
+	},
+	{
+		title: "Interactive Portfolio",
+		description:
+			"A performance-obsessed, design-forward website featuring a full 2D physics sandbox using Matter.js, kinetic typography, and fluid Framer Motion animations.",
+		tags: ["React", "Matter.js", "Vite", "Tailwind"],
+		icon: Code2,
+		link: "https://github.com/viganogabriele",
+		status: "V2 LIVE",
+	},
 ];
 
 const certifications: CertProps[] = [
-  { title: 'Leadership & Project Management', issuer: 'PoliNetwork APS – Student Association', year: '2024', icon: Award, highlight: true },
-  { title: 'Public Speaking & Communication', issuer: 'Politecnico di Milano', year: '2024', icon: Mic2 },
-  { title: 'Team Coordination Dynamics', issuer: 'IEEE Student Branch', year: '2023', icon: Users },
+	{
+		title: "Leadership & Project Management",
+		issuer: "PoliNetwork APS – Student Association",
+		year: "2024",
+		icon: Award,
+		highlight: true,
+	},
+	{
+		title: "Public Speaking & Communication",
+		issuer: "Politecnico di Milano",
+		year: "2024",
+		icon: Mic2,
+	},
+	{
+		title: "Team Coordination Dynamics",
+		issuer: "IEEE Student Branch",
+		year: "2023",
+		icon: Users,
+	},
+];
+
+const timelineItems: TimelineItem[] = [
+	{
+		year: "2026",
+		title: "Interactive Portfolio v3",
+		subtitle: "Design Engineering",
+		description:
+			"Evolved the portfolio into a motion-led digital experience with physics interactions, custom preloading, and cinematic transitions.",
+		icon: Code2,
+		highlight: true,
+	},
+	{
+		year: "2025",
+		title: "PoliNetwork Product Ops",
+		subtitle: "Leadership",
+		description:
+			"Orchestrated product direction and engineering operations across student-facing platforms with high traffic windows.",
+		icon: Network,
+		highlight: true,
+	},
+	{
+		year: "2024",
+		title: "Homelab Infrastructure",
+		subtitle: "Systems Architecture",
+		description:
+			"Designed a resilient self-hosted environment with virtualization, observability, and secure networking practices.",
+		icon: Server,
+	},
+	{
+		year: "2023",
+		title: "Low-Level Foundations",
+		subtitle: "Systems Programming",
+		description:
+			"Consolidated C, OS internals and debugging workflows focused on performance, memory, and reliability.",
+		icon: Cpu,
+	},
+];
+
+interface NoteItem {
+	title: string;
+	date: string;
+	readingTime: string;
+	preview: string;
+	tags: string[];
+	link: string;
+}
+
+const notes: NoteItem[] = [
+	{
+		title: "Designing Motion Without Sacrificing Performance",
+		date: "Apr 2026",
+		readingTime: "6 min",
+		preview:
+			"A practical approach to balancing animated UI, physics, and frame budget in React-driven interfaces.",
+		tags: ["Performance", "Framer Motion", "UX"],
+		link: "https://github.com/viganogabriele",
+	},
+	{
+		title: "Operating Student Platforms at Peak Load",
+		date: "Mar 2026",
+		readingTime: "7 min",
+		preview:
+			"Lessons learned from product and operations decisions across student-facing systems during high-traffic events.",
+		tags: ["Architecture", "Ops", "Product"],
+		link: "https://github.com/PoliNetwork",
+	},
+	{
+		title: "Homelab Patterns That Scale Better",
+		date: "Feb 2026",
+		readingTime: "5 min",
+		preview:
+			"A concise checklist for virtualization, observability and network segmentation in a resilient personal infrastructure.",
+		tags: ["Infrastructure", "Linux", "Observability"],
+		link: "https://github.com/viganogabriele",
+	},
 ];
 
 const skills = [
-  { label: 'JavaScript', icon: Code2, color: '#F7DF1E', x: 100, y: 100 },
-  { label: 'HTML', icon: Globe, color: '#E44D26', x: 300, y: 150 },
-  { label: 'CSS', icon: Palette, color: '#5C6BC0', x: 500, y: 120 },
-  { label: 'C', icon: Terminal, color: '#a8b9cc', x: 200, y: 250 },
-  { label: 'Git', icon: GitMerge, color: '#F05032', x: 450, y: 280 },
-  { label: 'Linux', icon: Terminal, color: '#fcc624', x: 650, y: 180 },
-  { label: 'Proxmox', icon: Server, color: '#E57000', x: 350, y: 80 },
-  { label: 'TrueNAS', icon: HardDrive, color: '#0095D5', x: 600, y: 250 },
-  { label: 'Figma', icon: FigmaIcon, color: '#A259FF', x: 700, y: 100 },
+	{ label: "JavaScript", icon: Code2, color: "#F7DF1E", x: 100, y: 100 },
+	{ label: "HTML", icon: Globe, color: "#E44D26", x: 300, y: 150 },
+	{ label: "CSS", icon: Palette, color: "#5C6BC0", x: 500, y: 120 },
+	{ label: "C", icon: Terminal, color: "#a8b9cc", x: 200, y: 250 },
+	{ label: "Git", icon: GitMerge, color: "#F05032", x: 450, y: 280 },
+	{ label: "Linux", icon: Terminal, color: "#fcc624", x: 650, y: 180 },
+	{ label: "Proxmox", icon: Server, color: "#E57000", x: 350, y: 80 },
+	{ label: "TrueNAS", icon: HardDrive, color: "#0095D5", x: 600, y: 250 },
+	{ label: "Figma", icon: FigmaIcon, color: "#A259FF", x: 700, y: 100 },
 ];
 
-const Footer = () => {
-  const links = [
-    { label: 'GitHub', username: 'viganogabriele', href: 'https://github.com/viganogabriele', icon: GithubIcon },
-    { label: 'LinkedIn', username: 'viganogabriele', href: 'https://linkedin.com/in/viganogabriele', icon: LinkedinIcon },
-  ];
+const Footer = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
+	const links = [
+		{
+			label: "GitHub",
+			username: "viganogabriele",
+			href: "https://github.com/viganogabriele",
+			icon: GithubIcon,
+		},
+		{
+			label: "LinkedIn",
+			username: "viganogabriele",
+			href: "https://linkedin.com/in/viganogabriele",
+			icon: LinkedinIcon,
+		},
+	];
 
-  return (
-    <ScrollReveal delay={0.1}>
-      <footer className="mt-40 pb-20 border-t border-white/[0.06] relative overflow-hidden">
-        <div className="pt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative z-10">
-          {/* Brand block */}
-          <div className="flex flex-col items-start gap-6">
-            <img
-              src={logo}
-              alt="Gabriele Viganò"
-              className="h-8 w-auto filter invert opacity-90"
-            />
-            <div className="flex flex-col gap-3">
-              <a 
-                href="mailto:info@viganogabriele.com" 
-                className="text-lg font-medium text-white hover:text-violet-400 transition-colors group flex items-center gap-2"
-              >
-                info@viganogabriele.com
-                <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-              </a>
-              <p className="text-sm text-zinc-500 max-w-xs leading-relaxed">
-                Computer Engineering student at Politecnico di Milano, focused on building high-performance systems.
-              </p>
-            </div>
-          </div>
+	return (
+		<ScrollReveal delay={0.1}>
+			<footer className="mt-40 pb-20 border-t border-white/[0.06] relative overflow-hidden">
+				<div className="pt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative z-10">
+					{/* Brand block */}
+					<div className="flex flex-col items-start gap-6">
+						<img
+							src={logo}
+							alt="Gabriele Viganò"
+							className="h-8 w-auto filter invert opacity-90"
+						/>
+						<div className="flex flex-col gap-3">
+							<a
+								href="mailto:info@viganogabriele.com"
+								className="text-lg font-medium text-white hover:text-violet-400 transition-colors group flex items-center gap-2"
+							>
+								info@viganogabriele.com
+								<ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+							</a>
+							<p className="text-sm text-zinc-500 max-w-xs leading-relaxed">
+								Computer Engineering student at Politecnico di Milano, focused
+								on building high-performance systems.
+							</p>
+						</div>
+					</div>
 
-          {/* Nav Links - Quick Access */}
-          <div className="flex flex-col gap-6">
-            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Navigation</p>
-            <nav className="grid grid-cols-2 gap-y-3 gap-x-6">
-              {NAV_LINKS.map(l => (
-                <a
-                  key={l.label}
-                  href={l.href}
-                  className="text-sm font-medium text-zinc-400 hover:text-white transition-colors duration-300"
-                >
-                  {l.label}
-                </a>
-              ))}
-            </nav>
-          </div>
+					{/* Nav Links - Quick Access */}
+					<div className="flex flex-col gap-6">
+						<p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+							Navigation
+						</p>
+						<nav className="grid grid-cols-2 gap-y-3 gap-x-6">
+							{NAV_LINKS.map((l) => (
+								<a
+									key={l.label}
+									href={l.href}
+									onClick={(e) => {
+										e.preventDefault();
+										onNavigate(l.href);
+									}}
+									className="text-sm font-medium text-zinc-400 hover:text-white transition-colors duration-300"
+								>
+									{l.label}
+								</a>
+							))}
+						</nav>
+					</div>
 
-          {/* Socials & Handles */}
-          <div className="flex flex-col gap-6 lg:items-end">
-            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest lg:text-right">Social Profiles</p>
-            <div className="flex flex-col gap-4 lg:items-end">
-              {links.map(({ label, username, href, icon: Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  data-cursor="hover"
-                  className="flex items-center gap-4 text-zinc-400 hover:text-white transition-all duration-300 group"
-                >
-                  <div className="flex flex-col items-end">
-                    <span className="text-[10px] text-zinc-600 font-mono">{label}</span>
-                    <span className="text-sm font-medium tracking-tight">@{username}</span>
-                  </div>
-                  <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 group-hover:bg-violet-600 group-hover:border-violet-500 group-hover:text-white transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
+					{/* Socials & Handles */}
+					<div className="flex flex-col gap-6 lg:items-end">
+						<p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest lg:text-right">
+							Social Profiles
+						</p>
+						<div className="flex flex-col gap-4 lg:items-end">
+							{links.map(({ label, username, href, icon: Icon }) => (
+								<a
+									key={label}
+									href={href}
+									target="_blank"
+									rel="noreferrer"
+									data-cursor="hover"
+									className="flex items-center gap-4 text-zinc-400 hover:text-white transition-all duration-300 group"
+								>
+									<div className="flex flex-col items-end">
+										<span className="text-[10px] text-zinc-600 font-mono">
+											{label}
+										</span>
+										<span className="text-sm font-medium tracking-tight">
+											@{username}
+										</span>
+									</div>
+									<div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 group-hover:bg-violet-600 group-hover:border-violet-500 group-hover:text-white transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+										<Icon className="w-5 h-5" />
+									</div>
+								</a>
+							))}
+						</div>
+					</div>
+				</div>
 
-        {/* Bottom strip */}
-        <div className="mt-20 pt-8 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[11px] text-zinc-600 font-mono tracking-wider uppercase">
-            © {new Date().getFullYear()} Gabriele Viganò. All rights reserved.
-          </p>
-          <p className="text-[11px] text-zinc-600 font-mono tracking-wider uppercase">
-            Made with React & Framer Motion
-          </p>
-        </div>
-      </footer>
-    </ScrollReveal>
-  );
+				{/* Bottom strip */}
+				<div className="mt-20 pt-8 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-4">
+					<p className="text-[11px] text-zinc-600 font-mono tracking-wider uppercase">
+						© {new Date().getFullYear()} Gabriele Viganò. All rights reserved.
+					</p>
+					<p className="text-[11px] text-zinc-600 font-mono tracking-wider uppercase">
+						Made with React & Framer Motion
+					</p>
+				</div>
+			</footer>
+		</ScrollReveal>
+	);
 };
+
+const Preloader = ({ progress }: { progress: number }) => (
+	<motion.div
+		initial={{ opacity: 1 }}
+		exit={{ opacity: 0, filter: "blur(18px)" }}
+		transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+		className="fixed inset-0 z-[100] bg-[#050505] flex items-center justify-center"
+	>
+		<div className="w-[min(28rem,82vw)] flex flex-col items-center gap-7">
+			<motion.img
+				src={logo}
+				alt="Loading"
+				className="h-9 w-auto opacity-90 filter invert"
+				initial={{ y: 8, opacity: 0 }}
+				animate={{ y: 0, opacity: 0.9 }}
+				transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+			/>
+
+			<div className="w-full h-[2px] rounded-full bg-white/10 overflow-hidden">
+				<motion.div
+					className="h-full bg-gradient-to-r from-cyan-300 via-white to-indigo-300"
+					animate={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+					transition={{ duration: 0.28, ease: "easeOut" }}
+				/>
+			</div>
+
+			<div className="flex items-center justify-between w-full text-[11px] uppercase tracking-[0.28em] font-medium text-zinc-400">
+				<span>Loading Experience</span>
+				<span>{String(Math.round(progress)).padStart(3, "0")}</span>
+			</div>
+		</div>
+	</motion.div>
+);
 
 // ─── App ────────────────────────────────────────────────────────────────────────
 function App() {
-  const { scrollYProgress } = useScroll();
-  const heroY = useTransform(scrollYProgress, [0, 0.3], ['0%', '25%']);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
+	const prefersReducedMotion = useReducedMotion();
+	const { scrollYProgress } = useScroll();
+	const heroY = useTransform(scrollYProgress, [0, 0.3], ["0%", "25%"]);
+	const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
 
-  const playgroundRef = useRef<HTMLDivElement>(null);
-  const physicsPositions = useMatterPhysics(playgroundRef, skills);
+	const [isPreloading, setIsPreloading] = useState(true);
+	const [loadingProgress, setLoadingProgress] = useState(0);
+	const lenisRef = useRef<Lenis | null>(null);
 
-  return (
-    <div className="noise min-h-screen bg-[#060606] text-zinc-300 selection:bg-violet-900/40 selection:text-white" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <CustomCursor />
-      <Navbar />
+	const playgroundRef = useRef<HTMLDivElement>(null);
+	const physicsPositions = useMatterPhysics(playgroundRef, skills);
 
-      {/* Ambient glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-900/20 blur-[150px] md:opacity-50" />
-        <div className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/25 blur-[160px] md:opacity-60" />
-        <div className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] rounded-full bg-fuchsia-900/20 blur-[140px] md:opacity-40" />
-      </div>
+	useEffect(() => {
+		let raf = 0;
+		let timeout = 0;
+		let mounted = true;
+		let progress = 0;
 
-      <main className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
+		const tick = () => {
+			progress = Math.min(92, progress + (92 - progress) * 0.08 + 0.35);
+			if (mounted) setLoadingProgress(progress);
+			if (progress < 91.8) raf = requestAnimationFrame(tick);
+		};
 
-        {/* ── Hero ─────────────────────────────────────────────────── */}
-        <motion.section
-          className="min-h-[100vh] flex flex-col md:flex-row items-center justify-between pt-28 pb-16 gap-12"
-          style={{ y: heroY, opacity: heroOpacity }}
-        >
-          {/* Left Content */}
-          <div className="flex-1 flex flex-col items-start text-left z-10 w-full mb-10 md:mb-0">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <h2 className="text-2xl sm:text-3xl text-zinc-400 font-medium tracking-tight mb-2">
-                Hey, I'm <span className="text-white font-bold">Gabriele Viganò</span>.
-              </h2>
-              <TextScramble text="I build cool things." />
-            </motion.div>
+		const waitForAssets = async () => {
+			const fontsReady = document.fonts?.ready ?? Promise.resolve();
+			const pendingImages = Array.from(document.images)
+				.filter((image) => !image.complete)
+				.map(
+					(image) =>
+						new Promise<void>((resolve) => {
+							image.addEventListener("load", () => resolve(), { once: true });
+							image.addEventListener("error", () => resolve(), { once: true });
+						}),
+				);
 
-            <div className="mt-8">
-              <KineticTag />
-            </div>
+			await Promise.all([
+				fontsReady,
+				...pendingImages,
+				new Promise((resolve) => setTimeout(resolve, 450)),
+			]);
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-              className="flex items-center gap-4 mt-10"
-            >
-              <Magnetic strength={0.2}>
-                <a href="#expertise" data-cursor="hover" className="px-8 py-4 rounded-full bg-white text-black font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]">
-                  Explore my work
-                </a>
-              </Magnetic>
-              <Magnetic strength={0.2}>
-                <a href="https://github.com/viganogabriele" target="_blank" rel="noreferrer" data-cursor="hover" className="w-[52px] h-[52px] flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all">
-                  <GithubIcon className="w-5 h-5" />
-                </a>
-              </Magnetic>
-              <Magnetic strength={0.2}>
-                <a href="https://linkedin.com/in/viganogabriele" target="_blank" rel="noreferrer" data-cursor="hover" className="w-[52px] h-[52px] flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all">
-                  <LinkedinIcon className="w-5 h-5" />
-                </a>
-              </Magnetic>
-            </motion.div>
-          </div>
+			if (!mounted) return;
+			cancelAnimationFrame(raf);
+			setLoadingProgress(100);
+			timeout = window.setTimeout(
+				() => mounted && setIsPreloading(false),
+				prefersReducedMotion ? 120 : 450,
+			);
+		};
 
-          {/* Right Portrait */}
-          <motion.div
-            className="flex-1 flex justify-center md:justify-end"
-            initial={{ opacity: 0, scale: 0.85, rotate: -2 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
-          >
-            <FloatingPortrait />
-          </motion.div>
+		raf = requestAnimationFrame(tick);
+		waitForAssets();
 
-        </motion.section>
+		return () => {
+			mounted = false;
+			cancelAnimationFrame(raf);
+			clearTimeout(timeout);
+		};
+	}, [prefersReducedMotion]);
 
-        {/* ── What I Do ─────────────────────────────────────────────── */}
-        <section id="expertise" className="mt-32 pt-20">
-          <SectionHeader
-            label="01 / Expertise"
-            title="What I Do."
-            subtitle="I build systems that perform reliably and interfaces that feel incredible."
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {activities.map((act, i) => (
-              <ScrollReveal key={act.title} delay={i * 0.1}>
-                <ActivityCard {...act} />
-              </ScrollReveal>
-            ))}
-          </div>
-        </section>
+	useEffect(() => {
+		if (prefersReducedMotion) return;
 
-        {/* ── Projects ──────────────────────────────────────────────── */}
-        <section id="projects" className="mt-40 pt-20">
-          <SectionHeader
-            label="02 / Selected Work"
-            title="Featured Projects."
-            subtitle="Real-world systems, open-source tech, and experimental playgrounds."
-          />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {projects.map((proj, i) => (
-              <ScrollReveal key={proj.title} delay={i * 0.1}>
-                <ProjectCard {...proj} />
-              </ScrollReveal>
-            ))}
-          </div>
-        </section>
+		const lenis = new Lenis({
+			duration: 1.1,
+			lerp: 0.09,
+			wheelMultiplier: 0.95,
+			touchMultiplier: 1,
+			smoothWheel: true,
+			syncTouch: false,
+		});
 
-        {/* ── Skills Playground (Physics Sandbox) ───────────────────── */}
-        <section id="stack" className="mt-40 pt-20">
-          <SectionHeader
-            label="03 / The Toolkit"
-            title="Tech Stack."
-            subtitle="Grab them, throw them, watch them bounce — powered by Matter.js."
-          />
-          <ScrollReveal>
-            <div
-              ref={playgroundRef}
-              data-cursor-bubble="true"
-              className="relative w-full h-[550px] sm:h-[450px] rounded-[2rem] border border-white/10 bg-[#0a0a0a] overflow-hidden shadow-2xl touch-pan-y"
-              style={{
-                backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.025) 2px, transparent 2px)',
-                backgroundSize: '40px 40px',
-              }}
-            >
-              {/* Mobile Interaction Shield - shows message or hint */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none sm:hidden">
-                <p className="text-[10px] text-zinc-500 font-mono bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/5">
-                  Drag icons to play • Scroll outside to move
-                </p>
-              </div>
-              {skills.map((skill, i) => {
-                const pos = physicsPositions[i] || { x: -100, y: -100, angle: 0 };
-                return (
-                  <div
-                    key={skill.label}
-                    className="absolute top-0 left-0 flex items-center justify-center gap-2.5 px-6 py-3 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl text-white font-medium text-[14px] select-none touch-none shadow-lg cursor-grab active:cursor-grabbing hover:bg-white/10 transition-colors"
-                    style={{
-                      transform: `translate(${pos.x - 70}px, ${pos.y - 22}px) rotate(${pos.angle}rad)`,
-                      width: '140px', height: '44px'
-                    }}
-                  >
-                    <skill.icon className="w-4 h-4 shrink-0" style={{ color: skill.color }} />
-                    {skill.label}
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollReveal>
-        </section>
+		lenisRef.current = lenis;
+		let raf = 0;
 
-        {/* ── Certifications ─────────────────────────────────────────── */}
-        <section id="certifications" className="mt-40 pt-20">
-          <SectionHeader
-            label="04 / Recognition"
-            title="Certifications."
-            subtitle="Investing in leadership depth and effective communication."
-          />
-          <div className="flex flex-col gap-4">
-            {certifications.map((cert, i) => (
-              <ScrollReveal key={cert.title} delay={i * 0.1}>
-                <CertCard {...cert} />
-              </ScrollReveal>
-            ))}
-          </div>
-        </section>
+		const run = (time: number) => {
+			lenis.raf(time);
+			raf = requestAnimationFrame(run);
+		};
 
-        {/* ── Footer ────────────────────────────────────────────────── */}
-        <Footer />
+		raf = requestAnimationFrame(run);
 
-      </main>
-    </div>
-  );
+		return () => {
+			cancelAnimationFrame(raf);
+			lenis.destroy();
+			lenisRef.current = null;
+		};
+	}, [prefersReducedMotion]);
+
+	useEffect(() => {
+		document.body.style.overflow = isPreloading ? "hidden" : "";
+		return () => {
+			document.body.style.overflow = "";
+		};
+	}, [isPreloading]);
+
+	const scrollToSection = useCallback(
+		(target: string) => {
+			const selector = target === "body" ? "body" : target;
+			const element = document.querySelector<HTMLElement>(selector);
+			if (!element) return;
+
+			if (lenisRef.current && !prefersReducedMotion) {
+				lenisRef.current.scrollTo(element, { offset: -100, duration: 1.1 });
+				return;
+			}
+
+			const y = element.getBoundingClientRect().top + window.scrollY - 100;
+			window.scrollTo({ top: y, behavior: "smooth" });
+		},
+		[prefersReducedMotion],
+	);
+
+	return (
+		<>
+			<AnimatePresence>
+				{isPreloading ? <Preloader progress={loadingProgress} /> : null}
+			</AnimatePresence>
+
+			<div
+				className="noise min-h-screen bg-[#060606] text-zinc-300 selection:bg-violet-900/40 selection:text-white"
+				style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}
+			>
+				<CustomCursor />
+				<Navbar onNavigate={scrollToSection} />
+
+				{/* Ambient glows */}
+				<div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+					<div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-900/20 blur-[150px] md:opacity-50" />
+					<div className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/25 blur-[160px] md:opacity-60" />
+					<div className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] rounded-full bg-fuchsia-900/20 blur-[140px] md:opacity-40" />
+				</div>
+
+				<main className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
+					{/* ── Hero ─────────────────────────────────────────────────── */}
+					<motion.section
+						className="min-h-[100vh] flex flex-col md:flex-row items-center justify-between pt-28 pb-16 gap-12"
+						style={{ y: heroY, opacity: heroOpacity }}
+					>
+						{/* Left Content */}
+						<div className="flex-1 flex flex-col items-start text-left z-10 w-full mb-10 md:mb-0">
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{
+									delay: 0.3,
+									duration: 0.9,
+									ease: [0.16, 1, 0.3, 1],
+								}}
+							>
+								<h2 className="text-2xl sm:text-3xl text-zinc-400 font-medium tracking-tight mb-2">
+									Hey, I'm{" "}
+									<span className="text-white font-bold">Gabriele Viganò</span>.
+								</h2>
+								<TextScramble text="I build cool things." />
+							</motion.div>
+
+							<div className="mt-8">
+								<KineticTag />
+							</div>
+
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{
+									delay: 0.5,
+									duration: 0.9,
+									ease: [0.16, 1, 0.3, 1],
+								}}
+								className="flex items-center gap-4 mt-10"
+							>
+								<Magnetic strength={0.2}>
+									<a
+										href="#expertise"
+										onClick={(e) => {
+											e.preventDefault();
+											scrollToSection("#expertise");
+										}}
+										data-cursor="hover"
+										className="px-8 py-4 rounded-full bg-white text-black font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
+									>
+										Explore my work
+									</a>
+								</Magnetic>
+								<Magnetic strength={0.2}>
+									<a
+										href="https://github.com/viganogabriele"
+										target="_blank"
+										rel="noreferrer"
+										data-cursor="hover"
+										className="w-[52px] h-[52px] flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all"
+									>
+										<GithubIcon className="w-5 h-5" />
+									</a>
+								</Magnetic>
+								<Magnetic strength={0.2}>
+									<a
+										href="https://linkedin.com/in/viganogabriele"
+										target="_blank"
+										rel="noreferrer"
+										data-cursor="hover"
+										className="w-[52px] h-[52px] flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all"
+									>
+										<LinkedinIcon className="w-5 h-5" />
+									</a>
+								</Magnetic>
+							</motion.div>
+						</div>
+
+						{/* Right Portrait */}
+						<motion.div
+							className="flex-1 flex justify-center md:justify-end"
+							initial={{ opacity: 0, scale: 0.85, rotate: -2 }}
+							animate={{ opacity: 1, scale: 1, rotate: 0 }}
+							transition={{
+								duration: 1.2,
+								ease: [0.16, 1, 0.3, 1],
+								delay: 0.4,
+							}}
+						>
+							<FloatingPortrait />
+						</motion.div>
+					</motion.section>
+
+					{/* ── What I Do ─────────────────────────────────────────────── */}
+					<section id="expertise" className="mt-32 pt-20">
+						<SectionHeader
+							label="01 / Expertise"
+							title="What I Do."
+							subtitle="I build systems that perform reliably and interfaces that feel incredible."
+						/>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							{activities.map((act, i) => (
+								<ScrollReveal key={act.title} delay={i * 0.1}>
+									<ActivityCard {...act} />
+								</ScrollReveal>
+							))}
+						</div>
+					</section>
+
+					{/* ── Projects ──────────────────────────────────────────────── */}
+					<section id="projects" className="mt-40 pt-20">
+						<SectionHeader
+							label="02 / Selected Work"
+							title="Featured Projects."
+							subtitle="Real-world systems, open-source tech, and experimental playgrounds."
+						/>
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+							{projects.map((proj, i) => (
+								<ScrollReveal key={proj.title} delay={i * 0.1}>
+									<ProjectCard {...proj} />
+								</ScrollReveal>
+							))}
+						</div>
+					</section>
+
+					{/* ── Skills Playground (Physics Sandbox) ───────────────────── */}
+					<section id="stack" className="mt-40 pt-20">
+						<SectionHeader
+							label="03 / The Toolkit"
+							title="Tech Stack."
+							subtitle="Grab them, throw them, watch them bounce — powered by Matter.js."
+						/>
+						<ScrollReveal>
+							<div
+								ref={playgroundRef}
+								data-cursor-bubble="true"
+								className="relative w-full h-[550px] sm:h-[450px] rounded-[2rem] border border-white/10 bg-[#0a0a0a] overflow-hidden shadow-2xl touch-pan-y"
+								style={{
+									backgroundImage:
+										"radial-gradient(circle, rgba(255,255,255,0.025) 2px, transparent 2px)",
+									backgroundSize: "40px 40px",
+								}}
+							>
+								{/* Mobile Interaction Shield - shows message or hint */}
+								<div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none sm:hidden">
+									<p className="text-[10px] text-zinc-500 font-mono bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/5">
+										Drag icons to play • Scroll outside to move
+									</p>
+								</div>
+								{skills.map((skill, i) => {
+									const pos = physicsPositions[i] || {
+										x: -100,
+										y: -100,
+										angle: 0,
+									};
+									return (
+										<div
+											key={skill.label}
+											className="absolute top-0 left-0 flex items-center justify-center gap-2.5 px-6 py-3 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl text-white font-medium text-[14px] select-none touch-none shadow-lg cursor-grab active:cursor-grabbing hover:bg-white/10 transition-colors"
+											style={{
+												transform: `translate(${pos.x - 70}px, ${pos.y - 22}px) rotate(${pos.angle}rad)`,
+												width: "140px",
+												height: "44px",
+											}}
+										>
+											<skill.icon
+												className="w-4 h-4 shrink-0"
+												style={{ color: skill.color }}
+											/>
+											{skill.label}
+										</div>
+									);
+								})}
+							</div>
+						</ScrollReveal>
+					</section>
+
+					{/* ── Interactive Timeline ───────────────────────────────────── */}
+					<section className="mt-40 pt-20">
+						<SectionHeader
+							label="04 / Journey"
+							title="Interactive Timeline."
+							subtitle="Key moments that shaped my product, systems, and design engineering path."
+						/>
+						<InteractiveTimeline items={timelineItems} />
+					</section>
+
+					{/* ── Notes ─────────────────────────────────────────────────── */}
+					<section className="mt-40 pt-20">
+						<SectionHeader
+							label="05 / Notes"
+							title="Engineering Notes."
+							subtitle="Short technical writes on motion systems, architecture decisions, and infrastructure operations."
+						/>
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+							{notes.map((note, i) => (
+								<ScrollReveal key={note.title} delay={i * 0.08}>
+									<motion.a
+										href={note.link}
+										target="_blank"
+										rel="noreferrer"
+										data-cursor="hover"
+										whileHover={{ y: -4, scale: 1.01 }}
+										transition={{ type: "spring", stiffness: 320, damping: 24 }}
+										className="group h-full flex flex-col rounded-3xl border border-white/5 bg-[#0a0a0a] p-6 hover:border-white/20 transition-colors"
+									>
+										<div className="flex items-center justify-between mb-4 text-[11px] font-mono uppercase tracking-wider text-zinc-500">
+											<span>{note.date}</span>
+											<span>{note.readingTime}</span>
+										</div>
+										<h3 className="text-lg font-semibold text-zinc-100 tracking-tight mb-3">
+											{note.title}
+										</h3>
+										<p className="text-sm text-zinc-400 leading-relaxed mb-5 flex-1">
+											{note.preview}
+										</p>
+										<div className="flex flex-wrap gap-2">
+											{note.tags.map((tag) => (
+												<span
+													key={tag}
+													className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono"
+												>
+													{tag}
+												</span>
+											))}
+										</div>
+									</motion.a>
+								</ScrollReveal>
+							))}
+						</div>
+					</section>
+
+					{/* ── Certifications ─────────────────────────────────────────── */}
+					<section id="certifications" className="mt-40 pt-20">
+						<SectionHeader
+							label="06 / Recognition"
+							title="Certifications."
+							subtitle="Investing in leadership depth and effective communication."
+						/>
+						<div className="flex flex-col gap-4">
+							{certifications.map((cert, i) => (
+								<ScrollReveal key={cert.title} delay={i * 0.1}>
+									<CertCard {...cert} />
+								</ScrollReveal>
+							))}
+						</div>
+					</section>
+
+					{/* ── Footer ────────────────────────────────────────────────── */}
+					<Footer onNavigate={scrollToSection} />
+				</main>
+			</div>
+		</>
+	);
 }
 
 export default App;

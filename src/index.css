@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Space+Grotesk:wght@300..700&display=swap");
 @import "tailwindcss";
 
 @theme {
   --color-background: #080808;
   --color-foreground: #eaeaea;
-  --font-sans: 'Inter', sans-serif;
+  --font-sans: "Space Grotesk", "Inter", sans-serif;
 }
 
 /* Only hide cursor on non-touch devices */
@@ -37,7 +37,10 @@ body {
   pointer-events: none;
   z-index: 9999;
   transform: translate(-50%, -50%);
-  transition: width 0.2s ease, height 0.2s ease, opacity 0.2s ease;
+  transition:
+    width 0.2s ease,
+    height 0.2s ease,
+    opacity 0.2s ease;
   mix-blend-mode: difference;
 }
 
@@ -65,11 +68,62 @@ body {
 
 /* Noise texture overlay */
 .noise::before {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   pointer-events: none;
   z-index: 1;
-  opacity: 0.4;
+  opacity: 0.56;
+  mix-blend-mode: soft-light;
+  animation: grainShift 8s steps(10) infinite;
+}
+
+.noise::after {
+  content: "";
+  position: fixed;
+  inset: -40%;
+  background-image: radial-gradient(
+    circle at 20% 20%,
+    rgba(255, 255, 255, 0.05),
+    transparent 55%
+  );
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.28;
+  animation: grainFloat 12s ease-in-out infinite alternate;
+}
+
+@keyframes grainShift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(-2%, 1.5%, 0);
+  }
+  50% {
+    transform: translate3d(1.25%, -1.25%, 0);
+  }
+  75% {
+    transform: translate3d(2%, 1%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes grainFloat {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  100% {
+    transform: rotate(3deg) scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .noise::before,
+  .noise::after {
+    animation: none;
+  }
 }
