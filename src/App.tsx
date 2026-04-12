@@ -175,9 +175,9 @@ const Navbar = () => {
         }}
       >
         <a href="#" onClick={(e) => handleScrollTo(e, 'body')} data-cursor="hover" className="flex items-center gap-3 group">
-           <img src={logo} alt="Gabriele Viganò" className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert" />
+          <img src={logo} alt="Gabriele Viganò" className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert" />
         </a>
-        
+
         <div className="hidden sm:flex items-center gap-1">
           {NAV_LINKS.map(link => (
             <a
@@ -193,7 +193,7 @@ const Navbar = () => {
         </div>
 
         <a
-          href="mailto:contact@viganogabriele.com"
+          href="mailto:info@viganogabriele.com"
           data-cursor="hover"
           className="px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.35)]"
         >
@@ -240,7 +240,7 @@ const FloatingPortrait = () => {
     >
       {/* Soft dynamic glow behind silhouette */}
       <div className="absolute inset-x-0 top-[20%] bottom-0 bg-violet-600/20 blur-[80px] rounded-full scale-90 group-hover:bg-violet-500/30 transition-colors duration-700" />
-      
+
       <div className="relative w-full h-[320px] md:h-[450px] overflow-visible flex items-end">
         <img
           src={portrait}
@@ -350,30 +350,30 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
 
   useEffect(() => {
     if (!containerRef.current) return;
-    
+
     const container = containerRef.current;
-    
+
     const engine = Matter.Engine.create({
       gravity: { x: 0, y: 0, scale: 0 }
     });
     const world = engine.world;
-    
+
     const getSize = () => ({
       width: container.clientWidth,
       height: container.clientHeight,
     });
-    
+
     let { width, height } = getSize();
-    
+
     const wallOpts = { isStatic: true, restitution: 0.8, friction: 0, render: { visible: false } };
     const walls = [
-      Matter.Bodies.rectangle(width/2, -50, width*2, 100, wallOpts),
-      Matter.Bodies.rectangle(width/2, height+50, width*2, 100, wallOpts),
-      Matter.Bodies.rectangle(-50, height/2, 100, height*2, wallOpts),
-      Matter.Bodies.rectangle(width+50, height/2, 100, height*2, wallOpts)
+      Matter.Bodies.rectangle(width / 2, -50, width * 2, 100, wallOpts),
+      Matter.Bodies.rectangle(width / 2, height + 50, width * 2, 100, wallOpts),
+      Matter.Bodies.rectangle(-50, height / 2, 100, height * 2, wallOpts),
+      Matter.Bodies.rectangle(width + 50, height / 2, 100, height * 2, wallOpts)
     ];
     Matter.World.add(world, walls);
-    
+
     // Spread items within container bounds randomly
     const bodies = items.map((_item) => {
       const px = 70 + Math.random() * (width - 140);
@@ -389,7 +389,7 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
       return b;
     });
     Matter.World.add(world, bodies);
-    
+
     const mouse = Matter.Mouse.create(container);
     mouse.element.removeEventListener("wheel", (mouse as any).mousewheel);
     mouse.element.removeEventListener("DOMMouseScroll", (mouse as any).mousewheel);
@@ -402,7 +402,7 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
       }
     });
     Matter.World.add(world, mouseConstraint);
-    
+
     let animationFrameId: number;
     const updateSync = () => {
       Matter.Engine.update(engine, 1000 / 60);
@@ -410,7 +410,7 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
       animationFrameId = requestAnimationFrame(updateSync);
     };
     updateSync();
-    
+
     bodies.forEach(b => {
       Matter.Body.applyForce(b, b.position, {
         x: (Math.random() - 0.5) * 0.1,
@@ -439,10 +439,10 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
     const handleResize = () => {
       const { width: w, height: h } = getSize();
       width = w; height = h;
-      Matter.Body.setPosition(walls[0], { x: w/2, y: -50 });
-      Matter.Body.setPosition(walls[1], { x: w/2, y: h+50 });
-      Matter.Body.setPosition(walls[2], { x: -50, y: h/2 });
-      Matter.Body.setPosition(walls[3], { x: w+50, y: h/2 });
+      Matter.Body.setPosition(walls[0], { x: w / 2, y: -50 });
+      Matter.Body.setPosition(walls[1], { x: w / 2, y: h + 50 });
+      Matter.Body.setPosition(walls[2], { x: -50, y: h / 2 });
+      Matter.Body.setPosition(walls[3], { x: w + 50, y: h / 2 });
     };
     window.addEventListener('resize', handleResize);
 
@@ -786,7 +786,7 @@ function App() {
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 0.3], ['0%', '25%']);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
-  
+
   const playgroundRef = useRef<HTMLDivElement>(null);
   const physicsPositions = useMatterPhysics(playgroundRef, skills);
 
