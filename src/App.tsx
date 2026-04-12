@@ -385,11 +385,11 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 					scrolled
 						? "border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]"
 						: "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]",
-					mobileOpen && "border-white/20",
+					mobileOpen && "border-violet-300/30",
 				)}
 				style={{
 					background: mobileOpen
-						? "rgba(8, 8, 8, 0.72)"
+						? "rgba(7, 7, 10, 0.88)"
 						: scrolled
 							? "rgba(8, 8, 8, 0.15)"
 							: "rgba(8, 8, 8, 0.02)",
@@ -410,7 +410,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 					/>
 				</a>
 
-				<div className="hidden xl:flex items-center gap-1">
+				<div className="hidden lg:flex items-center gap-1">
 					{NAV_LINKS.map((link) => (
 						<a
 							key={link.label}
@@ -443,7 +443,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 						className={cn(
 							"lg:hidden w-10 h-10 rounded-full border transition-colors flex items-center justify-center",
 							mobileOpen
-								? "border-white bg-white text-black"
+								? "border-violet-300/50 bg-violet-500/20 text-violet-100"
 								: "border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
 						)}
 						aria-label="Toggle navigation menu"
@@ -464,7 +464,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: -8 }}
 						transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-						className="lg:hidden mt-2 rounded-2xl border border-white/12 bg-[#0a0a0a]/95 backdrop-blur-2xl p-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.55)]"
+						className="lg:hidden mt-2 rounded-2xl border border-white/10 bg-[linear-gradient(160deg,rgba(18,18,24,0.97)_0%,rgba(10,10,12,0.96)_100%)] backdrop-blur-2xl p-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.55)]"
 					>
 						<nav className="flex flex-col gap-1.5">
 							{NAV_LINKS.map((link) => (
@@ -475,7 +475,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 									className={cn(
 										"px-3 py-2.5 rounded-lg text-[12px] font-medium transition-colors text-left",
 										activeSection === link.href
-											? "text-white bg-white/10 border border-white/20"
+											? "text-violet-100 bg-violet-500/20 border border-violet-300/35"
 											: "text-zinc-300 hover:text-white hover:bg-white/6",
 									)}
 								>
