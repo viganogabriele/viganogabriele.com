@@ -119,18 +119,18 @@ const CustomCursor = () => {
 	const ringY = useSpring(mouseY, { stiffness: 100, damping: 16, mass: 0.9 });
 
 	const baseSize =
-		hoverLevel === "bubble" ? 36 : hoverLevel === "link" ? 30 : 18;
+		hoverLevel === "bubble" ? 28 : hoverLevel === "link" ? 22 : 14;
 	const ringSize = useTransform(
 		smoothVelocity,
 		[0, 1500],
-		[baseSize, baseSize + 42],
+		[baseSize, baseSize + 30],
 	);
 	const ringOp =
-		hoverLevel === "bubble" ? 0.55 : hoverLevel === "link" ? 0.4 : 0.2;
+		hoverLevel === "bubble" ? 0.45 : hoverLevel === "link" ? 0.32 : 0.16;
 	const internalBlur = useTransform(
 		smoothVelocity,
 		[0, 1500],
-		["blur(4px)", "blur(16px)"],
+		["blur(2px)", "blur(10px)"],
 	);
 
 	useEffect(() => {
@@ -207,8 +207,8 @@ const CustomCursor = () => {
 					opacity: ringOp,
 					borderColor:
 						hoverLevel === "none"
-							? "rgba(255,255,255,0.14)"
-							: "rgba(255,255,255,0.28)",
+							? "rgba(255,255,255,0.12)"
+							: "rgba(255,255,255,0.22)",
 				}}
 				transition={{ type: "spring", stiffness: 300, damping: 20 }}
 			/>
@@ -1389,16 +1389,16 @@ const Footer = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 						<p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
 							About
 						</p>
-						<div className="flex flex-col gap-3">
-							<p className="text-lg font-semibold text-zinc-100 leading-tight">
+						<div className="flex flex-col gap-2.5">
+							<p className="text-sm font-medium tracking-tight text-zinc-400">
 								Gabriele Viganò
 							</p>
 							<a
 								href="mailto:info@viganogabriele.com"
-								className="text-lg font-medium text-white hover:text-violet-400 transition-colors group flex items-center gap-2"
+								className="text-sm font-medium tracking-tight text-zinc-400 hover:text-white transition-colors group flex items-center gap-2"
 							>
 								info@viganogabriele.com
-								<ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+								<ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
 							</a>
 						</div>
 					</div>
