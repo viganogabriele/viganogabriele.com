@@ -422,15 +422,14 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
     const handleScrollMotion = () => {
       const deltaY = window.scrollY - prevScroll;
       prevScroll = window.scrollY;
-      const forceMag = Math.min(Math.abs(deltaY) * 0.0003, 0.15);
-      if (forceMag > 0.01) {
+      const forceMag = Math.min(Math.abs(deltaY) * 0.0006, 0.2); // Increased force
+      if (forceMag > 0.005) {
         bodies.forEach(b => {
-          if (Math.random() > 0.3) {
-            Matter.Body.applyForce(b, b.position, {
-              x: (Math.random() - 0.5) * forceMag * 2,
-              y: (Math.random() - 0.2) * forceMag * (deltaY > 0 ? -1 : 1)
-            });
-          }
+          // Add some randomness but generally push in the direction of scroll
+          Matter.Body.applyForce(b, b.position, {
+            x: (Math.random() - 0.5) * forceMag * 3,
+            y: (Math.random() - 0.5) * forceMag * 2 + (deltaY > 0 ? -forceMag : forceMag)
+          });
         });
       }
     };
@@ -444,13 +443,24 @@ const useMatterPhysics = (containerRef: React.RefObject<HTMLDivElement | null>, 
       Matter.Body.setPosition(walls[2], { x: -50, y: h / 2 });
       Matter.Body.setPosition(walls[3], { x: w + 50, y: h / 2 });
     };
+
+    // Fix for "stuck" items: release mouse constraint if mouse leaves container
+    const handleMouseLeaveSandbox = () => {
+      mouseConstraint.mouse.button = -1;
+      (mouseConstraint as any).body = null;
+      (mouseConstraint as any).constraint.bodyB = null;
+    };
+
+    container.addEventListener('mouseleave', handleMouseLeaveSandbox);
     window.addEventListener('resize', handleResize);
 
     return () => {
+      container.removeEventListener('mouseleave', handleMouseLeaveSandbox);
       window.removeEventListener('scroll', handleScrollMotion);
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
       Matter.Engine.clear(engine);
+      Matter.World.clear(world, false);
     };
   }, [containerRef, items]);
 
@@ -480,10 +490,10 @@ const ActivityCard = ({ title, role, description, icon: Icon, tags, highlight }:
 
   return (
     <motion.div
-      onMouseEnter={() => { if (!isTouchRef.current) setHovered(true); }}
-      onMouseLeave={() => { if (!isTouchRef.current) setHovered(false); }}
-      onClick={() => setExpanded(prev => !prev)}
-      whileHover={{ y: -4, scale: 1.005 }}
+  onMouseEnter={() => { if (!isTouchRef.current) setHovered(true); }}
+  onMouseLeave={() => { if (!isTouchRef.current) setHovered(false); }}
+  onClick={() => { if (isTouchRef.current) setExpanded(prev => !prev); }}
+  whileHover={!isTouchRef.current ? { y: -4, scale: 1.005 } : {}}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
       data-cursor="hover"
       className={cn(
@@ -573,9 +583,11 @@ const ProjectCard = ({ title, description, tags, icon: Icon, link, status }: Pro
     whileHover={{ y: -6, scale: 1.02 }}
     transition={{ type: 'spring', stiffness: 350, damping: 25 }}
     data-cursor="hover"
-    className="group relative flex flex-col p-7 rounded-3xl border border-white/5 bg-[#0a0a0a] overflow-hidden hover:border-white/20 transition-all duration-300 shadow-lg h-full"
+    className="group relative flex flex-col p-7 rounded-3xl border border-white/5 bg-[#0a0a0a] overflow-hidden hover:border-white/20 transition-all duration-500 shadow-lg h-full"
   >
-    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+    <motion.div 
+      className="absolute inset-0 bg-gradient-to-br from-violet-600/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" 
+    />
     <div className="relative z-10 flex-1">
       <div className="flex items-start justify-between mb-6">
         <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-white group-hover:text-black group-hover:border-white transition-all duration-300">
@@ -725,56 +737,93 @@ const skills = [
 
 const Footer = () => {
   const links = [
-    { label: 'github.com/viganogabriele', href: 'https://github.com/viganogabriele', icon: GithubIcon },
-    { label: 'linkedin.com/in/viganogabriele', href: 'https://linkedin.com/in/viganogabriele', icon: LinkedinIcon },
+    { label: 'GitHub', username: 'viganogabriele', href: 'https://github.com/viganogabriele', icon: GithubIcon },
+    { label: 'LinkedIn', username: 'viganogabriele', href: 'https://linkedin.com/in/viganogabriele', icon: LinkedinIcon },
   ];
 
   return (
     <ScrollReveal delay={0.1}>
-      <footer className="mt-40 pt-12 border-t border-white/[0.06]">
-        <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-10">
+      <footer className="mt-40 pb-20 border-t border-white/[0.06] relative overflow-hidden">
+        {/* Large Background Branding */}
+        <div className="absolute -bottom-10 -right-20 text-[12vw] font-black text-white/[0.02] select-none pointer-events-none tracking-tighter uppercase whitespace-nowrap">
+          Gabriele Viganò
+        </div>
+
+        <div className="pt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative z-10">
           {/* Brand block */}
-          <div className="flex flex-col items-center md:items-start gap-4">
+          <div className="flex flex-col items-start gap-6">
             <img
               src={logo}
               alt="Gabriele Viganò"
-              className="h-8 w-auto filter invert opacity-80"
+              className="h-8 w-auto filter invert opacity-90"
             />
-            <div className="flex flex-col gap-1 items-center md:items-start mt-2">
-              <a href="mailto:info@viganogabriele.com" className="text-zinc-400 hover:text-white transition-colors text-sm font-medium">
+            <div className="flex flex-col gap-3">
+              <a 
+                href="mailto:info@viganogabriele.com" 
+                className="text-lg font-medium text-white hover:text-violet-400 transition-colors group flex items-center gap-2"
+              >
                 info@viganogabriele.com
+                <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
               </a>
+              <p className="text-sm text-zinc-500 max-w-xs leading-relaxed">
+                Computer Engineering student at Politecnico di Milano, focused on building high-performance systems.
+              </p>
             </div>
           </div>
 
+          {/* Nav Links - Quick Access */}
+          <div className="flex flex-col gap-6">
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Navigation</p>
+            <nav className="grid grid-cols-2 gap-y-3 gap-x-6">
+              {NAV_LINKS.map(l => (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  className="text-sm font-medium text-zinc-400 hover:text-white transition-colors duration-300"
+                >
+                  {l.label}
+                </a>
+              ))}
+            </nav>
+          </div>
+
           {/* Socials & Handles */}
-          <div className="flex flex-col items-center md:items-end gap-4">
-            {links.map(({ label, href, icon: Icon }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                data-cursor="hover"
-                className="flex items-center gap-3 text-zinc-400 hover:text-white transition-all duration-300 group"
-              >
-                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 group-hover:border-white/20 transition-all duration-300">
-                  <Icon className="w-4 h-4" />
-                </div>
-                <span className="text-sm font-medium tracking-wide">{label}</span>
-              </a>
-            ))}
+          <div className="flex flex-col gap-6 lg:items-end">
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest lg:text-right">Social Profiles</p>
+            <div className="flex flex-col gap-4 lg:items-end">
+              {links.map(({ label, username, href, icon: Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  data-cursor="hover"
+                  className="flex items-center gap-4 text-zinc-400 hover:text-white transition-all duration-300 group"
+                >
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] text-zinc-600 font-mono">{label}</span>
+                    <span className="text-sm font-medium tracking-tight">@{username}</span>
+                  </div>
+                  <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 group-hover:bg-violet-600 group-hover:border-violet-500 group-hover:text-white transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                </a>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Bottom strip */}
-        <div className="mt-16 pt-6 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-[11px] text-zinc-700 font-mono">
-            © {new Date().getFullYear()} Gabriele Viganò. All rights reserved.
+        <div className="mt-20 pt-8 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-[11px] text-zinc-600 font-mono tracking-wider">
+            © {new Date().getFullYear()} GABRIELE VIGANÒ. ALL RIGHTS RESERVED.
           </p>
-          <p className="text-[11px] text-zinc-700 font-mono">
-            Built with React & Framer Motion
-          </p>
+          <div className="flex items-center gap-6">
+            <p className="text-[11px] text-zinc-600 font-mono">
+              MADE WITH REACT & FRAMER MOTION
+            </p>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
+          </div>
         </div>
       </footer>
     </ScrollReveal>
