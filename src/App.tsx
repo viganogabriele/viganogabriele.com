@@ -113,24 +113,29 @@ const CustomCursor = () => {
 	const lastTime = useRef(0);
 	const lastPos = useRef({ x: 0, y: 0 });
 	const velocity = useMotionValue(0);
-	const smoothVelocity = useSpring(velocity, { stiffness: 60, damping: 20 });
+	const smoothVelocity = useSpring(velocity, { stiffness: 45, damping: 24 });
 
-	const ringX = useSpring(mouseX, { stiffness: 100, damping: 16, mass: 0.9 });
-	const ringY = useSpring(mouseY, { stiffness: 100, damping: 16, mass: 0.9 });
+	const ringX = useSpring(mouseX, { stiffness: 85, damping: 19, mass: 1.1 });
+	const ringY = useSpring(mouseY, { stiffness: 85, damping: 19, mass: 1.1 });
+	const haloX = useSpring(mouseX, { stiffness: 42, damping: 20, mass: 1.5 });
+	const haloY = useSpring(mouseY, { stiffness: 42, damping: 20, mass: 1.5 });
 
 	const baseSize =
-		hoverLevel === "bubble" ? 28 : hoverLevel === "link" ? 22 : 14;
+		hoverLevel === "bubble" ? 36 : hoverLevel === "link" ? 28 : 18;
 	const ringSize = useTransform(
 		smoothVelocity,
 		[0, 1500],
-		[baseSize, baseSize + 30],
+		[baseSize, baseSize + 56],
 	);
+	const haloSize = useTransform(smoothVelocity, [0, 1500], [82, 160]);
 	const ringOp =
-		hoverLevel === "bubble" ? 0.45 : hoverLevel === "link" ? 0.32 : 0.16;
+		hoverLevel === "bubble" ? 0.58 : hoverLevel === "link" ? 0.44 : 0.24;
+	const haloOp =
+		hoverLevel === "bubble" ? 0.42 : hoverLevel === "link" ? 0.28 : 0.18;
 	const internalBlur = useTransform(
 		smoothVelocity,
 		[0, 1500],
-		["blur(2px)", "blur(10px)"],
+		["blur(3px)", "blur(18px)"],
 	);
 
 	useEffect(() => {
@@ -160,10 +165,15 @@ const CustomCursor = () => {
 
 		const enter = (e: Event) => {
 			const el = e.currentTarget as HTMLElement;
+			el.classList.add("cursor-shine");
 			if (el.dataset.cursorBubble !== undefined) setHoverLevel("bubble");
 			else setHoverLevel("link");
 		};
-		const leave = () => setHoverLevel("none");
+		const leave = (e: Event) => {
+			const el = e.currentTarget as HTMLElement;
+			el.classList.remove("cursor-shine");
+			setHoverLevel("none");
+		};
 
 		const bind = () => {
 			document
@@ -192,6 +202,16 @@ const CustomCursor = () => {
 
 	return (
 		<>
+			<motion.div
+				className="cursor-halo"
+				style={{
+					left: haloX,
+					top: haloY,
+					width: haloSize,
+					height: haloSize,
+				}}
+				animate={{ opacity: haloOp }}
+			/>
 			<div ref={dotRef} className="cursor-dot" />
 			<motion.div
 				className="cursor-ring"
@@ -207,8 +227,8 @@ const CustomCursor = () => {
 					opacity: ringOp,
 					borderColor:
 						hoverLevel === "none"
-							? "rgba(255,255,255,0.12)"
-							: "rgba(255,255,255,0.22)",
+							? "rgba(255,255,255,0.16)"
+							: "rgba(255,255,255,0.38)",
 				}}
 				transition={{ type: "spring", stiffness: 300, damping: 20 }}
 			/>
