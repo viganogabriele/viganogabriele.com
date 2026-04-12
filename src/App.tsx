@@ -379,13 +379,15 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 			transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
 			className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-4xl"
 		>
+			<div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 w-[88%] h-12 bg-gradient-to-r from-transparent via-violet-400/22 to-transparent blur-2xl" />
 			<div
 				className={cn(
-					"flex items-center justify-between px-4 sm:px-5 py-3 rounded-full border transition-all duration-500",
+					"px-4 sm:px-5 py-3 rounded-full border transition-all duration-500",
 					scrolled
 						? "border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.05)]"
 						: "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.3)]",
 					mobileOpen && "border-violet-300/45",
+					mobileOpen && "rounded-[1.15rem]",
 				)}
 				style={{
 					background: mobileOpen
@@ -397,85 +399,75 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 					WebkitBackdropFilter: "blur(30px) saturate(200%)",
 				}}
 			>
-				<a
-					href="#"
-					onClick={(e) => handleScrollTo(e, "body")}
-					data-cursor="hover"
-					className="flex items-center gap-3 group"
-				>
-					<img
-						src={logo}
-						alt="Gabriele Viganò"
-						className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert"
-					/>
-				</a>
-
-				<div className="hidden lg:flex items-center gap-1">
-					{NAV_LINKS.map((link) => (
-						<a
-							key={link.label}
-							href={link.href}
-							onClick={(e) => handleScrollTo(e, link.href)}
-							data-cursor="hover"
-							className={cn(
-								"px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300",
-								activeSection === link.href
-									? "text-white bg-white/[0.1]"
-									: "text-zinc-400 hover:text-white hover:bg-white/[0.07]",
-							)}
-						>
-							{link.label}
-						</a>
-					))}
-				</div>
-
-				<div className="flex items-center gap-2">
+				<div className="flex items-center justify-between">
 					<a
-						href="mailto:info@viganogabriele.com"
+						href="#"
+						onClick={(e) => handleScrollTo(e, "body")}
 						data-cursor="hover"
-						className="hidden sm:inline-flex px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.35)]"
+						className="flex items-center gap-3 group"
 					>
-						Let's talk
-					</a>
-					<button
-						type="button"
-						onClick={() => setMobileOpen((prev) => !prev)}
-						className={cn(
-							"lg:hidden w-10 h-10 rounded-full border transition-colors flex items-center justify-center",
-							mobileOpen
-								? "border-violet-300/55 bg-violet-500/24 text-violet-100"
-								: "border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
-						)}
-						aria-label="Toggle navigation menu"
-					>
-						{mobileOpen ? (
-							<X className="w-4 h-4" />
-						) : (
-							<Menu className="w-4 h-4" />
-						)}
-					</button>
-				</div>
-			</div>
-
-			<AnimatePresence>
-				{mobileOpen && (
-					<>
-						<motion.button
-							type="button"
-							aria-label="Close navigation overlay"
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							exit={{ opacity: 0 }}
-							transition={{ duration: 0.2 }}
-							onClick={() => setMobileOpen(false)}
-							className="fixed inset-0 z-[-1] bg-black/46 backdrop-blur-[2px]"
+						<img
+							src={logo}
+							alt="Gabriele Viganò"
+							className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert"
 						/>
+					</a>
+
+					<div className="hidden lg:flex items-center gap-1">
+						{NAV_LINKS.map((link) => (
+							<a
+								key={link.label}
+								href={link.href}
+								onClick={(e) => handleScrollTo(e, link.href)}
+								data-cursor="hover"
+								className={cn(
+									"px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300",
+									activeSection === link.href
+										? "text-white bg-white/[0.1]"
+										: "text-zinc-400 hover:text-white hover:bg-white/[0.07]",
+								)}
+							>
+								{link.label}
+							</a>
+						))}
+					</div>
+
+					<div className="flex items-center gap-2">
+						<a
+							href="mailto:info@viganogabriele.com"
+							data-cursor="hover"
+							className="hidden sm:inline-flex px-5 py-2 rounded-full text-[13px] font-bold text-black bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.35)]"
+						>
+							Let's talk
+						</a>
+						<button
+							type="button"
+							onClick={() => setMobileOpen((prev) => !prev)}
+							className={cn(
+								"lg:hidden w-10 h-10 rounded-full border transition-colors flex items-center justify-center",
+								mobileOpen
+									? "border-violet-300/55 bg-violet-500/24 text-violet-100"
+									: "border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
+							)}
+							aria-label="Toggle navigation menu"
+						>
+							{mobileOpen ? (
+								<X className="w-4 h-4" />
+							) : (
+								<Menu className="w-4 h-4" />
+							)}
+						</button>
+					</div>
+				</div>
+
+				<AnimatePresence>
+					{mobileOpen && (
 						<motion.div
-							initial={{ opacity: 0, y: -8 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -8 }}
-							transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-							className="lg:hidden mt-1 rounded-[1.1rem] border border-violet-200/28 bg-[linear-gradient(165deg,rgba(77,47,138,0.64)_0%,rgba(24,20,38,0.96)_100%)] backdrop-blur-2xl p-2.5 shadow-[0_20px_40px_rgba(0,0,0,0.58)]"
+							initial={{ opacity: 0, height: 0, marginTop: 0 }}
+							animate={{ opacity: 1, height: "auto", marginTop: 10 }}
+							exit={{ opacity: 0, height: 0, marginTop: 0 }}
+							transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+							className="lg:hidden overflow-hidden border-t border-violet-200/25 pt-2"
 						>
 							<nav className="flex flex-col gap-1.5">
 								{NAV_LINKS.map((link) => (
@@ -501,7 +493,22 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 								Let's talk
 							</a>
 						</motion.div>
-					</>
+					)}
+				</AnimatePresence>
+			</div>
+
+			<AnimatePresence>
+				{mobileOpen && (
+					<motion.button
+						type="button"
+						aria-label="Close navigation overlay"
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						transition={{ duration: 0.2 }}
+						onClick={() => setMobileOpen(false)}
+						className="fixed inset-0 z-[-1] bg-black/46 backdrop-blur-[2px]"
+					/>
 				)}
 			</AnimatePresence>
 		</motion.nav>
@@ -604,6 +611,8 @@ const TextScramble = ({ text }: { text: string }) => {
 	const [display, setDisplay] = useState(text);
 	const [isHovered, setIsHovered] = useState(false);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const mobileFxRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const mobileFxResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const scramble = useCallback((target: string) => {
 		const frames = 18;
@@ -635,17 +644,29 @@ const TextScramble = ({ text }: { text: string }) => {
 		scramble(text);
 		return () => {
 			if (timerRef.current) clearTimeout(timerRef.current);
+			if (mobileFxRef.current) clearTimeout(mobileFxRef.current);
+			if (mobileFxResetRef.current) clearTimeout(mobileFxResetRef.current);
+		};
+	}, [scramble, text]);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		if (!window.matchMedia("(hover: none)").matches) return;
+
+		mobileFxRef.current = setTimeout(() => {
+			setIsHovered(true);
+			scramble(text);
+			mobileFxResetRef.current = setTimeout(() => setIsHovered(false), 1200);
+		}, 2000);
+
+		return () => {
+			if (mobileFxRef.current) clearTimeout(mobileFxRef.current);
+			if (mobileFxResetRef.current) clearTimeout(mobileFxResetRef.current);
 		};
 	}, [scramble, text]);
 
 	return (
 		<div className="relative inline-block">
-			<motion.div
-				aria-hidden
-				animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.96, 1.03, 0.96] }}
-				transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut" }}
-				className="absolute -inset-x-8 -inset-y-5 bg-gradient-to-r from-cyan-500/22 via-blue-400/14 to-violet-500/26 blur-2xl pointer-events-none"
-			/>
 			<h1
 				onMouseEnter={() => {
 					setIsHovered(true);
@@ -656,10 +677,10 @@ const TextScramble = ({ text }: { text: string }) => {
 			>
 				<span
 					className={cn(
-						"bg-clip-text text-transparent bg-[length:200%_auto] transition-all duration-700 ease-out drop-shadow-[0_0_20px_rgba(56,189,248,0.2)]",
+						"bg-clip-text text-transparent bg-[length:220%_auto] transition-all duration-700 ease-out",
 						isHovered
-							? "bg-gradient-to-r from-cyan-200 via-blue-300 to-violet-300 bg-[position:100%_center]"
-							: "bg-gradient-to-r from-sky-300 via-cyan-200 to-violet-300 bg-[position:0%_center]",
+							? "bg-gradient-to-r from-cyan-100 via-cyan-300 to-violet-300 bg-[position:100%_center] drop-shadow-[0_0_18px_rgba(56,189,248,0.28)]"
+							: "bg-gradient-to-r from-cyan-200 via-cyan-300 to-sky-300 bg-[position:0%_center]",
 					)}
 				>
 					{display}
