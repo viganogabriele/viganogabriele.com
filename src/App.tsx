@@ -8,7 +8,6 @@ import {
 	useSpring,
 	useTransform,
 } from "framer-motion";
-import Lenis from "lenis";
 import {
 	ArrowUpRight,
 	Award,
@@ -28,7 +27,6 @@ import {
 	Users,
 	X,
 } from "lucide-react";
-import Matter from "matter-js";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
 	BrowserRouter,
@@ -47,14 +45,10 @@ function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-const SITE_URL = "https://viganogabriele.com";
+type LenisModule = typeof import("lenis");
+type LenisInstance = InstanceType<LenisModule["default"]>;
 
-const slugify = (input: string) =>
-	input
-		.toLowerCase()
-		.replace(/[^a-z0-9\s-]/g, "")
-		.trim()
-		.replace(/\s+/g, "-");
+const SITE_URL = "https://viganogabriele.com";
 
 const PageMeta = ({
 	title,
@@ -102,6 +96,33 @@ const PageMeta = ({
 		}
 		canonical.setAttribute("href", `${SITE_URL}${path}`);
 	}, [description, path, title]);
+
+	return null;
+};
+
+const JsonLd = ({
+	id,
+	data,
+}: {
+	id: string;
+	data: Record<string, unknown>;
+}) => {
+	useEffect(() => {
+		let script = document.head.querySelector<HTMLScriptElement>(
+			`script[data-jsonld="${id}"]`,
+		);
+		if (!script) {
+			script = document.createElement("script");
+			script.type = "application/ld+json";
+			script.setAttribute("data-jsonld", id);
+			document.head.appendChild(script);
+		}
+		script.textContent = JSON.stringify(data);
+
+		return () => {
+			script?.remove();
+		};
+	}, [data, id]);
 
 	return null;
 };
@@ -290,12 +311,9 @@ const CustomCursor = () => {
 
 // ─── Glassmorphism Navbar ─────────────────────────────────────────────────────
 const NAV_LINKS = [
-	{ label: "Expertise", href: "#expertise" },
 	{ label: "Projects", href: "#projects" },
+	{ label: "About", href: "#about" },
 	{ label: "Stack", href: "#stack" },
-	{ label: "Journey", href: "#journey" },
-	{ label: "Notes", href: "#notes" },
-	{ label: "Certifications", href: "#certifications" },
 ];
 
 const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
@@ -358,7 +376,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 					/>
 				</a>
 
-				<div className="hidden lg:flex items-center gap-1">
+				<div className="hidden xl:flex items-center gap-1">
 					{NAV_LINKS.map((link) => (
 						<a
 							key={link.label}
@@ -415,20 +433,6 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 									{link.label}
 								</a>
 							))}
-							<Link
-								to="/notes"
-								onClick={() => setMobileOpen(false)}
-								className="px-3 py-2.5 rounded-xl text-[12px] font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
-							>
-								All notes
-							</Link>
-							<Link
-								to="/case-studies"
-								onClick={() => setMobileOpen(false)}
-								className="px-3 py-2.5 rounded-xl text-[12px] font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
-							>
-								Case studies
-							</Link>
 						</nav>
 						<a
 							href="mailto:info@viganogabriele.com"
@@ -617,235 +621,289 @@ const useMatterPhysics = (
 	>(items.map((_, i) => ({ x: i * 80 + 80, y: 100, angle: 0 })));
 
 	useEffect(() => {
-		if (!containerRef.current) return;
+		let cancelled = false;
+		let teardown: (() => void) | undefined;
 
-		const container = containerRef.current;
+		const init = async () => {
+			if (!containerRef.current) return;
+			const Matter = (await import("matter-js")).default;
+			if (cancelled || !containerRef.current) return;
 
-		const engine = Matter.Engine.create({
-			gravity: { x: 0, y: 0, scale: 0 },
-		});
-		const world = engine.world;
-
-		const getSize = () => ({
-			width: container.clientWidth,
-			height: container.clientHeight,
-		});
-
-		let { width, height } = getSize();
-		const bodyWidth = 140;
-		const bodyHeight = 44;
-		const halfBodyWidth = bodyWidth / 2;
-		const halfBodyHeight = bodyHeight / 2;
-
-		const wallThickness = 220;
-		const wallOpts = {
-			isStatic: true,
-			restitution: 0.8,
-			friction: 0,
-			render: { visible: false },
-		};
-		const walls = [
-			Matter.Bodies.rectangle(
-				width / 2,
-				-wallThickness / 2,
-				width * 2,
-				wallThickness,
-				wallOpts,
-			),
-			Matter.Bodies.rectangle(
-				width / 2,
-				height + wallThickness / 2,
-				width * 2,
-				wallThickness,
-				wallOpts,
-			),
-			Matter.Bodies.rectangle(
-				-wallThickness / 2,
-				height / 2,
-				wallThickness,
-				height * 2,
-				wallOpts,
-			),
-			Matter.Bodies.rectangle(
-				width + wallThickness / 2,
-				height / 2,
-				wallThickness,
-				height * 2,
-				wallOpts,
-			),
-		];
-		Matter.World.add(world, walls);
-
-		const bodies = items.map(() => {
-			const px = 70 + Math.random() * (width - 140);
-			const py = 50 + Math.random() * (height - 100);
-			const b = Matter.Bodies.rectangle(px, py, bodyWidth, bodyHeight, {
-				chamfer: { radius: 22 },
-				restitution: 0.95,
-				friction: 0.005,
-				frictionAir: 0.015,
-				density: 0.05,
+			const container = containerRef.current;
+			const engine = Matter.Engine.create({
+				gravity: { x: 0, y: 0, scale: 0 },
 			});
-			Matter.Body.setInertia(b, Infinity);
-			return b;
-		});
-		Matter.World.add(world, bodies);
+			const world = engine.world;
 
-		const mouse = Matter.Mouse.create(container);
-		const mouseWithWheel = mouse as Matter.Mouse & {
-			mousewheel?: EventListener;
-		};
-		if (mouseWithWheel.mousewheel) {
-			mouse.element.removeEventListener("wheel", mouseWithWheel.mousewheel);
-			mouse.element.removeEventListener(
-				"DOMMouseScroll",
-				mouseWithWheel.mousewheel,
-			);
-		}
+			const getSize = () => ({
+				width: container.clientWidth,
+				height: container.clientHeight,
+			});
 
-		const mouseConstraint = Matter.MouseConstraint.create(engine, {
-			mouse: mouse,
-			constraint: {
-				stiffness: 0.2,
-				render: { visible: false },
-			},
-		});
-		Matter.World.add(world, mouseConstraint);
+			let { width, height } = getSize();
+			const bodyWidth = 140;
+			const bodyHeight = 44;
+			const halfBodyWidth = bodyWidth / 2;
+			const halfBodyHeight = bodyHeight / 2;
+			const wallThickness = 220;
 
-		const releaseDraggedBody = () => {
-			mouseConstraint.mouse.button = -1;
-			const releasedMouseConstraint = mouseConstraint as unknown as {
-				body: Matter.Body | null;
-				constraint: { bodyB: Matter.Body | null; pointB: Matter.Vector | null };
+			const walls = [
+				Matter.Bodies.rectangle(
+					width / 2,
+					-wallThickness / 2,
+					width * 2,
+					wallThickness,
+					{ isStatic: true },
+				),
+				Matter.Bodies.rectangle(
+					width / 2,
+					height + wallThickness / 2,
+					width * 2,
+					wallThickness,
+					{ isStatic: true },
+				),
+				Matter.Bodies.rectangle(
+					-wallThickness / 2,
+					height / 2,
+					wallThickness,
+					height * 2,
+					{ isStatic: true },
+				),
+				Matter.Bodies.rectangle(
+					width + wallThickness / 2,
+					height / 2,
+					wallThickness,
+					height * 2,
+					{ isStatic: true },
+				),
+			];
+			Matter.World.add(world, walls);
+
+			const bodies = items.map(() => {
+				const px = 70 + Math.random() * (width - 140);
+				const py = 50 + Math.random() * (height - 100);
+				const body = Matter.Bodies.rectangle(px, py, bodyWidth, bodyHeight, {
+					chamfer: { radius: 22 },
+					restitution: 0.95,
+					friction: 0.005,
+					frictionAir: 0.015,
+					density: 0.05,
+				});
+				Matter.Body.setInertia(body, Infinity);
+				return body;
+			});
+			Matter.World.add(world, bodies);
+
+			const mouse = Matter.Mouse.create(container);
+			const wheelMouse = mouse as { mousewheel?: EventListener };
+			if (wheelMouse.mousewheel) {
+				mouse.element.removeEventListener("wheel", wheelMouse.mousewheel);
+				mouse.element.removeEventListener(
+					"DOMMouseScroll",
+					wheelMouse.mousewheel,
+				);
+			}
+
+			const mouseConstraint = Matter.MouseConstraint.create(engine, {
+				mouse,
+				constraint: { stiffness: 0.2, render: { visible: false } },
+			});
+			Matter.World.add(world, mouseConstraint);
+
+			const releaseDraggedBody = () => {
+				mouseConstraint.mouse.button = -1;
+				const released = mouseConstraint as unknown as {
+					body: unknown;
+					constraint: { bodyB: unknown; pointB: unknown };
+				};
+				released.body = null;
+				released.constraint.bodyB = null;
+				released.constraint.pointB = null;
 			};
-			releasedMouseConstraint.body = null;
-			releasedMouseConstraint.constraint.bodyB = null;
-			releasedMouseConstraint.constraint.pointB = null;
-		};
 
-		const isPointInsideContainer = (x: number, y: number) => {
-			const rect = container.getBoundingClientRect();
-			return (
-				x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
-			);
-		};
+			const isPointInsideContainer = (x: number, y: number) => {
+				const rect = container.getBoundingClientRect();
+				return (
+					x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+				);
+			};
 
-		const handleTouchMove = (event: TouchEvent) => {
-			const point = event.touches[0];
-			if (!point) return;
-			if (!isPointInsideContainer(point.clientX, point.clientY)) {
-				releaseDraggedBody();
-			}
-		};
+			const handleTouchMove = (event: TouchEvent) => {
+				const point = event.touches[0];
+				if (!point) return;
+				if (!isPointInsideContainer(point.clientX, point.clientY))
+					releaseDraggedBody();
+			};
 
-		let animationFrameId: number;
-		const clampBodyToBounds = (body: Matter.Body) => {
-			const minX = halfBodyWidth;
-			const maxX = Math.max(halfBodyWidth, width - halfBodyWidth);
-			const minY = halfBodyHeight;
-			const maxY = Math.max(halfBodyHeight, height - halfBodyHeight);
+			const clampBodyToBounds = (body: (typeof bodies)[number]) => {
+				const minX = halfBodyWidth;
+				const maxX = Math.max(halfBodyWidth, width - halfBodyWidth);
+				const minY = halfBodyHeight;
+				const maxY = Math.max(halfBodyHeight, height - halfBodyHeight);
 
-			let nextX = body.position.x;
-			let nextY = body.position.y;
-			let nextVelX = body.velocity.x;
-			let nextVelY = body.velocity.y;
+				let nextX = body.position.x;
+				let nextY = body.position.y;
+				let nextVelX = body.velocity.x;
+				let nextVelY = body.velocity.y;
 
-			if (body.position.x < minX) {
-				nextX = minX;
-				nextVelX = Math.abs(body.velocity.x) * 0.55;
-			} else if (body.position.x > maxX) {
-				nextX = maxX;
-				nextVelX = -Math.abs(body.velocity.x) * 0.55;
-			}
+				if (body.position.x < minX) {
+					nextX = minX;
+					nextVelX = Math.abs(body.velocity.x) * 0.55;
+				} else if (body.position.x > maxX) {
+					nextX = maxX;
+					nextVelX = -Math.abs(body.velocity.x) * 0.55;
+				}
 
-			if (body.position.y < minY) {
-				nextY = minY;
-				nextVelY = Math.abs(body.velocity.y) * 0.55;
-			} else if (body.position.y > maxY) {
-				nextY = maxY;
-				nextVelY = -Math.abs(body.velocity.y) * 0.55;
-			}
+				if (body.position.y < minY) {
+					nextY = minY;
+					nextVelY = Math.abs(body.velocity.y) * 0.55;
+				} else if (body.position.y > maxY) {
+					nextY = maxY;
+					nextVelY = -Math.abs(body.velocity.y) * 0.55;
+				}
 
-			if (nextX !== body.position.x || nextY !== body.position.y) {
-				Matter.Body.setPosition(body, { x: nextX, y: nextY });
-				Matter.Body.setVelocity(body, { x: nextVelX, y: nextVelY });
-			}
-		};
+				if (nextX !== body.position.x || nextY !== body.position.y) {
+					Matter.Body.setPosition(body, { x: nextX, y: nextY });
+					Matter.Body.setVelocity(body, { x: nextVelX, y: nextVelY });
+				}
+			};
 
-		const updateSync = () => {
-			Matter.Engine.update(engine, 1000 / 60);
-			bodies.forEach(clampBodyToBounds);
-			setPositions(
-				bodies.map((b) => ({
-					x: b.position.x,
-					y: b.position.y,
-					angle: b.angle,
-				})),
-			);
-			animationFrameId = requestAnimationFrame(updateSync);
-		};
-		updateSync();
+			let animationFrameId = 0;
+			let isActive = true;
 
-		bodies.forEach((b) => {
-			Matter.Body.applyForce(b, b.position, {
-				x: (Math.random() - 0.5) * 0.1,
-				y: (Math.random() - 0.5) * 0.1,
+			const updateSync = () => {
+				if (!isActive || document.hidden) {
+					animationFrameId = 0;
+					return;
+				}
+
+				Matter.Engine.update(engine, 1000 / 60);
+				bodies.forEach(clampBodyToBounds);
+				setPositions(
+					bodies.map((body) => ({
+						x: body.position.x,
+						y: body.position.y,
+						angle: body.angle,
+					})),
+				);
+				animationFrameId = requestAnimationFrame(updateSync);
+			};
+
+			const startLoop = () => {
+				if (animationFrameId === 0 && isActive && !document.hidden) {
+					animationFrameId = requestAnimationFrame(updateSync);
+				}
+			};
+
+			const stopLoop = () => {
+				if (animationFrameId !== 0) {
+					cancelAnimationFrame(animationFrameId);
+					animationFrameId = 0;
+				}
+			};
+
+			startLoop();
+
+			bodies.forEach((body) => {
+				Matter.Body.applyForce(body, body.position, {
+					x: (Math.random() - 0.5) * 0.1,
+					y: (Math.random() - 0.5) * 0.1,
+				});
 			});
-		});
 
-		let prevScroll = window.scrollY;
-		const handleScrollMotion = () => {
-			const deltaY = window.scrollY - prevScroll;
-			prevScroll = window.scrollY;
-			const forceMag = Math.min(Math.abs(deltaY) * 0.0006, 0.2); // Increased force
-			if (forceMag > 0.005) {
-				bodies.forEach((b) => {
-					// Add some randomness but generally push in the direction of scroll
-					Matter.Body.applyForce(b, b.position, {
+			let prevScroll = window.scrollY;
+			const handleScrollMotion = () => {
+				const deltaY = window.scrollY - prevScroll;
+				prevScroll = window.scrollY;
+				const forceMag = Math.min(Math.abs(deltaY) * 0.0006, 0.2);
+				if (forceMag <= 0.005) return;
+				bodies.forEach((body) => {
+					Matter.Body.applyForce(body, body.position, {
 						x: (Math.random() - 0.5) * forceMag * 3,
 						y:
 							(Math.random() - 0.5) * forceMag * 2 +
 							(deltaY > 0 ? -forceMag : forceMag),
 					});
 				});
-			}
-		};
-		window.addEventListener("scroll", handleScrollMotion, { passive: true });
+			};
 
-		const handleResize = () => {
-			const { width: w, height: h } = getSize();
-			width = w;
-			height = h;
-			Matter.Body.setPosition(walls[0], { x: w / 2, y: -wallThickness / 2 });
-			Matter.Body.setPosition(walls[1], { x: w / 2, y: h + wallThickness / 2 });
-			Matter.Body.setPosition(walls[2], { x: -wallThickness / 2, y: h / 2 });
-			Matter.Body.setPosition(walls[3], { x: w + wallThickness / 2, y: h / 2 });
-			bodies.forEach(clampBodyToBounds);
+			const handleResize = () => {
+				const nextSize = getSize();
+				width = nextSize.width;
+				height = nextSize.height;
+				Matter.Body.setPosition(walls[0], {
+					x: width / 2,
+					y: -wallThickness / 2,
+				});
+				Matter.Body.setPosition(walls[1], {
+					x: width / 2,
+					y: height + wallThickness / 2,
+				});
+				Matter.Body.setPosition(walls[2], {
+					x: -wallThickness / 2,
+					y: height / 2,
+				});
+				Matter.Body.setPosition(walls[3], {
+					x: width + wallThickness / 2,
+					y: height / 2,
+				});
+				bodies.forEach(clampBodyToBounds);
+			};
+
+			const visibilityObserver = new IntersectionObserver(
+				(entries) => {
+					isActive = Boolean(entries[0]?.isIntersecting);
+					if (isActive) startLoop();
+					else stopLoop();
+				},
+				{ threshold: 0.15 },
+			);
+
+			const handleVisibilityChange = () => {
+				if (document.hidden) stopLoop();
+				else if (isActive) startLoop();
+			};
+
+			visibilityObserver.observe(container);
+			container.addEventListener("mouseleave", releaseDraggedBody);
+			window.addEventListener("mouseup", releaseDraggedBody);
+			window.addEventListener("touchend", releaseDraggedBody, {
+				passive: true,
+			});
+			window.addEventListener("touchcancel", releaseDraggedBody, {
+				passive: true,
+			});
+			window.addEventListener("touchmove", handleTouchMove, { passive: true });
+			window.addEventListener("blur", releaseDraggedBody);
+			window.addEventListener("resize", handleResize);
+			window.addEventListener("scroll", handleScrollMotion, { passive: true });
+			document.addEventListener("visibilitychange", handleVisibilityChange);
+
+			teardown = () => {
+				visibilityObserver.disconnect();
+				container.removeEventListener("mouseleave", releaseDraggedBody);
+				window.removeEventListener("mouseup", releaseDraggedBody);
+				window.removeEventListener("touchend", releaseDraggedBody);
+				window.removeEventListener("touchcancel", releaseDraggedBody);
+				window.removeEventListener("touchmove", handleTouchMove);
+				window.removeEventListener("blur", releaseDraggedBody);
+				window.removeEventListener("resize", handleResize);
+				window.removeEventListener("scroll", handleScrollMotion);
+				document.removeEventListener(
+					"visibilitychange",
+					handleVisibilityChange,
+				);
+				stopLoop();
+				Matter.Engine.clear(engine);
+				Matter.World.clear(world, false);
+			};
 		};
 
-		// Release drag when pointer exits/interruption happens to prevent cards escaping the sandbox.
-		container.addEventListener("mouseleave", releaseDraggedBody);
-		window.addEventListener("mouseup", releaseDraggedBody);
-		window.addEventListener("touchend", releaseDraggedBody, { passive: true });
-		window.addEventListener("touchcancel", releaseDraggedBody, {
-			passive: true,
-		});
-		window.addEventListener("touchmove", handleTouchMove, { passive: true });
-		window.addEventListener("blur", releaseDraggedBody);
-		window.addEventListener("resize", handleResize);
+		void init();
 
 		return () => {
-			container.removeEventListener("mouseleave", releaseDraggedBody);
-			window.removeEventListener("mouseup", releaseDraggedBody);
-			window.removeEventListener("touchend", releaseDraggedBody);
-			window.removeEventListener("touchcancel", releaseDraggedBody);
-			window.removeEventListener("touchmove", handleTouchMove);
-			window.removeEventListener("blur", releaseDraggedBody);
-			window.removeEventListener("scroll", handleScrollMotion);
-			window.removeEventListener("resize", handleResize);
-			cancelAnimationFrame(animationFrameId);
-			Matter.Engine.clear(engine);
-			Matter.World.clear(world, false);
+			cancelled = true;
+			teardown?.();
 		};
 	}, [containerRef, items]);
 
@@ -1042,16 +1100,6 @@ interface ProjectCardProps {
 	icon: React.ElementType;
 	link?: string;
 	status?: string;
-	caseStudy?: {
-		challenge: string;
-		approach: string;
-		impact: string;
-	};
-	onOpenCaseStudy?: (project: {
-		title: string;
-		status?: string;
-		caseStudy: { challenge: string; approach: string; impact: string };
-	}) => void;
 }
 const ProjectCard = ({
 	title,
@@ -1060,8 +1108,6 @@ const ProjectCard = ({
 	icon: Icon,
 	link,
 	status,
-	caseStudy,
-	onOpenCaseStudy,
 }: ProjectCardProps) => (
 	<motion.a
 		href={link}
@@ -1112,110 +1158,7 @@ const ProjectCard = ({
 				</span>
 			))}
 		</div>
-		{caseStudy && onOpenCaseStudy && (
-			<button
-				type="button"
-				onClick={(event) => {
-					event.preventDefault();
-					onOpenCaseStudy({
-						title,
-						status,
-						caseStudy,
-					});
-				}}
-				className="relative z-10 mt-5 w-fit text-xs font-semibold tracking-wide uppercase text-zinc-400 hover:text-white transition-colors"
-			>
-				View case study
-			</button>
-		)}
 	</motion.a>
-);
-
-const CaseStudyModal = ({
-	selected,
-	onClose,
-}: {
-	selected: {
-		title: string;
-		status?: string;
-		caseStudy: { challenge: string; approach: string; impact: string };
-	} | null;
-	onClose: () => void;
-}) => (
-	<AnimatePresence>
-		{selected && (
-			<>
-				<motion.div
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					onClick={onClose}
-					className="fixed inset-0 z-[70] bg-black/65 backdrop-blur-sm"
-				/>
-				<motion.div
-					initial={{ opacity: 0, y: 24, scale: 0.98 }}
-					animate={{ opacity: 1, y: 0, scale: 1 }}
-					exit={{ opacity: 0, y: 18, scale: 0.98 }}
-					transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-					className="fixed z-[71] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,44rem)] rounded-3xl border border-white/10 bg-[#0b0b0b] p-6 md:p-8 shadow-2xl"
-				>
-					<div className="flex items-start justify-between gap-4 mb-6">
-						<div>
-							<p className="text-[11px] font-mono uppercase tracking-widest text-zinc-500 mb-2">
-								Case Study
-							</p>
-							<h3 className="text-2xl font-semibold text-zinc-100 tracking-tight">
-								{selected.title}
-							</h3>
-						</div>
-						<button
-							type="button"
-							onClick={onClose}
-							className="text-zinc-500 hover:text-white text-sm transition-colors"
-						>
-							Close
-						</button>
-					</div>
-
-					<div className="space-y-5">
-						<div>
-							<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-2">
-								Challenge
-							</p>
-							<p className="text-sm text-zinc-300 leading-relaxed">
-								{selected.caseStudy.challenge}
-							</p>
-						</div>
-						<div>
-							<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-2">
-								Approach
-							</p>
-							<p className="text-sm text-zinc-300 leading-relaxed">
-								{selected.caseStudy.approach}
-							</p>
-						</div>
-						<div>
-							<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-2">
-								Impact
-							</p>
-							<p className="text-sm text-zinc-300 leading-relaxed">
-								{selected.caseStudy.impact}
-							</p>
-						</div>
-					</div>
-
-					<div className="mt-7 flex items-center justify-between">
-						<Link
-							to={`/case-studies/${slugify(selected.title)}`}
-							className="text-xs uppercase tracking-[0.2em] text-zinc-400 hover:text-white transition-colors"
-						>
-							Open full page
-						</Link>
-					</div>
-				</motion.div>
-			</>
-		)}
-	</AnimatePresence>
 );
 
 interface TimelineItem {
@@ -1410,14 +1353,6 @@ const projects: ProjectCardProps[] = [
 		icon: Globe,
 		link: "https://github.com/PoliNetwork",
 		status: "PRODUCTION",
-		caseStudy: {
-			challenge:
-				"Ensure platform reliability during peak academic traffic with tight contributor bandwidth.",
-			approach:
-				"Introduced modular frontend architecture, deployment hardening and prioritized observability dashboards for fast incident response.",
-			impact:
-				"Reduced critical downtime windows and improved release confidence during high-traffic event periods.",
-		},
 	},
 	{
 		title: "Personal Infrastructure",
@@ -1426,14 +1361,6 @@ const projects: ProjectCardProps[] = [
 		tags: ["Proxmox", "TrueNAS", "Traefik", "Prometheus"],
 		icon: HardDrive,
 		status: "SYSADMIN",
-		caseStudy: {
-			challenge:
-				"Build a home infrastructure resilient to service spikes and hardware maintenance without breaking key workflows.",
-			approach:
-				"Combined Proxmox virtualization, storage segmentation and ingress routing with centralized metrics and alerting.",
-			impact:
-				"Higher service continuity, clearer bottleneck visibility and faster recovery from infra incidents.",
-		},
 	},
 	{
 		title: "Interactive Portfolio",
@@ -1443,14 +1370,6 @@ const projects: ProjectCardProps[] = [
 		icon: Code2,
 		link: "https://github.com/viganogabriele",
 		status: "V2 LIVE",
-		caseStudy: {
-			challenge:
-				"Craft a portfolio that feels cinematic while preserving performance and interaction quality across devices.",
-			approach:
-				"Used Framer Motion orchestration, physics sandbox tuning and layered visual textures with responsive fallbacks.",
-			impact:
-				"Significantly improved perceived quality and interaction depth without compromising build stability.",
-		},
 	},
 ];
 
@@ -1576,9 +1495,6 @@ const notes: NoteItem[] = [
 ];
 
 const noteBySlug = new Map(notes.map((note) => [note.slug, note]));
-const projectBySlug = new Map(
-	projects.map((project) => [slugify(project.title), project]),
-);
 
 const skills = [
 	{ label: "JavaScript", icon: Code2, color: "#F7DF1E", x: 100, y: 100 },
@@ -1741,12 +1657,7 @@ function HomePage() {
 
 	const [isPreloading, setIsPreloading] = useState(true);
 	const [loadingProgress, setLoadingProgress] = useState(0);
-	const [selectedCaseStudy, setSelectedCaseStudy] = useState<{
-		title: string;
-		status?: string;
-		caseStudy: { challenge: string; approach: string; impact: string };
-	} | null>(null);
-	const lenisRef = useRef<Lenis | null>(null);
+	const lenisRef = useRef<LenisInstance | null>(null);
 
 	const playgroundRef = useRef<HTMLDivElement>(null);
 	const physicsPositions = useMatterPhysics(playgroundRef, skills);
@@ -1802,30 +1713,41 @@ function HomePage() {
 
 	useEffect(() => {
 		if (prefersReducedMotion) return;
-
-		const lenis = new Lenis({
-			duration: 1.1,
-			lerp: 0.09,
-			wheelMultiplier: 0.95,
-			touchMultiplier: 1,
-			smoothWheel: true,
-			syncTouch: false,
-		});
-
-		lenisRef.current = lenis;
+		let disposed = false;
 		let raf = 0;
+		let destroyLenis: (() => void) | null = null;
 
-		const run = (time: number) => {
-			lenis.raf(time);
+		const setupLenis = async () => {
+			const { default: Lenis } = await import("lenis");
+			if (disposed) return;
+
+			const lenis = new Lenis({
+				duration: 1.1,
+				lerp: 0.09,
+				wheelMultiplier: 0.95,
+				touchMultiplier: 1,
+				smoothWheel: true,
+				syncTouch: false,
+			});
+
+			lenisRef.current = lenis;
+			const run = (time: number) => {
+				lenis.raf(time);
+				raf = requestAnimationFrame(run);
+			};
 			raf = requestAnimationFrame(run);
+			destroyLenis = () => {
+				cancelAnimationFrame(raf);
+				lenis.destroy();
+				lenisRef.current = null;
+			};
 		};
 
-		raf = requestAnimationFrame(run);
+		void setupLenis();
 
 		return () => {
-			cancelAnimationFrame(raf);
-			lenis.destroy();
-			lenisRef.current = null;
+			disposed = true;
+			destroyLenis?.();
 		};
 	}, [prefersReducedMotion]);
 
@@ -1859,6 +1781,31 @@ function HomePage() {
 				title="Gabriele Vigano | Computer Engineering Student"
 				description="Portfolio of Gabriele Vigano: design engineering, product operations, and infrastructure projects."
 				path="/"
+			/>
+			<JsonLd
+				id="website-person"
+				data={{
+					"@context": "https://schema.org",
+					"@graph": [
+						{
+							"@type": "WebSite",
+							name: "Gabriele Vigano",
+							url: SITE_URL,
+							description:
+								"Portfolio focused on design engineering, product operations, and infrastructure.",
+						},
+						{
+							"@type": "Person",
+							name: "Gabriele Vigano",
+							url: SITE_URL,
+							sameAs: [
+								"https://github.com/viganogabriele",
+								"https://linkedin.com/in/viganogabriele",
+							],
+							jobTitle: "Computer Engineering Student",
+						},
+					],
+				}}
 			/>
 			<AnimatePresence>
 				{isPreloading ? <Preloader progress={loadingProgress} /> : null}
@@ -1969,10 +1916,29 @@ function HomePage() {
 						</div>
 					</motion.section>
 
+					{/* ── About ─────────────────────────────────────────────────── */}
+					<section id="about" className="mt-28 pt-16">
+						<SectionHeader
+							label="01 / About"
+							title="Who I Am."
+							subtitle="Computer engineering student focused on building robust products and polished digital experiences."
+						/>
+						<ScrollReveal>
+							<div className="rounded-3xl border border-white/8 bg-[#0a0a0a] p-7 md:p-9">
+								<p className="text-zinc-300 leading-relaxed text-base md:text-[17px] max-w-3xl">
+									I work at the intersection of product operations, frontend
+									engineering, and systems infrastructure. I enjoy turning
+									complex technical constraints into clean, high-performance
+									experiences that feel intentional and reliable.
+								</p>
+							</div>
+						</ScrollReveal>
+					</section>
+
 					{/* ── What I Do ─────────────────────────────────────────────── */}
 					<section id="expertise" className="mt-32 pt-20">
 						<SectionHeader
-							label="01 / Expertise"
+							label="02 / Expertise"
 							title="What I Do."
 							subtitle="I build systems that perform reliably and interfaces that feel incredible."
 						/>
@@ -1988,17 +1954,14 @@ function HomePage() {
 					{/* ── Projects ──────────────────────────────────────────────── */}
 					<section id="projects" className="mt-40 pt-20">
 						<SectionHeader
-							label="02 / Selected Work"
+							label="03 / Selected Work"
 							title="Featured Projects."
 							subtitle="Real-world systems, open-source tech, and experimental playgrounds."
 						/>
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							{projects.map((proj, i) => (
 								<ScrollReveal key={proj.title} delay={i * 0.1}>
-									<ProjectCard
-										{...proj}
-										onOpenCaseStudy={setSelectedCaseStudy}
-									/>
+									<ProjectCard {...proj} />
 								</ScrollReveal>
 							))}
 						</div>
@@ -2007,7 +1970,7 @@ function HomePage() {
 					{/* ── Skills Playground (Physics Sandbox) ───────────────────── */}
 					<section id="stack" className="mt-40 pt-20">
 						<SectionHeader
-							label="03 / The Toolkit"
+							label="04 / The Toolkit"
 							title="Tech Stack."
 							subtitle="Grab them, throw them, watch them bounce — powered by Matter.js."
 						/>
@@ -2073,6 +2036,14 @@ function HomePage() {
 							title="Engineering Notes."
 							subtitle="Short technical writes on motion systems, architecture decisions, and infrastructure operations."
 						/>
+						<div className="flex items-center justify-end mb-6">
+							<Link
+								to="/notes"
+								className="text-xs uppercase tracking-[0.2em] text-zinc-400 hover:text-white transition-colors"
+							>
+								View all notes
+							</Link>
+						</div>
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							{notes.map((note, i) => (
 								<ScrollReveal key={note.title} delay={i * 0.08}>
@@ -2129,10 +2100,6 @@ function HomePage() {
 					{/* ── Footer ────────────────────────────────────────────────── */}
 					<Footer onNavigate={scrollToSection} />
 				</main>
-				<CaseStudyModal
-					selected={selectedCaseStudy}
-					onClose={() => setSelectedCaseStudy(null)}
-				/>
 			</div>
 		</>
 	);
@@ -2157,9 +2124,6 @@ const DetailTopBar = () => (
 				</Link>
 				<Link to="/notes" className="hover:text-white transition-colors">
 					Notes
-				</Link>
-				<Link to="/case-studies" className="hover:text-white transition-colors">
-					Case Studies
 				</Link>
 			</nav>
 		</div>
@@ -2231,6 +2195,21 @@ const NoteDetailPage = () => {
 				description={note.preview}
 				path={`/notes/${note.slug}`}
 			/>
+			<JsonLd
+				id={`note-${note.slug}`}
+				data={{
+					"@context": "https://schema.org",
+					"@type": "Article",
+					headline: note.title,
+					description: note.preview,
+					datePublished: `2026-${note.slug === "motion-performance" ? "04" : note.slug === "student-platform-peak-load" ? "03" : "02"}-01`,
+					author: {
+						"@type": "Person",
+						name: "Gabriele Vigano",
+					},
+					mainEntityOfPage: `${SITE_URL}/notes/${note.slug}`,
+				}}
+			/>
 			<DetailTopBar />
 			<main className="max-w-3xl mx-auto px-6 py-14">
 				<p className="text-[11px] font-mono uppercase tracking-[0.16em] text-zinc-500 mb-3">
@@ -2259,94 +2238,34 @@ const NoteDetailPage = () => {
 	);
 };
 
-const CaseStudiesIndexPage = () => (
+const NotFoundPage = () => (
 	<ContentShell>
 		<PageMeta
-			title="Case Studies | Gabriele Vigano"
-			description="Deeper context on selected projects: challenges, approach and outcomes."
-			path="/case-studies"
+			title="Page Not Found | Gabriele Vigano"
+			description="The page you are looking for does not exist."
+			path="/404"
 		/>
-		<DetailTopBar />
-		<main className="max-w-5xl mx-auto px-6 py-14">
-			<SectionHeader
-				label="Case Studies"
-				title="Selected Project Breakdowns."
-				subtitle="Longer-form context around technical constraints, decisions and impact."
-			/>
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-				{projects
-					.filter((project) => project.caseStudy)
-					.map((project, index) => (
-						<ScrollReveal key={project.title} delay={index * 0.08}>
-							<Link
-								to={`/case-studies/${slugify(project.title)}`}
-								className="block rounded-3xl border border-white/8 bg-[#0a0a0a] p-6 hover:border-white/20 transition-colors"
-							>
-								<h3 className="text-xl text-zinc-100 font-semibold tracking-tight mb-3">
-									{project.title}
-								</h3>
-								<p className="text-sm text-zinc-400 leading-relaxed">
-									{project.description}
-								</p>
-							</Link>
-						</ScrollReveal>
-					))}
+		<main className="max-w-3xl mx-auto px-6 min-h-screen flex flex-col items-start justify-center">
+			<p className="text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-500 mb-4">
+				404
+			</p>
+			<h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-zinc-100 mb-4">
+				Page not found.
+			</h1>
+			<p className="text-zinc-400 max-w-xl mb-8 leading-relaxed">
+				The requested URL is not available. You can return to the landing page.
+			</p>
+			<div className="flex flex-wrap gap-3">
+				<Link
+					to="/"
+					className="px-5 py-2.5 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-colors"
+				>
+					Back to landing page
+				</Link>
 			</div>
 		</main>
 	</ContentShell>
 );
-
-const CaseStudyDetailPage = () => {
-	const { slug = "" } = useParams();
-	const project = projectBySlug.get(slug);
-
-	if (!project?.caseStudy) return <Navigate to="/case-studies" replace />;
-
-	return (
-		<ContentShell>
-			<PageMeta
-				title={`${project.title} Case Study | Gabriele Vigano`}
-				description={project.description}
-				path={`/case-studies/${slug}`}
-			/>
-			<DetailTopBar />
-			<main className="max-w-3xl mx-auto px-6 py-14">
-				<p className="text-[11px] font-mono uppercase tracking-[0.16em] text-zinc-500 mb-3">
-					Case Study
-				</p>
-				<h1 className="text-4xl md:text-5xl text-zinc-100 font-semibold tracking-tight mb-8">
-					{project.title}
-				</h1>
-				<div className="space-y-8">
-					<div>
-						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">
-							Challenge
-						</p>
-						<p className="text-zinc-300 leading-relaxed">
-							{project.caseStudy.challenge}
-						</p>
-					</div>
-					<div>
-						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">
-							Approach
-						</p>
-						<p className="text-zinc-300 leading-relaxed">
-							{project.caseStudy.approach}
-						</p>
-					</div>
-					<div>
-						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">
-							Impact
-						</p>
-						<p className="text-zinc-300 leading-relaxed">
-							{project.caseStudy.impact}
-						</p>
-					</div>
-				</div>
-			</main>
-		</ContentShell>
-	);
-};
 
 const RouteTransitionController = () => {
 	const location = useLocation();
@@ -2376,11 +2295,13 @@ const AppRoutes = () => (
 		<RouteTransitionController />
 		<Routes>
 			<Route path="/" element={<HomePage />} />
+			<Route path="/index.html" element={<HomePage />} />
+			<Route path="/viganogabriele.com" element={<HomePage />} />
+			<Route path="/viganogabriele.com/" element={<HomePage />} />
+			<Route path="/viganogabriele.com/index.html" element={<HomePage />} />
 			<Route path="/notes" element={<NotesIndexPage />} />
 			<Route path="/notes/:slug" element={<NoteDetailPage />} />
-			<Route path="/case-studies" element={<CaseStudiesIndexPage />} />
-			<Route path="/case-studies/:slug" element={<CaseStudyDetailPage />} />
-			<Route path="*" element={<Navigate to="/" replace />} />
+			<Route path="*" element={<NotFoundPage />} />
 		</Routes>
 	</>
 );
