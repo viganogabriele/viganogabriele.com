@@ -738,7 +738,7 @@ const ActivityCard = ({
 					</div>
 					{/* Expand / arrow indicator */}
 					<motion.div
-						animate={{ rotate: expanded ? 180 : 0, opacity: isOpen ? 1 : 0.4 }}
+						animate={{ rotate: isOpen ? 180 : 0, opacity: isOpen ? 1 : 0.45 }}
 						transition={{ duration: 0.25 }}
 						className={cn(
 							"mt-1",
@@ -758,31 +758,30 @@ const ActivityCard = ({
 					{expanded ? "Tap to collapse" : "Tap to expand"}
 				</p>
 
-				<AnimatePresence initial={false}>
-					{isOpen && (
-						<motion.div
-							initial={{ height: 0, opacity: 0 }}
-							animate={{ height: "auto", opacity: 1 }}
-							exit={{ height: 0, opacity: 0 }}
-							transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-							className="overflow-hidden"
-						>
-							<ul className="space-y-3 text-sm text-zinc-500 pb-4">
-								{description.map((item, i) => (
-									<li key={i} className="flex items-start gap-3">
-										<span
-											className={cn(
-												"mt-2 w-1.5 h-1.5 rounded-full shrink-0",
-												highlight ? "bg-violet-500" : "bg-zinc-600",
-											)}
-										/>
-										{item}
-									</li>
-								))}
-							</ul>
-						</motion.div>
-					)}
-				</AnimatePresence>
+				<motion.div
+					initial={false}
+					animate={{
+						height: isOpen ? "auto" : 0,
+						opacity: isOpen ? 1 : 0,
+						marginBottom: isOpen ? 8 : 0,
+					}}
+					transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+					className="overflow-hidden"
+				>
+					<ul className="space-y-3 text-sm text-zinc-500 pb-2">
+						{description.map((item, i) => (
+							<li key={i} className="flex items-start gap-3">
+								<span
+									className={cn(
+										"mt-2 w-1.5 h-1.5 rounded-full shrink-0",
+										highlight ? "bg-violet-500" : "bg-zinc-600",
+									)}
+								/>
+								{item}
+							</li>
+						))}
+					</ul>
+				</motion.div>
 				{tags && (
 					<div className="flex flex-wrap gap-2 mt-3">
 						{tags.map((tag) => (
@@ -813,6 +812,16 @@ interface ProjectCardProps {
 	icon: React.ElementType;
 	link?: string;
 	status?: string;
+	caseStudy?: {
+		challenge: string;
+		approach: string;
+		impact: string;
+	};
+	onOpenCaseStudy?: (project: {
+		title: string;
+		status?: string;
+		caseStudy: { challenge: string; approach: string; impact: string };
+	}) => void;
 }
 const ProjectCard = ({
 	title,
@@ -821,6 +830,8 @@ const ProjectCard = ({
 	icon: Icon,
 	link,
 	status,
+	caseStudy,
+	onOpenCaseStudy,
 }: ProjectCardProps) => (
 	<motion.a
 		href={link}
@@ -871,7 +882,101 @@ const ProjectCard = ({
 				</span>
 			))}
 		</div>
+		{caseStudy && onOpenCaseStudy && (
+			<button
+				type="button"
+				onClick={(event) => {
+					event.preventDefault();
+					onOpenCaseStudy({
+						title,
+						status,
+						caseStudy,
+					});
+				}}
+				className="relative z-10 mt-5 w-fit text-xs font-semibold tracking-wide uppercase text-zinc-400 hover:text-white transition-colors"
+			>
+				View case study
+			</button>
+		)}
 	</motion.a>
+);
+
+const CaseStudyModal = ({
+	selected,
+	onClose,
+}: {
+	selected: {
+		title: string;
+		status?: string;
+		caseStudy: { challenge: string; approach: string; impact: string };
+	} | null;
+	onClose: () => void;
+}) => (
+	<AnimatePresence>
+		{selected && (
+			<>
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					exit={{ opacity: 0 }}
+					onClick={onClose}
+					className="fixed inset-0 z-[70] bg-black/65 backdrop-blur-sm"
+				/>
+				<motion.div
+					initial={{ opacity: 0, y: 24, scale: 0.98 }}
+					animate={{ opacity: 1, y: 0, scale: 1 }}
+					exit={{ opacity: 0, y: 18, scale: 0.98 }}
+					transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+					className="fixed z-[71] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,44rem)] rounded-3xl border border-white/10 bg-[#0b0b0b] p-6 md:p-8 shadow-2xl"
+				>
+					<div className="flex items-start justify-between gap-4 mb-6">
+						<div>
+							<p className="text-[11px] font-mono uppercase tracking-widest text-zinc-500 mb-2">
+								Case Study
+							</p>
+							<h3 className="text-2xl font-semibold text-zinc-100 tracking-tight">
+								{selected.title}
+							</h3>
+						</div>
+						<button
+							type="button"
+							onClick={onClose}
+							className="text-zinc-500 hover:text-white text-sm transition-colors"
+						>
+							Close
+						</button>
+					</div>
+
+					<div className="space-y-5">
+						<div>
+							<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-2">
+								Challenge
+							</p>
+							<p className="text-sm text-zinc-300 leading-relaxed">
+								{selected.caseStudy.challenge}
+							</p>
+						</div>
+						<div>
+							<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-2">
+								Approach
+							</p>
+							<p className="text-sm text-zinc-300 leading-relaxed">
+								{selected.caseStudy.approach}
+							</p>
+						</div>
+						<div>
+							<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-2">
+								Impact
+							</p>
+							<p className="text-sm text-zinc-300 leading-relaxed">
+								{selected.caseStudy.impact}
+							</p>
+						</div>
+					</div>
+				</motion.div>
+			</>
+		)}
+	</AnimatePresence>
 );
 
 interface TimelineItem {
@@ -1055,6 +1160,14 @@ const projects: ProjectCardProps[] = [
 		icon: Globe,
 		link: "https://github.com/PoliNetwork",
 		status: "PRODUCTION",
+		caseStudy: {
+			challenge:
+				"Ensure platform reliability during peak academic traffic with tight contributor bandwidth.",
+			approach:
+				"Introduced modular frontend architecture, deployment hardening and prioritized observability dashboards for fast incident response.",
+			impact:
+				"Reduced critical downtime windows and improved release confidence during high-traffic event periods.",
+		},
 	},
 	{
 		title: "Personal Infrastructure",
@@ -1063,6 +1176,14 @@ const projects: ProjectCardProps[] = [
 		tags: ["Proxmox", "TrueNAS", "Traefik", "Prometheus"],
 		icon: HardDrive,
 		status: "SYSADMIN",
+		caseStudy: {
+			challenge:
+				"Build a home infrastructure resilient to service spikes and hardware maintenance without breaking key workflows.",
+			approach:
+				"Combined Proxmox virtualization, storage segmentation and ingress routing with centralized metrics and alerting.",
+			impact:
+				"Higher service continuity, clearer bottleneck visibility and faster recovery from infra incidents.",
+		},
 	},
 	{
 		title: "Interactive Portfolio",
@@ -1072,6 +1193,14 @@ const projects: ProjectCardProps[] = [
 		icon: Code2,
 		link: "https://github.com/viganogabriele",
 		status: "V2 LIVE",
+		caseStudy: {
+			challenge:
+				"Craft a portfolio that feels cinematic while preserving performance and interaction quality across devices.",
+			approach:
+				"Used Framer Motion orchestration, physics sandbox tuning and layered visual textures with responsive fallbacks.",
+			impact:
+				"Significantly improved perceived quality and interaction depth without compromising build stability.",
+		},
 	},
 ];
 
@@ -1337,6 +1466,11 @@ function App() {
 
 	const [isPreloading, setIsPreloading] = useState(true);
 	const [loadingProgress, setLoadingProgress] = useState(0);
+	const [selectedCaseStudy, setSelectedCaseStudy] = useState<{
+		title: string;
+		status?: string;
+		caseStudy: { challenge: string; approach: string; impact: string };
+	} | null>(null);
 	const lenisRef = useRef<Lenis | null>(null);
 
 	const playgroundRef = useRef<HTMLDivElement>(null);
@@ -1581,7 +1715,10 @@ function App() {
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 							{projects.map((proj, i) => (
 								<ScrollReveal key={proj.title} delay={i * 0.1}>
-									<ProjectCard {...proj} />
+									<ProjectCard
+										{...proj}
+										onOpenCaseStudy={setSelectedCaseStudy}
+									/>
 								</ScrollReveal>
 							))}
 						</div>
@@ -1713,6 +1850,10 @@ function App() {
 					{/* ── Footer ────────────────────────────────────────────────── */}
 					<Footer onNavigate={scrollToSection} />
 				</main>
+				<CaseStudyModal
+					selected={selectedCaseStudy}
+					onClose={() => setSelectedCaseStudy(null)}
+				/>
 			</div>
 		</>
 	);
