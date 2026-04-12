@@ -1488,7 +1488,9 @@ const notes: NoteItem[] = [
 ];
 
 const noteBySlug = new Map(notes.map((note) => [note.slug, note]));
-const projectBySlug = new Map(projects.map((project) => [slugify(project.title), project]));
+const projectBySlug = new Map(
+	projects.map((project) => [slugify(project.title), project]),
+);
 
 const skills = [
 	{ label: "JavaScript", icon: Code2, color: "#F7DF1E", x: 100, y: 100 },
@@ -1992,30 +1994,27 @@ function HomePage() {
 										transition={{ type: "spring", stiffness: 320, damping: 24 }}
 										className="group h-full flex flex-col rounded-3xl border border-white/5 bg-[#0a0a0a] p-6 hover:border-white/20 transition-colors"
 									>
-										<Link
-											to={`/notes/${note.slug}`}
-											className="contents"
-										>
-										<div className="flex items-center justify-between mb-4 text-[11px] font-mono uppercase tracking-wider text-zinc-500">
-											<span>{note.date}</span>
-											<span>{note.readingTime}</span>
-										</div>
-										<h3 className="text-lg font-semibold text-zinc-100 tracking-tight mb-3">
-											{note.title}
-										</h3>
-										<p className="text-sm text-zinc-400 leading-relaxed mb-5 flex-1">
-											{note.preview}
-										</p>
-										<div className="flex flex-wrap gap-2">
-											{note.tags.map((tag) => (
-												<span
-													key={tag}
-													className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono"
-												>
-													{tag}
-												</span>
-											))}
-										</div>
+										<Link to={`/notes/${note.slug}`} className="contents">
+											<div className="flex items-center justify-between mb-4 text-[11px] font-mono uppercase tracking-wider text-zinc-500">
+												<span>{note.date}</span>
+												<span>{note.readingTime}</span>
+											</div>
+											<h3 className="text-lg font-semibold text-zinc-100 tracking-tight mb-3">
+												{note.title}
+											</h3>
+											<p className="text-sm text-zinc-400 leading-relaxed mb-5 flex-1">
+												{note.preview}
+											</p>
+											<div className="flex flex-wrap gap-2">
+												{note.tags.map((tag) => (
+													<span
+														key={tag}
+														className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 font-mono"
+													>
+														{tag}
+													</span>
+												))}
+											</div>
 										</Link>
 									</motion.div>
 								</ScrollReveal>
@@ -2054,7 +2053,10 @@ function HomePage() {
 const DetailTopBar = () => (
 	<header className="sticky top-0 z-50 border-b border-white/10 backdrop-blur-xl bg-black/40">
 		<div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-			<Link to="/" className="flex items-center gap-3 text-zinc-300 hover:text-white">
+			<Link
+				to="/"
+				className="flex items-center gap-3 text-zinc-300 hover:text-white"
+			>
 				<img
 					src={logo}
 					alt="Gabriele Vigano"
@@ -2117,7 +2119,9 @@ const NotesIndexPage = () => (
 							<h3 className="text-xl text-zinc-100 font-semibold tracking-tight mb-3">
 								{note.title}
 							</h3>
-							<p className="text-sm text-zinc-400 leading-relaxed">{note.preview}</p>
+							<p className="text-sm text-zinc-400 leading-relaxed">
+								{note.preview}
+							</p>
 						</Link>
 					</ScrollReveal>
 				))}
@@ -2193,7 +2197,9 @@ const CaseStudiesIndexPage = () => (
 								<h3 className="text-xl text-zinc-100 font-semibold tracking-tight mb-3">
 									{project.title}
 								</h3>
-								<p className="text-sm text-zinc-400 leading-relaxed">{project.description}</p>
+								<p className="text-sm text-zinc-400 leading-relaxed">
+									{project.description}
+								</p>
 							</Link>
 						</ScrollReveal>
 					))}
@@ -2225,16 +2231,28 @@ const CaseStudyDetailPage = () => {
 				</h1>
 				<div className="space-y-8">
 					<div>
-						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">Challenge</p>
-						<p className="text-zinc-300 leading-relaxed">{project.caseStudy.challenge}</p>
+						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">
+							Challenge
+						</p>
+						<p className="text-zinc-300 leading-relaxed">
+							{project.caseStudy.challenge}
+						</p>
 					</div>
 					<div>
-						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">Approach</p>
-						<p className="text-zinc-300 leading-relaxed">{project.caseStudy.approach}</p>
+						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">
+							Approach
+						</p>
+						<p className="text-zinc-300 leading-relaxed">
+							{project.caseStudy.approach}
+						</p>
 					</div>
 					<div>
-						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">Impact</p>
-						<p className="text-zinc-300 leading-relaxed">{project.caseStudy.impact}</p>
+						<p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">
+							Impact
+						</p>
+						<p className="text-zinc-300 leading-relaxed">
+							{project.caseStudy.impact}
+						</p>
 					</div>
 				</div>
 			</main>
