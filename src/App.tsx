@@ -346,9 +346,8 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("#about");
-  const [isTouch] = useState(() => isTouchDevice());
   const [isTelegramWebView] = useState(() => isTelegramBrowser());
-  const disableBackdrop = isTouch || isTelegramWebView;
+  const disableBackdrop = isTelegramWebView;
   const navLockRef = useRef<{ target: string | null }>({ target: null });
   const navLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
