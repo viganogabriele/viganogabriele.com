@@ -2,9 +2,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #080808;
+  --color-background: #060606;
   --color-foreground: #eaeaea;
   --font-sans: "Space Grotesk", "Inter", sans-serif;
+}
+
+html,
+body {
+  background-color: #060606;
+  min-height: 100%;
 }
 
 /* Only hide cursor on non-touch devices */
@@ -17,12 +23,30 @@
 }
 
 body {
-  background-color: var(--color-background);
+  background-color: var(--color-background, #060606);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.gpu-promote {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.ambient-layer {
+  will-change: opacity;
+  transform: translateZ(0);
+}
+
+.ambient-blob {
+  content-visibility: auto;
+  contain-intrinsic-size: 320px 320px;
+  will-change: opacity;
+  transform: translateZ(0);
 }
 
 /* Custom cursor — desktop only */
@@ -78,24 +102,10 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   pointer-events: none;
   z-index: 1;
-  opacity: 0.56;
-  mix-blend-mode: soft-light;
+  opacity: 0.32;
+  mix-blend-mode: overlay;
   animation: grainShift 8s steps(10) infinite;
-}
-
-.noise::after {
-  content: "";
-  position: fixed;
-  inset: -40%;
-  background-image: radial-gradient(
-    circle at 20% 20%,
-    rgba(255, 255, 255, 0.05),
-    transparent 55%
-  );
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.28;
-  animation: grainFloat 12s ease-in-out infinite alternate;
+  transform: translateZ(0);
 }
 
 @keyframes grainShift {
@@ -116,18 +126,26 @@ body {
   }
 }
 
-@keyframes grainFloat {
-  0% {
-    transform: rotate(0deg) scale(1);
-  }
-  100% {
-    transform: rotate(3deg) scale(1.05);
+@media (prefers-reduced-motion: reduce) {
+  .noise::before {
+    animation: none;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .noise::before,
-  .noise::after {
+@media (prefers-color-scheme: light) {
+  .noise::before {
     animation: none;
+    opacity: 0;
   }
+}
+
+@media screen and (min-resolution: 2dppx) {
+  .noise::before {
+    opacity: 0.24;
+  }
+}
+
+.noise.telegram-safe::before {
+  animation: none;
+  opacity: 0.18;
 }

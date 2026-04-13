@@ -6,11 +6,6 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://viganogabriele.com/notes</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://viganogabriele.com/notes/motion-performance</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
