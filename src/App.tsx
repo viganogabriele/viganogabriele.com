@@ -136,6 +136,9 @@ const isTouchDevice = () =>
   typeof window !== "undefined" &&
   ("ontouchstart" in window || navigator.maxTouchPoints > 0);
 
+const hasNoHoverPointer = () =>
+  typeof window !== "undefined" && window.matchMedia("(hover: none)").matches;
+
 const isTelegramBrowser = () =>
   typeof navigator !== "undefined" && /Telegram/i.test(navigator.userAgent);
 
@@ -958,17 +961,25 @@ const ScrollReveal = ({
   children: React.ReactNode;
   delay?: number;
   className?: string;
-}) => (
-  <motion.div
-    className={className}
-    initial={{ opacity: 0, y: 30 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-80px" }}
-    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay }}
-  >
-    {children}
-  </motion.div>
-);
+}) => {
+  const [hasNoHover] = useState(() => hasNoHoverPointer());
+
+  if (hasNoHover) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 // ─── Fade In (lightweight card entrance) ──────────────────────────────────────
 const FadeIn = ({
@@ -979,17 +990,25 @@ const FadeIn = ({
   children: React.ReactNode;
   delay?: number;
   className?: string;
-}) => (
-  <motion.div
-    className={className}
-    initial={{ opacity: 0, y: 14 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-60px" }}
-    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay }}
-  >
-    {children}
-  </motion.div>
-);
+}) => {
+  const [hasNoHover] = useState(() => hasNoHoverPointer());
+
+  if (hasNoHover) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 // ─── Fade Words (word-by-word entrance animation) ─────────────────────────────
 const FadeWords = ({
@@ -2180,13 +2199,11 @@ const AmbientBackground = ({
 function HomePage() {
   const prefersReducedMotion = useReducedMotion();
   const [isTouch] = useState(() => isTouchDevice());
-  const [hasNoHover] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia("(hover: none)").matches,
-  );
+  const [hasNoHover] = useState(() => hasNoHoverPointer());
   const [isTelegramWebView] = useState(() => isTelegramBrowser());
   const { scrollYProgress } = useScroll();
+  const disableMobileScrollFx =
+    prefersReducedMotion || isTouch || hasNoHover || isTelegramWebView;
   const boostMobileAmbient = isTouch || hasNoHover;
   const heroY = useTransform(scrollYProgress, [0, 0.3], ["0%", "25%"]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
@@ -2258,7 +2275,12 @@ function HomePage() {
   }, [prefersReducedMotion]);
 
   useEffect(() => {
-    if (prefersReducedMotion) return;
+    if (disableMobileScrollFx) {
+      lenisRef.current?.destroy();
+      lenisRef.current = null;
+      return;
+    }
+
     let disposed = false;
     let raf = 0;
     let destroyLenis: (() => void) | null = null;
@@ -2295,7 +2317,7 @@ function HomePage() {
       disposed = true;
       destroyLenis?.();
     };
-  }, [prefersReducedMotion]);
+  }, [disableMobileScrollFx]);
 
   useEffect(() => {
     document.body.style.overflow = isPreloading ? "hidden" : "";
@@ -2400,7 +2422,11 @@ function HomePage() {
           {/* ── Hero ─────────────────────────────────────────────────── */}
           <motion.section
             className="min-h-[100vh] flex flex-col md:flex-row items-center justify-between pt-36 sm:pt-40 md:pt-28 pb-16 gap-10 md:gap-12"
-            style={{ y: heroY, opacity: heroOpacity }}
+            style={
+              disableMobileScrollFx
+                ? undefined
+                : { y: heroY, opacity: heroOpacity }
+            }
           >
             {/* Mobile-first portrait */}
             <motion.div
@@ -2716,11 +2742,7 @@ function HomePage() {
 
 const ContentShell = ({ children }: { children: React.ReactNode }) => {
   const [isTouch] = useState(() => isTouchDevice());
-  const [hasNoHover] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia("(hover: none)").matches,
-  );
+  const [hasNoHover] = useState(() => hasNoHoverPointer());
   const boostMobileAmbient = isTouch || hasNoHover;
 
   return (

@@ -53,6 +53,13 @@ body {
   transform: translateZ(0);
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .ambient-blob {
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
+  }
+}
+
 /* Custom cursor — desktop only */
 .cursor-dot {
   position: fixed;
