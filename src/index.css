@@ -47,8 +47,8 @@ body {
 }
 
 .ambient-blob {
-  content-visibility: auto;
-  contain-intrinsic-size: 320px 320px;
+  /* content-visibility: auto removed — it caused the browser to defer painting
+     elements outside viewport, producing blank areas during fast scroll on mobile. */
   will-change: opacity;
   transform: translateZ(0);
 }
@@ -59,9 +59,27 @@ body {
   }
 
   .ambient-blob {
-    content-visibility: visible;
-    contain-intrinsic-size: auto;
     will-change: auto;
+  }
+
+  /* On touch devices, strip will-change from gpu-promote to avoid creating
+     excessive GPU compositing layers that starve the scroll thread. */
+  .gpu-promote {
+    will-change: auto;
+  }
+
+  /* Prevent overscroll bounce from forcing extra paint cycles during fast
+     flick gestures — the bounce repaint competes with section rendering. */
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  /* Isolate the main content stacking context so the compositor treats it
+     as one stable layer instead of re-compositing individual sections on
+     every scroll tick. */
+  .noise {
+    isolation: isolate;
   }
 }
 

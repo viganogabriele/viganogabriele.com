@@ -723,6 +723,9 @@ const Magnetic = ({
 const FloatingPortrait = () => {
   const [eggVisible, setEggVisible] = useState(false);
   const eggTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // On touch devices stop the infinite RAF bobbing loop — it competes with
+  // the scroll compositor and is the primary cause of intermittent blank areas.
+  const [noHover] = useState(() => hasNoHoverPointer());
 
   useEffect(() => {
     return () => {
@@ -736,13 +739,20 @@ const FloatingPortrait = () => {
     eggTimerRef.current = setTimeout(() => setEggVisible(false), 2200);
   };
 
+  const Wrapper = noHover ? "div" : motion.div;
+  const wrapperProps = noHover
+    ? {}
+    : {
+        animate: { y: [0, -15, 0] },
+        transition: { repeat: Infinity, duration: 6, ease: "easeInOut" },
+        whileTap: { scale: 0.985 },
+      };
+
   return (
-    <motion.div
-      animate={{ y: [0, -15, 0] }}
-      transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+    <Wrapper
+      {...(wrapperProps as object)}
       className="relative z-10 w-60 md:w-80 flex justify-center cursor-pointer group"
       onClick={handlePortraitClick}
-      whileTap={{ scale: 0.985 }}
     >
       {/* Soft dynamic glow behind silhouette */}
       <div className="absolute inset-x-0 top-[20%] bottom-0 bg-violet-600/20 blur-[80px] rounded-full scale-90 group-hover:bg-violet-500/30 transition-colors duration-700" />
@@ -802,7 +812,7 @@ const FloatingPortrait = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-[#060606]/25 via-transparent to-transparent pointer-events-none" />
         </div>
       </div>
-    </motion.div>
+    </Wrapper>
   );
 };
 
@@ -2497,26 +2507,43 @@ function HomePage() {
           <SectionContainer id="about" className="mt-28 pt-16" isActive={false}>
             <ScrollReveal>
               <div className="relative py-2 md:py-4">
-                <motion.div
-                  aria-hidden
-                  animate={{ x: [0, 16, 0], y: [0, -12, 0] }}
-                  transition={{
-                    duration: 12,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute -top-6 -left-10 h-40 w-40 rounded-full bg-cyan-500/16 blur-3xl"
-                />
-                <motion.div
-                  aria-hidden
-                  animate={{ x: [0, -16, 0], y: [0, 10, 0] }}
-                  transition={{
-                    duration: 14,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute -bottom-8 right-2 h-44 w-44 rounded-full bg-violet-500/14 blur-3xl"
-                />
+                {/* Decorative blobs: animated on desktop, static on mobile to
+                    avoid infinite RAF loops that interfere with scroll paint */}
+                {hasNoHover ? (
+                  <>
+                    <div
+                      aria-hidden
+                      className="absolute -top-6 -left-10 h-40 w-40 rounded-full bg-cyan-500/16 blur-3xl"
+                    />
+                    <div
+                      aria-hidden
+                      className="absolute -bottom-8 right-2 h-44 w-44 rounded-full bg-violet-500/14 blur-3xl"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <motion.div
+                      aria-hidden
+                      animate={{ x: [0, 16, 0], y: [0, -12, 0] }}
+                      transition={{
+                        duration: 12,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                      className="absolute -top-6 -left-10 h-40 w-40 rounded-full bg-cyan-500/16 blur-3xl"
+                    />
+                    <motion.div
+                      aria-hidden
+                      animate={{ x: [0, -16, 0], y: [0, 10, 0] }}
+                      transition={{
+                        duration: 14,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                      className="absolute -bottom-8 right-2 h-44 w-44 rounded-full bg-violet-500/14 blur-3xl"
+                    />
+                  </>
+                )}
 
                 <div className="relative">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 mb-2">
