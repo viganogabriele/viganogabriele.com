@@ -139,42 +139,6 @@ const isTouchDevice = () =>
 const isTelegramBrowser = () =>
   typeof navigator !== "undefined" && /Telegram/i.test(navigator.userAgent);
 
-const useActiveSection = (
-  sectionIds: string[],
-  initialSection: string,
-  rootMargin = "-20% 0px -40% 0px",
-) => {
-  const [activeSection, setActiveSection] = useState(initialSection);
-
-  useEffect(() => {
-    const sections = sectionIds
-      .map((id) => document.querySelector<HTMLElement>(id))
-      .filter((section): section is HTMLElement => Boolean(section));
-
-    if (!sections.length) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntry = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-
-        if (visibleEntry?.target.id) {
-          setActiveSection(`#${visibleEntry.target.id}`);
-        }
-      },
-      { rootMargin, threshold: [0.1, 0.3, 0.6] },
-    );
-
-    sections.forEach((section) => {
-      observer.observe(section);
-    });
-    return () => observer.disconnect();
-  }, [rootMargin, sectionIds]);
-
-  return activeSection;
-};
-
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 const GithubIcon = ({ className }: { className?: string }) => (
   <svg
@@ -360,16 +324,6 @@ const NAV_LINKS = [
   { label: "Stack", href: "#stack" },
 ];
 
-const SECTION_GLOW_IDS = [
-  "#about",
-  "#expertise",
-  "#projects",
-  "#stack",
-  "#journey",
-  "#notes",
-  "#certifications",
-];
-
 // ─── Scroll Progress Bar ──────────────────────────────────────────────────────
 const ScrollBar = () => {
   const { scrollYProgress } = useScroll();
@@ -390,6 +344,8 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("#about");
   const [isTelegramWebView] = useState(() => isTelegramBrowser());
+  const navLockRef = useRef<{ target: string | null }>({ target: null });
+  const navLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 40);
@@ -411,9 +367,23 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
         const visibleEntry = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visibleEntry?.target.id) {
-          setActiveSection(`#${visibleEntry.target.id}`);
+        if (!visibleEntry?.target.id) return;
+
+        const nextSection = `#${visibleEntry.target.id}`;
+        const lockTarget = navLockRef.current.target;
+        if (lockTarget && nextSection !== lockTarget) {
+          return;
         }
+
+        if (lockTarget && nextSection === lockTarget) {
+          navLockRef.current = { target: null };
+          if (navLockTimeoutRef.current) {
+            clearTimeout(navLockTimeoutRef.current);
+            navLockTimeoutRef.current = null;
+          }
+        }
+
+        setActiveSection(nextSection);
       },
       { rootMargin: "-30% 0px -40% 0px", threshold: [0.1, 0.3, 0.6] },
     );
@@ -434,6 +404,12 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
 
+  useEffect(() => {
+    return () => {
+      if (navLockTimeoutRef.current) clearTimeout(navLockTimeoutRef.current);
+    };
+  }, []);
+
   // NOTE: no body scroll lock — it breaks IntersectionObserver tracking
 
   const handleScrollTo = (
@@ -444,7 +420,15 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
     setMobileOpen(false);
     // Optimistic active update so indicator moves immediately on tap
     const match = NAV_LINKS.find((l) => l.href === target);
-    if (match) setActiveSection(match.href);
+    if (match) {
+      setActiveSection(match.href);
+      navLockRef.current = { target: match.href };
+      if (navLockTimeoutRef.current) clearTimeout(navLockTimeoutRef.current);
+      navLockTimeoutRef.current = setTimeout(() => {
+        navLockRef.current = { target: null };
+        navLockTimeoutRef.current = null;
+      }, 3200);
+    }
     setTimeout(() => onNavigate(target), 60);
   };
 
@@ -492,8 +476,8 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
           className={cn(
             "px-4 sm:px-5 py-3 rounded-full border transition-all duration-500",
             scrolled
-              ? "border-white/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.28)]"
-              : "border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.18)]",
+              ? "border-white/[0.14] shadow-[0_8px_28px_rgba(0,0,0,0.30)]"
+              : "border-white/[0.14] shadow-[0_4px_18px_rgba(0,0,0,0.22)]",
           )}
           style={{
             background: isTelegramWebView
@@ -501,14 +485,14 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
                 ? "rgba(10, 8, 18, 0.92)"
                 : "rgba(8, 6, 14, 0.90)"
               : scrolled
-                ? "rgba(10, 8, 18, 0.62)"
-                : "rgba(8, 6, 14, 0.45)",
+                ? "rgba(10, 8, 18, 0.84)"
+                : "rgba(8, 6, 14, 0.76)",
             backdropFilter: isTelegramWebView
               ? "none"
-              : "blur(28px) saturate(180%)",
+              : "blur(52px) saturate(220%)",
             WebkitBackdropFilter: isTelegramWebView
               ? "none"
-              : "blur(28px) saturate(180%)",
+              : "blur(52px) saturate(220%)",
           }}
         >
           <div className="flex items-center justify-between">
@@ -623,15 +607,15 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
               style={{
                 background: isTelegramWebView
                   ? "rgba(10, 8, 18, 0.94)"
-                  : "rgba(10, 8, 18, 0.62)",
+                  : "rgba(10, 8, 18, 0.84)",
                 backdropFilter: isTelegramWebView
                   ? "none"
-                  : "blur(28px) saturate(180%)",
+                  : "blur(48px) saturate(215%)",
                 WebkitBackdropFilter: isTelegramWebView
                   ? "none"
-                  : "blur(28px) saturate(180%)",
+                  : "blur(48px) saturate(215%)",
                 boxShadow:
-                  "0 4px 24px rgba(0,0,0,0.28), 0 0 0 0.5px rgba(255,255,255,0.06)",
+                  "0 10px 28px rgba(0,0,0,0.32), 0 0 0 0.5px rgba(255,255,255,0.10)",
               }}
             >
               {/* Nav links — same layoutId-based sliding pill as desktop */}
@@ -2156,11 +2140,6 @@ function HomePage() {
   const prefersReducedMotion = useReducedMotion();
   const [isTouch] = useState(() => isTouchDevice());
   const [isTelegramWebView] = useState(() => isTelegramBrowser());
-  const activeSection = useActiveSection(
-    SECTION_GLOW_IDS,
-    "#about",
-    "-20% 0px -40% 0px",
-  );
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 0.3], ["0%", "25%"]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
@@ -2459,7 +2438,7 @@ function HomePage() {
           <SectionContainer
             id="about"
             className="mt-28 pt-16"
-            isActive={isTouch && activeSection === "#about"}
+            isActive={false}
           >
             <ScrollReveal>
               <div className="relative py-2 md:py-4">
@@ -2512,7 +2491,7 @@ function HomePage() {
           <SectionContainer
             id="expertise"
             className="mt-32 pt-20"
-            isActive={isTouch && activeSection === "#expertise"}
+            isActive={false}
           >
             <SectionHeader
               label="02 / Expertise"
@@ -2532,7 +2511,7 @@ function HomePage() {
           <SectionContainer
             id="projects"
             className="mt-40 pt-20"
-            isActive={isTouch && activeSection === "#projects"}
+            isActive={false}
           >
             <SectionHeader
               label="03 / Selected Work"
@@ -2552,7 +2531,7 @@ function HomePage() {
           <SectionContainer
             id="stack"
             className="mt-40 pt-20"
-            isActive={isTouch && activeSection === "#stack"}
+            isActive={false}
           >
             <SectionHeader
               label="04 / The Toolkit"
@@ -2608,7 +2587,7 @@ function HomePage() {
           <SectionContainer
             id="journey"
             className="mt-40 pt-20"
-            isActive={isTouch && activeSection === "#journey"}
+            isActive={false}
           >
             <SectionHeader
               label="04 / Journey"
@@ -2622,7 +2601,7 @@ function HomePage() {
           <SectionContainer
             id="notes"
             className="mt-40 pt-20"
-            isActive={isTouch && activeSection === "#notes"}
+            isActive={false}
           >
             <SectionHeader
               label="05 / Notes"
@@ -2674,7 +2653,7 @@ function HomePage() {
           <SectionContainer
             id="certifications"
             className="mt-40 pt-20"
-            isActive={isTouch && activeSection === "#certifications"}
+            isActive={false}
           >
             <SectionHeader
               label="06 / Recognition"
