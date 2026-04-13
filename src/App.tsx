@@ -27,7 +27,6 @@ import {
   Palette,
   Server,
   Terminal,
-  Users,
   X,
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -1765,53 +1764,49 @@ const CertCard = ({ title, issuer, year, link, icon: Icon }: CertProps) => (
 // ─── Data ──────────────────────────────────────────────────────────────────────
 const activities: ActivityCardProps[] = [
   {
-    title: "Building & Shipping",
-    role: "Product, Ops, and Engineering",
+    title: "Product & UX Direction",
+    role: "PoliNetwork Web Ecosystem",
     icon: Network,
     highlight: true,
     description: [
-      "I turn rough ideas into clear systems, priorities, and shipped work.",
-      "At PoliNetwork, I am helping replace legacy platforms with a new web ecosystem.",
-      "I work across architecture, UX direction, and delivery flow.",
-      "My default mode is simple: build, test, break, fix, repeat.",
+      "I design flows, structure, and UX for a new ecosystem replacing legacy tools.",
+      "I focus on clarity, usability, and consistency across site, dashboard, and automation touchpoints.",
+      "I do not write most of the production code: I drive direction, experience, and quality.",
     ],
-    tags: ["Product Direction", "UX Strategy", "Execution", "Systems"],
+    tags: ["UX Strategy", "Information Architecture", "Figma", "Product"],
   },
   {
-    title: "Team Leadership",
-    role: "People, Process, Delivery",
+    title: "Cross-Team Coordination",
+    role: "Ops and Delivery",
     icon: Layers,
     description: [
       "I built IT and design teams from scratch and recruited 5 engineers.",
-      "I coordinate engineering and design so projects do not stall in handoffs.",
-      "I care about clear ownership, simple workflows, and consistent follow-through.",
-      "I am also involved in partnerships and internal restructuring work.",
+      "I coordinate engineers, design, and operations so work moves without friction.",
+      "I also support internal restructuring and partnerships when needed.",
     ],
-    tags: ["Leadership", "Project Management", "Team Building", "Governance"],
+    tags: ["Leadership", "Project Management", "Execution", "Governance"],
+  },
+  {
+    title: "Quality & Testing",
+    role: "Bug Hunting and Design Quality",
+    icon: Palette,
+    description: [
+      "Testing is one of my strongest skills: I am very detail-oriented on UX and behavior.",
+      "I actively look for bugs, edge cases, and visual imperfections before release.",
+      "I care about products that feel polished, not only functional.",
+    ],
+    tags: ["QA", "UX Review", "Debugging", "Polish"],
   },
   {
     title: "Community Operations",
-    role: "Events and Organizational Impact",
+    role: "Events, Structure, Impact",
     icon: Server,
     description: [
       "I helped scale events from 150 attendees to 1,000+ across three editions.",
-      "I handle both strategic planning and practical execution under pressure.",
-      "I oversee treasury and fiscal compliance with a builder mindset.",
-      "I like operations that feel calm, even when the day is not.",
+      "I combine strategic planning with practical execution under pressure.",
+      "I oversee treasury and compliance while keeping operations usable and structured.",
     ],
     tags: ["Event Ops", "Execution", "Treasury", "Community"],
-  },
-  {
-    title: "Teaching & Technical Foundations",
-    role: "Tutor and Systems Builder",
-    icon: Cpu,
-    description: [
-      "I tutor C and Algorithms with a practical, exam-focused method.",
-      "So far, all mentored students passed.",
-      "Outside tutoring, I run a homelab with Proxmox and TrueNAS.",
-      "Security and backup discipline come before shiny features.",
-    ],
-    tags: ["C", "Algorithms", "Linux", "Reliability"],
   },
 ];
 
@@ -1819,10 +1814,10 @@ const projects: ProjectCardProps[] = [
   {
     title: "PoliNetwork Ecosystem",
     description:
-      "A work-in-progress platform replacing legacy systems with clearer flows, stronger architecture, and a better experience for the student community.",
-    tags: ["React", "Node.js", "Docker", "PostgreSQL"],
+      "A work-in-progress ecosystem where I focused on product structure, UX direction, and quality across connected tools.",
+    tags: ["Product", "UX", "Coordination", "Quality"],
     icon: Globe,
-    link: "https://github.com/PoliNetwork",
+    link: "https://github.com/PoliNetworkOrg",
     status: "WORK IN PROGRESS",
   },
   {
@@ -1831,51 +1826,44 @@ const projects: ProjectCardProps[] = [
       "This website. Started with vibe coding, then refined through many iterations on UX, motion, and performance.",
     tags: ["React", "Framer Motion", "Vite", "TypeScript"],
     icon: Code2,
-    link: "https://github.com/viganogabriele",
+    link: "https://github.com/viganogabriele/viganogabriele.com",
     status: "WORK IN PROGRESS",
   },
   {
-    title: "Homelab Infrastructure",
+    title: "Next Build",
     description:
-      "A virtualized self-hosted setup built with Proxmox and TrueNAS, designed around reliability, layered backups, and security-first choices.",
-    tags: ["Proxmox", "TrueNAS", "Linux", "Backups"],
+      "Working in progress. A new project slot for the next thing worth shipping.",
+    tags: ["Work in Progress", "R&D", "Next Release"],
     icon: HardDrive,
-    status: "LIVE LAB",
+    status: "WORK IN PROGRESS",
   },
 ];
 
 const certifications: CertProps[] = [
   {
-    title: "Leadership & Project Management",
-    issuer: "PoliNetwork APS – Student Association",
-    year: "2024",
-    link: "https://polinetwork.org",
+    title: "Leadership",
+    issuer: "Learnn",
+    year: "2025",
+    link: "https://learnn.com/v/9813f284-0595-4463-b5cc-a6052a7c072d/",
     icon: Award,
     highlight: true,
   },
   {
-    title: "Public Speaking & Communication",
-    issuer: "Politecnico di Milano",
-    year: "2024",
-    link: "https://www.polimi.it",
+    title: "Public Speaking",
+    issuer: "Learnn",
+    year: "2025",
+    link: "https://learnn.com/v/1552498e-33d6-44be-be8c-0b462876c6e1/",
     icon: Mic2,
-  },
-  {
-    title: "Team Coordination Dynamics",
-    issuer: "IEEE Student Branch",
-    year: "2023",
-    link: "https://www.ieee.org",
-    icon: Users,
   },
 ];
 
 const timelineItems: TimelineItem[] = [
   {
     year: "Now",
-    title: "Computer Engineering at Politecnico",
+    title: "Politecnico di Milano",
     subtitle: "Learning by Building",
     description:
-      "I am focused on turning theory into practical systems, while keeping curiosity and experimentation alive.",
+      "I am a Computer Engineering student turning theory into practical systems and better decisions.",
     icon: Code2,
     highlight: true,
   },
@@ -1973,6 +1961,9 @@ const skills = [
   { label: "Proxmox", icon: Server, color: "#E57000", x: 350, y: 80 },
   { label: "TrueNAS", icon: HardDrive, color: "#0095D5", x: 600, y: 250 },
   { label: "Figma", icon: FigmaIcon, color: "#A259FF", x: 700, y: 100 },
+  { label: "Canva", icon: Palette, color: "#00C4CC", x: 120, y: 300 },
+  { label: "Photoshop", icon: Palette, color: "#31A8FF", x: 540, y: 340 },
+  { label: "Notion", icon: Layers, color: "#EAEAEA", x: 720, y: 320 },
 ];
 
 const Footer = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
@@ -2587,10 +2578,9 @@ function HomePage() {
                     </motion.h3>
                   )}
                   <p className="text-zinc-300 leading-relaxed text-base md:text-[17px] max-w-3xl">
-                    I like turning messy ideas into clear systems. I build,
-                    test, break, fix, and repeat. From student communities to
-                    homelab infrastructure, I care about work that is useful,
-                    reliable, and human.
+                    I like turning messy ideas into clear, useful things. I care
+                    about design quality, sharp testing, and building
+                    experiences that feel simple, reliable, and human.
                   </p>
                 </div>
               </div>
@@ -2642,7 +2632,7 @@ function HomePage() {
             <SectionHeader
               label="04 / The Toolkit"
               title="Tech Stack."
-              subtitle="Grab them, throw them, watch them bounce — powered by Matter.js."
+              subtitle="Practical tools I actually use across product, ops, design, and infrastructure."
             />
             <ScrollReveal>
               <div
