@@ -343,7 +343,9 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("#about");
+  const [isTouch] = useState(() => isTouchDevice());
   const [isTelegramWebView] = useState(() => isTelegramBrowser());
+  const disableBackdrop = isTelegramWebView && isTouch;
   const navLockRef = useRef<{ target: string | null }>({ target: null });
   const navLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -455,8 +457,8 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
             onClick={() => setMobileOpen(false)}
             className="fixed inset-0 z-[48] bg-black/50 backdrop-blur-[2px] lg:hidden gpu-promote"
             style={{
-              backdropFilter: isTelegramWebView ? "none" : undefined,
-              WebkitBackdropFilter: isTelegramWebView ? "none" : undefined,
+              backdropFilter: disableBackdrop ? "none" : undefined,
+              WebkitBackdropFilter: disableBackdrop ? "none" : undefined,
             }}
           />
         )}
@@ -466,7 +468,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-        className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[49] w-[92%] max-w-4xl gpu-promote"
+        className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[49] w-[92%] max-w-4xl"
       >
         {/* Subtle glow behind pill */}
         <div className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 w-[60%] h-8 bg-gradient-to-r from-transparent via-white/8 to-transparent blur-2xl" />
@@ -480,19 +482,19 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
               : "border-white/[0.14] shadow-[0_4px_18px_rgba(0,0,0,0.22)]",
           )}
           style={{
-            background: isTelegramWebView
+            background: disableBackdrop
               ? scrolled
                 ? "rgba(10, 8, 18, 0.92)"
                 : "rgba(8, 6, 14, 0.90)"
               : scrolled
-                ? "rgba(10, 8, 18, 0.84)"
-                : "rgba(8, 6, 14, 0.76)",
-            backdropFilter: isTelegramWebView
+                ? "rgba(10, 8, 18, 0.58)"
+                : "rgba(8, 6, 14, 0.46)",
+            backdropFilter: disableBackdrop
               ? "none"
-              : "blur(52px) saturate(220%)",
-            WebkitBackdropFilter: isTelegramWebView
+              : "blur(56px) saturate(230%)",
+            WebkitBackdropFilter: disableBackdrop
               ? "none"
-              : "blur(52px) saturate(220%)",
+              : "blur(56px) saturate(230%)",
           }}
         >
           <div className="flex items-center justify-between">
@@ -605,15 +607,15 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className="lg:hidden mt-2 p-2 rounded-2xl border border-white/[0.09] overflow-hidden"
               style={{
-                background: isTelegramWebView
+                background: disableBackdrop
                   ? "rgba(10, 8, 18, 0.94)"
-                  : "rgba(10, 8, 18, 0.84)",
-                backdropFilter: isTelegramWebView
+                  : "rgba(10, 8, 18, 0.62)",
+                backdropFilter: disableBackdrop
                   ? "none"
-                  : "blur(48px) saturate(215%)",
-                WebkitBackdropFilter: isTelegramWebView
+                  : "blur(52px) saturate(225%)",
+                WebkitBackdropFilter: disableBackdrop
                   ? "none"
-                  : "blur(48px) saturate(215%)",
+                  : "blur(52px) saturate(225%)",
                 boxShadow:
                   "0 10px 28px rgba(0,0,0,0.32), 0 0 0 0.5px rgba(255,255,255,0.10)",
               }}
@@ -815,6 +817,7 @@ const TextScramble = ({ text }: { text: string }) => {
   const [display, setDisplay] = useState(text);
   const [isHovered, setIsHovered] = useState(false);
   const [autoAnimating, setAutoAnimating] = useState(false);
+  const [isTouch] = useState(() => isTouchDevice());
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mobileFxRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mobileFxResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -861,6 +864,11 @@ const TextScramble = ({ text }: { text: string }) => {
   }, [scramble, text]);
 
   useEffect(() => {
+    if (!isTouch) {
+      setAutoAnimating(false);
+      return;
+    }
+
     if (!isInView) {
       setAutoAnimating(false);
       return;
@@ -888,10 +896,11 @@ const TextScramble = ({ text }: { text: string }) => {
       if (mobileFxRef.current) clearTimeout(mobileFxRef.current);
       if (mobileFxResetRef.current) clearTimeout(mobileFxResetRef.current);
     };
-  }, [isInView, scramble, text]);
+  }, [isInView, isTouch, scramble, text]);
 
   useEffect(() => {
-    const shouldAnimateGradient = isInView && (isHovered || autoAnimating);
+    const shouldAnimateGradient =
+      isInView && (isHovered || (isTouch && autoAnimating));
 
     if (!shouldAnimateGradient) {
       gradientControls.stop();
@@ -911,7 +920,7 @@ const TextScramble = ({ text }: { text: string }) => {
         repeatType: "mirror",
       },
     });
-  }, [autoAnimating, gradientControls, isHovered, isInView]);
+  }, [autoAnimating, gradientControls, isHovered, isInView, isTouch]);
 
   return (
     <div ref={titleRef} className="relative inline-block">
@@ -2435,11 +2444,7 @@ function HomePage() {
           </motion.section>
 
           {/* ── About ─────────────────────────────────────────────────── */}
-          <SectionContainer
-            id="about"
-            className="mt-28 pt-16"
-            isActive={false}
-          >
+          <SectionContainer id="about" className="mt-28 pt-16" isActive={false}>
             <ScrollReveal>
               <div className="relative py-2 md:py-4">
                 <motion.div
@@ -2528,11 +2533,7 @@ function HomePage() {
           </SectionContainer>
 
           {/* ── Skills Playground (Physics Sandbox) ───────────────────── */}
-          <SectionContainer
-            id="stack"
-            className="mt-40 pt-20"
-            isActive={false}
-          >
+          <SectionContainer id="stack" className="mt-40 pt-20" isActive={false}>
             <SectionHeader
               label="04 / The Toolkit"
               title="Tech Stack."
@@ -2598,11 +2599,7 @@ function HomePage() {
           </SectionContainer>
 
           {/* ── Notes ─────────────────────────────────────────────────── */}
-          <SectionContainer
-            id="notes"
-            className="mt-40 pt-20"
-            isActive={false}
-          >
+          <SectionContainer id="notes" className="mt-40 pt-20" isActive={false}>
             <SectionHeader
               label="05 / Notes"
               title="Engineering Notes."
