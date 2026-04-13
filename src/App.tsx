@@ -1951,7 +1951,7 @@ const notes: NoteItem[] = [
 
 const noteBySlug = new Map(notes.map((note) => [note.slug, note]));
 
-const skills = [
+const techSkills = [
   { label: "JavaScript", icon: Code2, color: "#F7DF1E", x: 100, y: 100 },
   { label: "HTML", icon: Globe, color: "#E44D26", x: 300, y: 150 },
   { label: "CSS", icon: Palette, color: "#5C6BC0", x: 500, y: 120 },
@@ -1961,9 +1961,15 @@ const skills = [
   { label: "Proxmox", icon: Server, color: "#E57000", x: 350, y: 80 },
   { label: "TrueNAS", icon: HardDrive, color: "#0095D5", x: 600, y: 250 },
   { label: "Figma", icon: FigmaIcon, color: "#A259FF", x: 700, y: 100 },
-  { label: "Canva", icon: Palette, color: "#00C4CC", x: 120, y: 300 },
-  { label: "Photoshop", icon: Palette, color: "#31A8FF", x: 540, y: 340 },
-  { label: "Notion", icon: Layers, color: "#EAEAEA", x: 720, y: 320 },
+];
+
+const secondaryTools = [
+  "Canva",
+  "Photoshop",
+  "Notion",
+  "Excel",
+  "PowerPoint",
+  "Word",
 ];
 
 const Footer = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
@@ -1984,7 +1990,7 @@ const Footer = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 
   return (
     <ScrollReveal delay={0.1}>
-      <footer className="mt-40 pb-20 border-t border-white/[0.06] relative overflow-hidden">
+      <footer className="mt-40 pb-8 md:pb-10 border-t border-white/[0.06] relative overflow-hidden">
         <div className="pt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative z-10">
           {/* About block */}
           <div className="flex flex-col items-start gap-6">
@@ -2229,7 +2235,7 @@ function HomePage() {
   const lenisRef = useRef<LenisInstance | null>(null);
 
   const playgroundRef = useRef<HTMLDivElement>(null);
-  const physicsPositions = useMatterPhysics(playgroundRef, skills);
+  const physicsPositions = useMatterPhysics(playgroundRef, techSkills);
 
   useEffect(() => {
     let raf = 0;
@@ -2424,7 +2430,7 @@ function HomePage() {
           mobileBoost={boostMobileAmbient}
         />
 
-        <main className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
+        <main className="relative z-10 max-w-6xl mx-auto px-6 pb-8 md:pb-10">
           {/* ── Hero ─────────────────────────────────────────────────── */}
           <motion.section
             className="min-h-[100vh] flex flex-col md:flex-row items-center justify-between pt-36 sm:pt-40 md:pt-28 pb-16 gap-10 md:gap-12"
@@ -2578,9 +2584,10 @@ function HomePage() {
                     </motion.h3>
                   )}
                   <p className="text-zinc-300 leading-relaxed text-base md:text-[17px] max-w-3xl">
-                    I like turning messy ideas into clear, useful things. I care
-                    about design quality, sharp testing, and building
-                    experiences that feel simple, reliable, and human.
+                    I am Gabriele, 21, from Milan, Italy. I like turning messy
+                    ideas into clear, useful things. I care about design
+                    quality, sharp testing, and building experiences that feel
+                    simple, reliable, and human.
                   </p>
                 </div>
               </div>
@@ -2651,7 +2658,7 @@ function HomePage() {
                     Drag icons to play • Scroll outside to move
                   </p>
                 </div>
-                {skills.map((skill, i) => {
+                {techSkills.map((skill, i) => {
                   const pos = physicsPositions[i] || {
                     x: -100,
                     y: -100,
@@ -2675,6 +2682,19 @@ function HomePage() {
                     </div>
                   );
                 })}
+              </div>
+              <div className="mt-5 flex flex-wrap items-center gap-2.5">
+                <span className="text-[11px] font-mono uppercase tracking-[0.14em] text-zinc-500">
+                  Secondary tools:
+                </span>
+                {secondaryTools.map((tool) => (
+                  <span
+                    key={tool}
+                    className="px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 text-xs text-zinc-400"
+                  >
+                    {tool}
+                  </span>
+                ))}
               </div>
             </ScrollReveal>
           </SectionContainer>
