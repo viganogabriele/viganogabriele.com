@@ -1765,50 +1765,53 @@ const CertCard = ({ title, issuer, year, link, icon: Icon }: CertProps) => (
 // ─── Data ──────────────────────────────────────────────────────────────────────
 const activities: ActivityCardProps[] = [
   {
-    title: "PoliNetwork",
-    role: "Product & Operations Lead",
+    title: "Building & Shipping",
+    role: "Product, Ops, and Engineering",
     icon: Network,
     highlight: true,
     description: [
-      "Architecting a robust open-source web ecosystem serving thousands of students.",
-      "Scaling technical operations for massive events gathering 1,000+ people.",
-      "Leading cross-functional student engineering teams and managing active sprints.",
-      "Defining product vision and executing long-term roadmaps.",
+      "I turn rough ideas into clear systems, priorities, and shipped work.",
+      "At PoliNetwork, I am helping replace legacy platforms with a new web ecosystem.",
+      "I work across architecture, UX direction, and delivery flow.",
+      "My default mode is simple: build, test, break, fix, repeat.",
     ],
-    tags: ["Leadership", "System Architecture", "Agile", "Open Source"],
+    tags: ["Product Direction", "UX Strategy", "Execution", "Systems"],
   },
   {
-    title: "Digital Craftsmanship",
-    role: "Design & Frontend Engineering",
+    title: "Team Leadership",
+    role: "People, Process, Delivery",
     icon: Layers,
     description: [
-      "Bridging the gap between engineering complexity and polished interfaces.",
-      "Prototyping dynamic flows in Figma before writing a single line of code.",
-      "Obsessing over kinetic typography, physics animations, and micro-interactions.",
+      "I built IT and design teams from scratch and recruited 5 engineers.",
+      "I coordinate engineering and design so projects do not stall in handoffs.",
+      "I care about clear ownership, simple workflows, and consistent follow-through.",
+      "I am also involved in partnerships and internal restructuring work.",
     ],
-    tags: ["React", "Framer Motion", "Figma", "TypeScript"],
+    tags: ["Leadership", "Project Management", "Team Building", "Governance"],
   },
   {
-    title: "Homelab Infrastructure",
-    role: "Sysadmin & Architecture",
+    title: "Community Operations",
+    role: "Events and Organizational Impact",
     icon: Server,
     description: [
-      "Self-hosting complex environments with high availability.",
-      "Configuring Proxmox hypervisor, TrueNAS storage arrays, and containerized apps.",
-      "Automating deployments, setting up reverse proxies, and maintaining zero-trust VLANs.",
+      "I helped scale events from 150 attendees to 1,000+ across three editions.",
+      "I handle both strategic planning and practical execution under pressure.",
+      "I oversee treasury and fiscal compliance with a builder mindset.",
+      "I like operations that feel calm, even when the day is not.",
     ],
-    tags: ["Proxmox", "Docker", "Linux", "Networking"],
+    tags: ["Event Ops", "Execution", "Treasury", "Community"],
   },
   {
-    title: "Systems Programming",
-    role: "Low-Level Engineering",
+    title: "Teaching & Technical Foundations",
+    role: "Tutor and Systems Builder",
     icon: Cpu,
     description: [
-      "Writing performant C code for systems and embedded contexts.",
-      "Mastering memory management, custom data structures, and algorithm design.",
-      "Deep dive into OS fundamentals: scheduling, process synchronization, IPC.",
+      "I tutor C and Algorithms with a practical, exam-focused method.",
+      "So far, all mentored students passed.",
+      "Outside tutoring, I run a homelab with Proxmox and TrueNAS.",
+      "Security and backup discipline come before shiny features.",
     ],
-    tags: ["C", "POSIX", "GDB", "Make"],
+    tags: ["C", "Algorithms", "Linux", "Reliability"],
   },
 ];
 
@@ -1816,28 +1819,28 @@ const projects: ProjectCardProps[] = [
   {
     title: "PoliNetwork Ecosystem",
     description:
-      "An expansive open-source web platform serving the Politecnico di Milano student body. Built for high performance and scalability under load during massive university events.",
+      "A work-in-progress platform replacing legacy systems with clearer flows, stronger architecture, and a better experience for the student community.",
     tags: ["React", "Node.js", "Docker", "PostgreSQL"],
     icon: Globe,
     link: "https://github.com/PoliNetwork",
-    status: "PRODUCTION",
-  },
-  {
-    title: "Personal Infrastructure",
-    description:
-      "A production-grade, self-hosted data center running in my home. Leveraging Proxmox VMs, TrueNAS storage, Traefik ingress, and comprehensive Grafana observability dashboards.",
-    tags: ["Proxmox", "TrueNAS", "Traefik", "Prometheus"],
-    icon: HardDrive,
-    status: "SYSADMIN",
+    status: "WORK IN PROGRESS",
   },
   {
     title: "Interactive Portfolio",
     description:
-      "A performance-obsessed, design-forward website featuring a full 2D physics sandbox using Matter.js, kinetic typography, and fluid Framer Motion animations.",
-    tags: ["React", "Matter.js", "Vite", "Tailwind"],
+      "This website. Started with vibe coding, then refined through many iterations on UX, motion, and performance.",
+    tags: ["React", "Framer Motion", "Vite", "TypeScript"],
     icon: Code2,
     link: "https://github.com/viganogabriele",
-    status: "V2 LIVE",
+    status: "WORK IN PROGRESS",
+  },
+  {
+    title: "Homelab Infrastructure",
+    description:
+      "A virtualized self-hosted setup built with Proxmox and TrueNAS, designed around reliability, layered backups, and security-first choices.",
+    tags: ["Proxmox", "TrueNAS", "Linux", "Backups"],
+    icon: HardDrive,
+    status: "LIVE LAB",
   },
 ];
 
@@ -1868,37 +1871,37 @@ const certifications: CertProps[] = [
 
 const timelineItems: TimelineItem[] = [
   {
-    year: "2026",
-    title: "Interactive Portfolio v3",
-    subtitle: "Design Engineering",
+    year: "Now",
+    title: "Computer Engineering at Politecnico",
+    subtitle: "Learning by Building",
     description:
-      "Evolved the portfolio into a motion-led digital experience with physics interactions, custom preloading, and cinematic transitions.",
+      "I am focused on turning theory into practical systems, while keeping curiosity and experimentation alive.",
     icon: Code2,
     highlight: true,
   },
   {
-    year: "2025",
-    title: "PoliNetwork Product Ops",
-    subtitle: "Leadership",
+    year: "Current Chapter",
+    title: "PoliNetwork",
+    subtitle: "Leadership and Operations",
     description:
-      "Orchestrated product direction and engineering operations across student-facing platforms with high traffic windows.",
+      "I coordinate product direction, operations, and team execution in a fast-moving student organization.",
     icon: Network,
     highlight: true,
   },
   {
-    year: "2024",
+    year: "Builder Mode",
     title: "Homelab Infrastructure",
-    subtitle: "Systems Architecture",
+    subtitle: "Reliability Mindset",
     description:
-      "Designed a resilient self-hosted environment with virtualization, observability, and secure networking practices.",
+      "I built a self-hosted environment where security, backups, and maintainability matter more than hype.",
     icon: Server,
   },
   {
-    year: "2023",
-    title: "Low-Level Foundations",
-    subtitle: "Systems Programming",
+    year: "Always Learning",
+    title: "Teaching and Communication",
+    subtitle: "C, Algorithms, and Public Speaking",
     description:
-      "Consolidated C, OS internals and debugging workflows focused on performance, memory, and reliability.",
+      "From tutoring to speaking, I keep improving how I explain complex topics in a clear and useful way.",
     icon: Cpu,
   },
 ];
@@ -1916,44 +1919,44 @@ interface NoteItem {
 const notes: NoteItem[] = [
   {
     slug: "motion-performance",
-    title: "Designing Motion Without Sacrificing Performance",
+    title: "How I Organized Events Without Ever Doing It Before",
     date: "Apr 2026",
-    readingTime: "6 min",
+    readingTime: "7 min",
     preview:
-      "A practical approach to balancing animated UI, physics, and frame budget in React-driven interfaces.",
-    tags: ["Performance", "Framer Motion", "UX"],
+      "What worked, what failed, and the operating system I built while learning on the fly.",
+    tags: ["Events", "Operations", "Leadership"],
     body: [
-      "Premium motion should feel effortless, not heavy. The first constraint is always frame budget: every animation in the scene competes for the same rendering pipeline.",
-      "For interactive portfolios, I separate decorative motion from interaction-critical motion. Decorative layers run with gentle timings and low update pressure, while interaction layers get strict spring constraints and shorter lifecycles.",
-      "When physics is involved, containment and fallback behavior matter more than visual novelty. If drag escapes bounds on mobile, the experience breaks trust. Robust constraints and release safety are part of UX quality.",
+      "When I started, I had zero event operations experience. So I treated it like an engineering problem: map constraints, define owners, and build repeatable checklists.",
+      "The biggest win was creating clear workflows across teams before event day. That reduced chaos more than any last-minute fix could.",
+      "Scaling from 150 to 1,000+ attendees taught me one thing: good operations are not loud, they are invisible when done right.",
     ],
   },
   {
     slug: "student-platform-peak-load",
-    title: "Operating Student Platforms at Peak Load",
+    title: "How I Built This Website with Vibe Coding",
     date: "Mar 2026",
-    readingTime: "7 min",
+    readingTime: "6 min",
     preview:
-      "Lessons learned from product and operations decisions across student-facing systems during high-traffic events.",
-    tags: ["Architecture", "Ops", "Product"],
+      "From rough experiments to a polished experience: the process, the trade-offs, and the fixes.",
+    tags: ["Frontend", "UX", "Vibe Coding"],
     body: [
-      "Traffic spikes expose unclear ownership before they expose weak servers. During event windows, incident response quality depends on team clarity and pre-defined runbooks.",
-      "I prioritize observability that answers product questions, not just infrastructure metrics. Knowing which flows degrade first helps protect the user journey when capacity gets tight.",
-      "Post-event reviews should produce action items tied to product and engineering together. Reliability is a roadmap outcome, not just an ops task.",
+      "This portfolio started fast: ideas first, polish later. The first versions were fun, but messy in architecture and performance.",
+      "Then came the engineering pass: simplify flows, reduce visual noise, and keep only interactions that add real value.",
+      "Vibe coding was the spark, disciplined iteration made it usable.",
     ],
   },
   {
     slug: "homelab-patterns-scale",
-    title: "Homelab Patterns That Scale Better",
+    title: "Homelab: Security First",
     date: "Feb 2026",
     readingTime: "5 min",
     preview:
-      "A concise checklist for virtualization, observability and network segmentation in a resilient personal infrastructure.",
-    tags: ["Infrastructure", "Linux", "Observability"],
+      "How I designed my self-hosted setup around backups, recovery, and defensive defaults.",
+    tags: ["Homelab", "Security", "Infrastructure"],
     body: [
-      "The most useful homelab design principle is graceful degradation. Services should fail independently, with clear boundaries between storage, compute and ingress.",
-      "Segmenting workloads by criticality simplifies maintenance windows and lowers recovery time. Monitoring should include service-level checks, not only host-level signals.",
-      "A small but disciplined platform can outperform a complex one: fewer moving parts, clearer backups, and repeatable deployment flows.",
+      "My rule is simple: no service is truly running if I cannot recover it quickly. Backups are part of design, not an afterthought.",
+      "I use layered protection: local redundancy, replication to a second TrueNAS node, and encrypted cloud sync.",
+      "Security-first does not mean paranoia, it means making safe choices the default path.",
     ],
   },
 ];
@@ -2153,7 +2156,6 @@ function SectionContainer({
   );
 }
 
-
 const AmbientBackground = ({
   topOpacity,
   bottomOpacity,
@@ -2207,7 +2209,6 @@ const AmbientBackground = ({
     </div>
   );
 };
-
 
 // ─── App ────────────────────────────────────────────────────────────────────────
 function HomePage() {
@@ -2586,9 +2587,10 @@ function HomePage() {
                     </motion.h3>
                   )}
                   <p className="text-zinc-300 leading-relaxed text-base md:text-[17px] max-w-3xl">
-                    I blend product operations, frontend engineering and
-                    infrastructure into fast, reliable experiences. Build, test,
-                    refine, repeat.
+                    I like turning messy ideas into clear systems. I build,
+                    test, break, fix, and repeat. From student communities to
+                    homelab infrastructure, I care about work that is useful,
+                    reliable, and human.
                   </p>
                 </div>
               </div>
@@ -2604,7 +2606,7 @@ function HomePage() {
             <SectionHeader
               label="02 / Expertise"
               title="What I Do."
-              subtitle="I build systems that perform reliably and interfaces that feel incredible."
+              subtitle="A mix of building, leading, and making complex things feel simple."
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {activities.map((act, i) => (
@@ -2624,7 +2626,7 @@ function HomePage() {
             <SectionHeader
               label="03 / Selected Work"
               title="Featured Projects."
-              subtitle="Real-world systems, open-source tech, and experimental playgrounds."
+              subtitle="A few shipped things, a few things in progress, all very real."
             />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {projects.map((proj, i) => (
@@ -2696,7 +2698,7 @@ function HomePage() {
             <SectionHeader
               label="04 / Journey"
               title="Interactive Timeline."
-              subtitle="Key moments that shaped my product, systems, and design engineering path."
+              subtitle="A hybrid of what I build, what I lead, and what I am learning now."
             />
             <InteractiveTimeline items={timelineItems} />
           </SectionContainer>
@@ -2706,7 +2708,7 @@ function HomePage() {
             <SectionHeader
               label="05 / Notes"
               title="Engineering Notes."
-              subtitle="Short technical writes on motion systems, architecture decisions, and infrastructure operations."
+              subtitle="Short writes on events, building this site, and keeping homelab security-first."
             />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {notes.map((note, i) => (
