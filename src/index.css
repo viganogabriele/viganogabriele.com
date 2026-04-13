@@ -31,6 +31,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .gpu-promote {
   will-change: transform, opacity;
   transform: translateZ(0);
@@ -106,6 +110,13 @@ body {
   mix-blend-mode: overlay;
   animation: grainShift 8s steps(10) infinite;
   transform: translateZ(0);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .noise::before {
+    opacity: 0.18;
+    mix-blend-mode: soft-light;
+  }
 }
 
 @keyframes grainShift {

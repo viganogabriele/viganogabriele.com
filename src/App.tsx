@@ -441,7 +441,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
         className="fixed top-0 left-0 right-0 h-28 pointer-events-none z-[47] gpu-promote"
         style={{
           background:
-            "linear-gradient(to bottom, rgba(8,8,8,0.95) 0%, rgba(8,8,8,0.58) 50%, transparent 100%)",
+            "linear-gradient(to bottom, rgba(8,8,8,0.52) 0%, rgba(8,8,8,0.14) 52%, transparent 100%)",
         }}
       />
 
@@ -478,8 +478,8 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
           className={cn(
             "px-4 sm:px-5 py-3 rounded-full border transition-all duration-500",
             scrolled
-              ? "border-white/[0.14] shadow-[0_8px_28px_rgba(0,0,0,0.30)]"
-              : "border-white/[0.14] shadow-[0_4px_18px_rgba(0,0,0,0.22)]",
+              ? "border-white/[0.10] shadow-[0_6px_20px_rgba(0,0,0,0.18)]"
+              : "border-white/[0.09] shadow-[0_3px_12px_rgba(0,0,0,0.12)]",
           )}
           style={{
             background: disableBackdrop
@@ -487,14 +487,14 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
                 ? "rgba(10, 8, 18, 0.92)"
                 : "rgba(8, 6, 14, 0.90)"
               : scrolled
-                ? "rgba(10, 8, 18, 0.58)"
-                : "rgba(8, 6, 14, 0.46)",
+                ? "rgba(10, 8, 18, 0.36)"
+                : "rgba(8, 6, 14, 0.22)",
             backdropFilter: disableBackdrop
               ? "none"
-              : "blur(56px) saturate(230%)",
+              : "blur(36px) saturate(190%)",
             WebkitBackdropFilter: disableBackdrop
               ? "none"
-              : "blur(56px) saturate(230%)",
+              : "blur(36px) saturate(190%)",
           }}
         >
           <div className="flex items-center justify-between">
@@ -523,23 +523,19 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
                     onClick={(e) => handleScrollTo(e, link.href)}
                     data-cursor="hover"
                     className={cn(
-                      "relative px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200",
+                      "tap-highlight-none relative px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200",
                       isActive
                         ? "text-white"
                         : "text-zinc-400 hover:text-white",
                     )}
                   >
-                    {isActive && (
-                      <motion.span
-                        layoutId="nav-pill"
-                        className="absolute inset-0 rounded-full bg-white/[0.1]"
-                        transition={{
-                          type: "spring",
-                          stiffness: 380,
-                          damping: 34,
-                        }}
-                      />
-                    )}
+                    <motion.span
+                      aria-hidden
+                      className="absolute inset-0 rounded-full bg-white/[0.09] pointer-events-none"
+                      initial={false}
+                      animate={{ opacity: isActive ? 1 : 0 }}
+                      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                    />
                     <span className="relative z-10">{link.label}</span>
                   </a>
                 );
@@ -559,7 +555,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
                 type="button"
                 onClick={() => setMobileOpen((p) => !p)}
                 className={cn(
-                  "lg:hidden w-9 h-9 rounded-full border transition-all duration-200 flex items-center justify-center",
+                  "tap-highlight-none lg:hidden w-9 h-9 rounded-full border transition-all duration-200 flex items-center justify-center",
                   mobileOpen
                     ? "border-white/20 bg-white/10 text-white"
                     : "border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10",
@@ -605,19 +601,18 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="lg:hidden mt-2 p-2 rounded-2xl border border-white/[0.09] overflow-hidden"
+              className="lg:hidden mt-2 p-2 rounded-2xl border border-white/[0.08] overflow-hidden"
               style={{
                 background: disableBackdrop
                   ? "rgba(10, 8, 18, 0.94)"
-                  : "rgba(10, 8, 18, 0.62)",
+                  : "rgba(10, 8, 18, 0.32)",
                 backdropFilter: disableBackdrop
                   ? "none"
-                  : "blur(52px) saturate(225%)",
+                  : "blur(34px) saturate(185%)",
                 WebkitBackdropFilter: disableBackdrop
                   ? "none"
-                  : "blur(52px) saturate(225%)",
-                boxShadow:
-                  "0 10px 28px rgba(0,0,0,0.32), 0 0 0 0.5px rgba(255,255,255,0.10)",
+                  : "blur(34px) saturate(185%)",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.26)",
               }}
             >
               {/* Nav links — same layoutId-based sliding pill as desktop */}
@@ -629,6 +624,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
                       key={link.label}
                       href={link.href}
                       onClick={(e) => handleScrollTo(e, link.href)}
+                      data-cursor="hover"
                       initial={{ opacity: 0, x: -6 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{
@@ -637,24 +633,22 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
                         ease: [0.22, 1, 0.36, 1],
                       }}
                       className={cn(
-                        "relative flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-medium transition-colors duration-150 active:scale-[0.98] select-none overflow-hidden",
+                        "tap-highlight-none relative flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-medium transition-colors duration-150 active:scale-[0.98] select-none overflow-hidden",
                         isActive
                           ? "text-white"
                           : "text-zinc-400 hover:text-white",
                       )}
                     >
-                      {/* Sliding background pill */}
-                      {isActive && (
-                        <motion.span
-                          layoutId="nav-pill-mobile"
-                          className="absolute inset-0 rounded-xl bg-white/[0.08]"
-                          transition={{
-                            type: "spring",
-                            stiffness: 380,
-                            damping: 34,
-                          }}
-                        />
-                      )}
+                      <motion.span
+                        aria-hidden
+                        className="absolute inset-0 rounded-xl bg-white/[0.08] pointer-events-none"
+                        initial={false}
+                        animate={{ opacity: isActive ? 1 : 0 }}
+                        transition={{
+                          duration: 0.18,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                      />
                       {/* Accent dot */}
                       <span
                         className={cn(
@@ -677,7 +671,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
                     delay: NAV_LINKS.length * 0.04 + 0.04,
                     duration: 0.2,
                   }}
-                  className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-[14px] font-semibold text-black bg-white hover:bg-zinc-100 transition-colors active:scale-[0.97]"
+                  className="tap-highlight-none w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-[14px] font-semibold text-black bg-white hover:bg-zinc-100 transition-colors active:scale-[0.97]"
                 >
                   Let's talk
                 </motion.a>
@@ -739,7 +733,7 @@ const FloatingPortrait = () => {
   const handlePortraitClick = () => {
     setEggVisible(true);
     if (eggTimerRef.current) clearTimeout(eggTimerRef.current);
-    eggTimerRef.current = setTimeout(() => setEggVisible(false), 1700);
+    eggTimerRef.current = setTimeout(() => setEggVisible(false), 2200);
   };
 
   return (
@@ -760,9 +754,28 @@ const FloatingPortrait = () => {
             animate={{ opacity: 1, y: -16, scale: 1 }}
             exit={{ opacity: 0, y: -22, scale: 0.96 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-violet-300/35 bg-black/60 backdrop-blur-md px-3 py-1 text-[10px] tracking-[0.18em] uppercase text-violet-100"
+            className="absolute -top-7 left-1/2 -translate-x-1/2 pointer-events-none"
           >
-            Hi, I'm 21 from Italy
+            <div className="relative overflow-hidden whitespace-nowrap rounded-2xl border border-white/15 bg-black/45 px-4 py-2 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.32)]">
+              <motion.div
+                aria-hidden
+                className="absolute inset-0 opacity-65"
+                animate={{
+                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }}
+                style={{
+                  backgroundImage:
+                    "linear-gradient(100deg, rgba(34,211,238,0.16), rgba(167,139,250,0.16), rgba(244,114,182,0.14), rgba(34,211,238,0.16))",
+                  backgroundSize: "220% 220%",
+                }}
+              />
+              <span className="relative block text-[10px] tracking-[0.16em] uppercase text-zinc-100">
+                <span className="bg-gradient-to-r from-cyan-100 via-violet-200 to-pink-200 bg-clip-text text-transparent font-semibold">
+                  Built in Italy - 21 y/o
+                </span>
+              </span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -816,11 +829,13 @@ const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
 const TextScramble = ({ text }: { text: string }) => {
   const [display, setDisplay] = useState(text);
   const [isHovered, setIsHovered] = useState(false);
-  const [autoAnimating, setAutoAnimating] = useState(false);
-  const [isTouch] = useState(() => isTouchDevice());
+  const [hasNoHover] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: none)").matches,
+  );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mobileFxRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mobileFxResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const gradientControls = useAnimationControls();
   const isInView = useInView(titleRef, {
@@ -859,54 +874,38 @@ const TextScramble = ({ text }: { text: string }) => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (mobileFxRef.current) clearTimeout(mobileFxRef.current);
-      if (mobileFxResetRef.current) clearTimeout(mobileFxResetRef.current);
     };
   }, [scramble, text]);
 
   useEffect(() => {
-    if (!isTouch) {
-      setAutoAnimating(false);
-      return;
-    }
-
-    if (!isInView) {
-      setAutoAnimating(false);
+    if (!hasNoHover || !isInView) {
       return;
     }
 
     let cancelled = false;
 
     const runCycle = () => {
-      setAutoAnimating(false);
-      mobileFxRef.current = setTimeout(() => {
-        if (cancelled) return;
-        setAutoAnimating(true);
-        scramble(text);
-        mobileFxResetRef.current = setTimeout(() => {
-          if (cancelled) return;
-          runCycle();
-        }, 2000);
-      }, 2000);
+      if (cancelled) return;
+      scramble(text);
+      mobileFxRef.current = setTimeout(runCycle, 3600);
     };
 
-    runCycle();
+    mobileFxRef.current = setTimeout(runCycle, 1800);
 
     return () => {
       cancelled = true;
       if (mobileFxRef.current) clearTimeout(mobileFxRef.current);
-      if (mobileFxResetRef.current) clearTimeout(mobileFxResetRef.current);
     };
-  }, [isInView, isTouch, scramble, text]);
+  }, [hasNoHover, isInView, scramble, text]);
 
   useEffect(() => {
-    const shouldAnimateGradient =
-      isInView && (isHovered || (isTouch && autoAnimating));
+    const shouldAnimateGradient = isInView && (isHovered || hasNoHover);
 
     if (!shouldAnimateGradient) {
       gradientControls.stop();
       void gradientControls.start({
         backgroundPosition: "0% center",
-        transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+        transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
       });
       return;
     }
@@ -920,7 +919,9 @@ const TextScramble = ({ text }: { text: string }) => {
         repeatType: "mirror",
       },
     });
-  }, [autoAnimating, gradientControls, isHovered, isInView, isTouch]);
+  }, [gradientControls, hasNoHover, isHovered, isInView]);
+
+  const neonActive = isHovered || (hasNoHover && isInView);
 
   return (
     <div ref={titleRef} className="relative inline-block">
@@ -935,10 +936,10 @@ const TextScramble = ({ text }: { text: string }) => {
         <motion.span
           animate={gradientControls}
           className={cn(
-            "bg-clip-text text-transparent bg-[length:220%_auto]",
-            isHovered || autoAnimating
-              ? "bg-gradient-to-r from-cyan-100 via-cyan-300 to-violet-300 bg-[position:100%_center] drop-shadow-[0_0_20px_rgba(167,139,250,0.3)]"
-              : "bg-gradient-to-r from-cyan-200 via-cyan-300 to-sky-300 bg-[position:0%_center] drop-shadow-none",
+            "bg-clip-text text-transparent bg-[length:220%_auto] bg-gradient-to-r from-cyan-200 via-cyan-300 to-violet-300 transition-[opacity,filter] duration-500 ease-out",
+            neonActive
+              ? "opacity-100 drop-shadow-[0_0_20px_rgba(167,139,250,0.28)]"
+              : "opacity-90 drop-shadow-none",
           )}
         >
           {display}
@@ -1342,7 +1343,16 @@ const SectionHeader = ({
   subtitle?: string;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isTouch] = useState(() => isTouchDevice());
+  const [hasNoHover] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: none)").matches,
+  );
+  const headerRef = useRef<HTMLDivElement>(null);
+  const headerInView = useInView(headerRef, {
+    margin: "-15% 0px -26% 0px",
+    once: false,
+  });
 
   return (
     <ScrollReveal className="mb-12">
@@ -1350,11 +1360,12 @@ const SectionHeader = ({
         {label}
       </p>
       <div
+        ref={headerRef}
         onMouseEnter={() => {
-          if (!isTouch) setIsHovered(true);
+          if (!hasNoHover) setIsHovered(true);
         }}
         onMouseLeave={() => {
-          if (!isTouch) setIsHovered(false);
+          if (!hasNoHover) setIsHovered(false);
         }}
         className="relative inline-block cursor-default"
       >
@@ -1362,7 +1373,7 @@ const SectionHeader = ({
           {title}
         </h2>
         {/* Desktop: hover-reveal underline */}
-        {!isTouch && (
+        {!hasNoHover && (
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: isHovered ? "100%" : "0%" }}
@@ -1370,18 +1381,16 @@ const SectionHeader = ({
             className="absolute -bottom-2 left-0 h-[2px] bg-gradient-to-r from-cyan-400 to-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]"
           />
         )}
-        {/* Mobile: whileInView-reveal underline */}
-        {isTouch && (
+        {/* No-hover devices: always-visible underline with in-view emphasis */}
+        {hasNoHover && (
           <motion.div
-            initial={{ width: 0 }}
-            whileInView={{ width: "100%" }}
-            viewport={{ once: false, margin: "-30%" }}
-            transition={{
-              duration: 0.7,
-              ease: [0.22, 1, 0.36, 1],
-              delay: 0.2,
+            initial={false}
+            animate={{
+              width: headerInView ? "100%" : "14%",
+              opacity: headerInView ? 1 : 0.55,
             }}
-            className="absolute -bottom-2 left-0 h-[2px] bg-gradient-to-r from-cyan-400 via-violet-400 to-transparent shadow-[0_0_10px_rgba(139,92,246,0.4)]"
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute -bottom-2 left-0 h-[2px] bg-gradient-to-r from-cyan-300 via-violet-300 to-transparent shadow-[0_0_14px_rgba(139,92,246,0.45)]"
           />
         )}
       </div>
@@ -2117,9 +2126,11 @@ const SectionContainer = ({
 const AmbientBackground = ({
   topOpacity,
   bottomOpacity,
+  mobileBoost = false,
 }: {
   topOpacity?: MotionValue<number>;
   bottomOpacity?: MotionValue<number>;
+  mobileBoost?: boolean;
 }) => (
   <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 ambient-layer gpu-promote">
     {topOpacity ? (
@@ -2136,11 +2147,32 @@ const AmbientBackground = ({
         className="absolute inset-0 ambient-blob bg-[radial-gradient(62%_50%_at_50%_92%,rgba(139,92,246,0.3),rgba(0,0,0,0)_72%)]"
       />
     ) : null}
-    <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-900/20 blur-[80px] sm:blur-[140px] opacity-40 ambient-blob" />
-    <div className="absolute top-[30%] left-[-18%] w-[52%] h-[52%] rounded-full bg-cyan-500/18 blur-[90px] sm:blur-[160px] opacity-35 ambient-blob" />
-    <div className="absolute bottom-[12%] left-[-12%] w-[46%] h-[46%] rounded-full bg-sky-500/15 blur-[80px] sm:blur-[140px] opacity-35 ambient-blob" />
-    <div className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/25 blur-[90px] sm:blur-[150px] opacity-35 ambient-blob" />
-    <div className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] rounded-full bg-fuchsia-900/20 blur-[80px] sm:blur-[130px] opacity-35 ambient-blob" />
+    {mobileBoost ? (
+      <>
+        <div className="absolute inset-0 bg-[radial-gradient(78%_56%_at_50%_6%,rgba(56,189,248,0.18),rgba(0,0,0,0)_72%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(72%_52%_at_50%_96%,rgba(167,139,250,0.2),rgba(0,0,0,0)_72%)]" />
+      </>
+    ) : null}
+    <div
+      className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-900/20 blur-[80px] sm:blur-[140px] ambient-blob"
+      style={{ opacity: mobileBoost ? 0.56 : 0.4 }}
+    />
+    <div
+      className="absolute top-[30%] left-[-18%] w-[52%] h-[52%] rounded-full bg-cyan-500/18 blur-[90px] sm:blur-[160px] ambient-blob"
+      style={{ opacity: mobileBoost ? 0.52 : 0.35 }}
+    />
+    <div
+      className="absolute bottom-[12%] left-[-12%] w-[46%] h-[46%] rounded-full bg-sky-500/15 blur-[80px] sm:blur-[140px] ambient-blob"
+      style={{ opacity: mobileBoost ? 0.5 : 0.35 }}
+    />
+    <div
+      className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/25 blur-[90px] sm:blur-[150px] ambient-blob"
+      style={{ opacity: mobileBoost ? 0.5 : 0.35 }}
+    />
+    <div
+      className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] rounded-full bg-fuchsia-900/20 blur-[80px] sm:blur-[130px] ambient-blob"
+      style={{ opacity: mobileBoost ? 0.48 : 0.35 }}
+    />
   </div>
 );
 
@@ -2148,19 +2180,25 @@ const AmbientBackground = ({
 function HomePage() {
   const prefersReducedMotion = useReducedMotion();
   const [isTouch] = useState(() => isTouchDevice());
+  const [hasNoHover] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: none)").matches,
+  );
   const [isTelegramWebView] = useState(() => isTelegramBrowser());
   const { scrollYProgress } = useScroll();
+  const boostMobileAmbient = isTouch || hasNoHover;
   const heroY = useTransform(scrollYProgress, [0, 0.3], ["0%", "25%"]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
   const bgShiftTop = useTransform(
     scrollYProgress,
     [0, 0.5, 1],
-    [0.02, 0.1, 0.04],
+    boostMobileAmbient ? [0.09, 0.2, 0.11] : [0.02, 0.1, 0.04],
   );
   const bgShiftBottom = useTransform(
     scrollYProgress,
     [0, 0.5, 1],
-    [0.03, 0.08, 0.14],
+    boostMobileAmbient ? [0.1, 0.18, 0.24] : [0.03, 0.08, 0.14],
   );
 
   const [isPreloading, setIsPreloading] = useState(true);
@@ -2342,7 +2380,8 @@ function HomePage() {
 
       <div
         className={cn(
-          "noise min-h-screen bg-[#060606] text-zinc-300 selection:bg-violet-900/40 selection:text-white",
+          "noise min-h-screen text-zinc-300 selection:bg-violet-900/40 selection:text-white",
+          boostMobileAmbient ? "bg-[#090b14]" : "bg-[#060606]",
           isTelegramWebView && "telegram-safe",
         )}
         style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}
@@ -2354,6 +2393,7 @@ function HomePage() {
         <AmbientBackground
           topOpacity={bgShiftTop}
           bottomOpacity={bgShiftBottom}
+          mobileBoost={boostMobileAmbient}
         />
 
         <main className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
@@ -2674,19 +2714,30 @@ function HomePage() {
   );
 }
 
-const ContentShell = ({ children }: { children: React.ReactNode }) => (
-  <div
-    className={cn(
-      "noise min-h-screen bg-[#060606] text-zinc-300 selection:bg-violet-900/40 selection:text-white",
-      isTelegramBrowser() && "telegram-safe",
-    )}
-    style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}
-  >
-    <CustomCursor />
-    <AmbientBackground />
-    <div className="relative z-10">{children}</div>
-  </div>
-);
+const ContentShell = ({ children }: { children: React.ReactNode }) => {
+  const [isTouch] = useState(() => isTouchDevice());
+  const [hasNoHover] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: none)").matches,
+  );
+  const boostMobileAmbient = isTouch || hasNoHover;
+
+  return (
+    <div
+      className={cn(
+        "noise min-h-screen text-zinc-300 selection:bg-violet-900/40 selection:text-white",
+        boostMobileAmbient ? "bg-[#090b14]" : "bg-[#060606]",
+        isTelegramBrowser() && "telegram-safe",
+      )}
+      style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}
+    >
+      <CustomCursor />
+      <AmbientBackground mobileBoost={boostMobileAmbient} />
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
+};
 
 const NoteDetailPage = () => {
   const { slug = "" } = useParams();
