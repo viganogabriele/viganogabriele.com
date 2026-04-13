@@ -2118,7 +2118,7 @@ const Preloader = ({
   </motion.div>
 );
 
-const SectionContainer = ({
+function SectionContainer({
   id,
   className,
   isActive,
@@ -2128,22 +2128,31 @@ const SectionContainer = ({
   className?: string;
   isActive: boolean;
   children: React.ReactNode;
-}) => (
-  <section id={id} className={cn("relative", className)}>
-    <motion.div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 rounded-[2rem]"
-      animate={{
-        opacity: isActive ? 1 : 0,
-        boxShadow: isActive
-          ? "inset 0 0 60px rgba(139,92,246,0.05), 0 0 0 1px rgba(139,92,246,0.18)"
-          : "inset 0 0 0 rgba(139,92,246,0), 0 0 0 1px rgba(139,92,246,0)",
-      }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-    />
-    <div className="relative z-10">{children}</div>
-  </section>
-);
+}) {
+  // On mobile skip the motion.div entirely: Framer Motion maintains an active
+  // animation driver for every instance (even isActive=false), creating 7
+  // concurrent RAF subscribers that compete with the scroll thread.
+  const [noHover] = useState(() => hasNoHoverPointer());
+  return (
+    <section id={id} className={cn("relative", className)}>
+      {!noHover && (
+        <motion.div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-[2rem]"
+          animate={{
+            opacity: isActive ? 1 : 0,
+            boxShadow: isActive
+              ? "inset 0 0 60px rgba(139,92,246,0.05), 0 0 0 1px rgba(139,92,246,0.18)"
+              : "inset 0 0 0 rgba(139,92,246,0), 0 0 0 1px rgba(139,92,246,0)",
+          }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        />
+      )}
+      <div className="relative z-10">{children}</div>
+    </section>
+  );
+}
+
 
 const AmbientBackground = ({
   topOpacity,
@@ -2155,17 +2164,27 @@ const AmbientBackground = ({
   mobileBoost?: boolean;
 }) => {
   if (mobileBoost) {
+    // Single div with merged backgrounds — avoids creating multiple paint layers.
+    // overflow:hidden is intentionally omitted: on iOS Safari a position:fixed element
+    // with overflow:hidden forces compositor sync with the main thread on every finger-held
+    // scroll tick, causing blank areas during slow continuous scroll.
     return (
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 ambient-layer gpu-promote">
-        <div className="absolute inset-0 bg-[radial-gradient(88%_62%_at_50%_4%,rgba(56,189,248,0.18),rgba(0,0,0,0)_72%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(80%_56%_at_50%_96%,rgba(167,139,250,0.22),rgba(0,0,0,0)_74%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_50%,rgba(15,23,42,0.20),rgba(0,0,0,0)_70%)]" />
-      </div>
+      <div
+        className="fixed inset-0 pointer-events-none z-0 ambient-layer"
+        style={{
+          background: [
+            "radial-gradient(88% 62% at 50% 4%, rgba(56,189,248,0.18), rgba(0,0,0,0) 72%)",
+            "radial-gradient(80% 56% at 50% 96%, rgba(167,139,250,0.22), rgba(0,0,0,0) 74%)",
+            "radial-gradient(120% 90% at 50% 50%, rgba(15,23,42,0.20), rgba(0,0,0,0) 70%)",
+          ].join(", "),
+        }}
+      />
     );
   }
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 ambient-layer gpu-promote">
+    // overflow:hidden intentionally removed — see comment above.
+    <div className="fixed inset-0 pointer-events-none z-0 ambient-layer gpu-promote">
       {topOpacity ? (
         <motion.div
           aria-hidden
@@ -2188,6 +2207,7 @@ const AmbientBackground = ({
     </div>
   );
 };
+
 
 // ─── App ────────────────────────────────────────────────────────────────────────
 function HomePage() {
@@ -2549,16 +2569,22 @@ function HomePage() {
                   <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 mb-2">
                     01 / About
                   </p>
-                  <motion.h3
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    whileTap={{ scale: 0.985, filter: "brightness(1.15)" }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                    className="text-2xl md:text-3xl font-semibold tracking-tight mb-3 bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent"
-                  >
-                    I build serious things, without being too serious.
-                  </motion.h3>
+                  {hasNoHover ? (
+                    <h3 className="text-2xl md:text-3xl font-semibold tracking-tight mb-3 bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
+                      I build serious things, without being too serious.
+                    </h3>
+                  ) : (
+                    <motion.h3
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      whileTap={{ scale: 0.985, filter: "brightness(1.15)" }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                      className="text-2xl md:text-3xl font-semibold tracking-tight mb-3 bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent"
+                    >
+                      I build serious things, without being too serious.
+                    </motion.h3>
+                  )}
                   <p className="text-zinc-300 leading-relaxed text-base md:text-[17px] max-w-3xl">
                     I blend product operations, frontend engineering and
                     infrastructure into fast, reliable experiences. Build, test,

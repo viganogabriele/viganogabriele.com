@@ -54,18 +54,26 @@ body {
 }
 
 @media (hover: none) and (pointer: coarse) {
+  /* Strip ALL GPU layer-promotion hints on touch.
+     translateZ(0)/will-change promote elements to their own compositor tiles.
+     On mobile the GPU tile budget is small: during slow finger-held scroll
+     the browser exhausts tiles and blanks sections below the viewport until
+     it can re-rasterize. Removing all hints lets the browser manage tiling
+     with its own built-in strategy. */
   .ambient-layer {
     will-change: auto;
+    transform: none;
   }
 
   .ambient-blob {
     will-change: auto;
+    transform: none;
   }
 
-  /* On touch devices, strip will-change from gpu-promote to avoid creating
-     excessive GPU compositing layers that starve the scroll thread. */
   .gpu-promote {
     will-change: auto;
+    transform: none;
+    backface-visibility: visible;
   }
 
   /* Prevent overscroll bounce from forcing extra paint cycles during fast
