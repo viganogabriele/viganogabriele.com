@@ -2,32 +2,13 @@
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon-dark.png?v=5" />
     <link
-      id="site-favicon"
       rel="icon"
       type="image/png"
-      href="/favicon-light.png?v=4"
+      href="/favicon-light.png?v=5"
+      media="(prefers-color-scheme: light)"
     />
-    <script>
-      (() => {
-        const DARK_ICON = "/favicon-dark.png?v=4";
-        const LIGHT_ICON = "/favicon-light.png?v=4";
-        const link = document.getElementById("site-favicon");
-        if (!link) return;
-
-        const media = window.matchMedia("(prefers-color-scheme: dark)");
-        const applyFavicon = () => {
-          link.setAttribute("href", media.matches ? DARK_ICON : LIGHT_ICON);
-        };
-
-        applyFavicon();
-        if (typeof media.addEventListener === "function") {
-          media.addEventListener("change", applyFavicon);
-        } else if (typeof media.addListener === "function") {
-          media.addListener(applyFavicon);
-        }
-      })();
-    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gabriele Viganò — Computer Engineering Student</title>
     <meta
