@@ -501,13 +501,13 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
               type="button"
               onClick={(e) => handleScrollTo(e, "body")}
               data-cursor="hover"
-              className="flex items-center gap-3 group"
+              className="flex items-center gap-3 group rounded-full transition-transform duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
               aria-label="Scroll to top"
             >
               <img
                 src={logo}
                 alt="Gabriele Viganò"
-                className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert"
+                className="h-5 w-auto opacity-80 filter invert transition-all duration-300 group-hover:opacity-100 group-hover:scale-[1.04] group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.32)]"
               />
             </button>
 

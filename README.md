@@ -1,73 +1,32 @@
-# React + TypeScript + Vite
+# viganogabriele.com
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Official personal website of Gabriele Vigano.
 
-Currently, two official plugins are available:
+This project is a custom portfolio focused on identity, storytelling, interaction design, and performance. It includes animated sections, project highlights, a notes area with detail pages, and a playful but professional visual direction.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## What This Project Is
 
-## React Compiler
+- My personal site and digital identity hub
+- A design-heavy, interaction-first frontend project
+- A continuous work in progress, refined over many iterations
+- Built with a strong vibe-coded workflow, then hardened with structured cleanup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Built With
 
-## Expanding the ESLint configuration
+- React
+- TypeScript
+- Vite
+- Framer Motion
+- React Router
+- Tailwind-based utility styling
+- Matter.js (interactive stack playground)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Ownership And Usage
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+This repository is published for viewing/reference purposes only.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+You are not allowed to copy, reuse, republish, modify, redistribute, or create derivative works from this project (code, design, content, branding, or media) without explicit written permission.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+For licensing requests: info@viganogabriele.com
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+See the LICENSE file for full legal terms.
