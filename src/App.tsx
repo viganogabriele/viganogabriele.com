@@ -348,7 +348,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
   const [activeSection, setActiveSection] = useState("#about");
   const [isTouch] = useState(() => isTouchDevice());
   const [isTelegramWebView] = useState(() => isTelegramBrowser());
-  const disableBackdrop = isTelegramWebView && isTouch;
+  const disableBackdrop = isTouch || isTelegramWebView;
   const navLockRef = useRef<{ target: string | null }>({ target: null });
   const navLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -417,10 +417,7 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
 
   // NOTE: no body scroll lock — it breaks IntersectionObserver tracking
 
-  const handleScrollTo = (
-    e: React.MouseEvent<HTMLAnchorElement>,
-    target: string,
-  ) => {
+  const handleScrollTo = (e: React.MouseEvent<HTMLElement>, target: string) => {
     e.preventDefault();
     setMobileOpen(false);
     // Optimistic active update so indicator moves immediately on tap
@@ -502,18 +499,19 @@ const Navbar = ({ onNavigate }: { onNavigate: (target: string) => void }) => {
         >
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <a
-              href="#"
+            <button
+              type="button"
               onClick={(e) => handleScrollTo(e, "body")}
               data-cursor="hover"
               className="flex items-center gap-3 group"
+              aria-label="Scroll to top"
             >
               <img
                 src={logo}
                 alt="Gabriele Viganò"
                 className="h-5 w-auto opacity-80 group-hover:opacity-100 transition-opacity filter invert"
               />
-            </a>
+            </button>
 
             {/* Desktop links — animated sliding indicator via layoutId */}
             <div className="hidden lg:flex items-center gap-1">
@@ -1904,7 +1902,6 @@ interface NoteItem {
   preview: string;
   tags: string[];
   body: string[];
-  sourceLink?: string;
 }
 
 const notes: NoteItem[] = [
@@ -1921,7 +1918,6 @@ const notes: NoteItem[] = [
       "For interactive portfolios, I separate decorative motion from interaction-critical motion. Decorative layers run with gentle timings and low update pressure, while interaction layers get strict spring constraints and shorter lifecycles.",
       "When physics is involved, containment and fallback behavior matter more than visual novelty. If drag escapes bounds on mobile, the experience breaks trust. Robust constraints and release safety are part of UX quality.",
     ],
-    sourceLink: "https://github.com/viganogabriele",
   },
   {
     slug: "student-platform-peak-load",
@@ -1936,7 +1932,6 @@ const notes: NoteItem[] = [
       "I prioritize observability that answers product questions, not just infrastructure metrics. Knowing which flows degrade first helps protect the user journey when capacity gets tight.",
       "Post-event reviews should produce action items tied to product and engineering together. Reliability is a roadmap outcome, not just an ops task.",
     ],
-    sourceLink: "https://github.com/PoliNetwork",
   },
   {
     slug: "homelab-patterns-scale",
@@ -1951,7 +1946,6 @@ const notes: NoteItem[] = [
       "Segmenting workloads by criticality simplifies maintenance windows and lowers recovery time. Monitoring should include service-level checks, not only host-level signals.",
       "A small but disciplined platform can outperform a complex one: fewer moving parts, clearer backups, and repeatable deployment flows.",
     ],
-    sourceLink: "https://github.com/viganogabriele",
   },
 ];
 
@@ -2150,50 +2144,41 @@ const AmbientBackground = ({
   topOpacity?: MotionValue<number>;
   bottomOpacity?: MotionValue<number>;
   mobileBoost?: boolean;
-}) => (
-  <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 ambient-layer gpu-promote">
-    {topOpacity ? (
-      <motion.div
-        aria-hidden
-        style={{ opacity: topOpacity }}
-        className="absolute inset-0 ambient-blob bg-[radial-gradient(70%_55%_at_50%_8%,rgba(56,189,248,0.35),rgba(0,0,0,0)_70%)]"
-      />
-    ) : null}
-    {bottomOpacity ? (
-      <motion.div
-        aria-hidden
-        style={{ opacity: bottomOpacity }}
-        className="absolute inset-0 ambient-blob bg-[radial-gradient(62%_50%_at_50%_92%,rgba(139,92,246,0.3),rgba(0,0,0,0)_72%)]"
-      />
-    ) : null}
-    {mobileBoost ? (
-      <>
-        <div className="absolute inset-0 bg-[radial-gradient(78%_56%_at_50%_6%,rgba(56,189,248,0.18),rgba(0,0,0,0)_72%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(72%_52%_at_50%_96%,rgba(167,139,250,0.2),rgba(0,0,0,0)_72%)]" />
-      </>
-    ) : null}
-    <div
-      className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-900/20 blur-[80px] sm:blur-[140px] ambient-blob"
-      style={{ opacity: mobileBoost ? 0.56 : 0.4 }}
-    />
-    <div
-      className="absolute top-[30%] left-[-18%] w-[52%] h-[52%] rounded-full bg-cyan-500/18 blur-[90px] sm:blur-[160px] ambient-blob"
-      style={{ opacity: mobileBoost ? 0.52 : 0.35 }}
-    />
-    <div
-      className="absolute bottom-[12%] left-[-12%] w-[46%] h-[46%] rounded-full bg-sky-500/15 blur-[80px] sm:blur-[140px] ambient-blob"
-      style={{ opacity: mobileBoost ? 0.5 : 0.35 }}
-    />
-    <div
-      className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/25 blur-[90px] sm:blur-[150px] ambient-blob"
-      style={{ opacity: mobileBoost ? 0.5 : 0.35 }}
-    />
-    <div
-      className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] rounded-full bg-fuchsia-900/20 blur-[80px] sm:blur-[130px] ambient-blob"
-      style={{ opacity: mobileBoost ? 0.48 : 0.35 }}
-    />
-  </div>
-);
+}) => {
+  if (mobileBoost) {
+    return (
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 ambient-layer gpu-promote">
+        <div className="absolute inset-0 bg-[radial-gradient(88%_62%_at_50%_4%,rgba(56,189,248,0.18),rgba(0,0,0,0)_72%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(80%_56%_at_50%_96%,rgba(167,139,250,0.22),rgba(0,0,0,0)_74%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_50%,rgba(15,23,42,0.20),rgba(0,0,0,0)_70%)]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 ambient-layer gpu-promote">
+      {topOpacity ? (
+        <motion.div
+          aria-hidden
+          style={{ opacity: topOpacity }}
+          className="absolute inset-0 ambient-blob bg-[radial-gradient(70%_55%_at_50%_8%,rgba(56,189,248,0.35),rgba(0,0,0,0)_70%)]"
+        />
+      ) : null}
+      {bottomOpacity ? (
+        <motion.div
+          aria-hidden
+          style={{ opacity: bottomOpacity }}
+          className="absolute inset-0 ambient-blob bg-[radial-gradient(62%_50%_at_50%_92%,rgba(139,92,246,0.3),rgba(0,0,0,0)_72%)]"
+        />
+      ) : null}
+      <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-900/20 blur-[80px] sm:blur-[140px] ambient-blob opacity-40" />
+      <div className="absolute top-[30%] left-[-18%] w-[52%] h-[52%] rounded-full bg-cyan-500/18 blur-[90px] sm:blur-[160px] ambient-blob opacity-35" />
+      <div className="absolute bottom-[12%] left-[-12%] w-[46%] h-[46%] rounded-full bg-sky-500/15 blur-[80px] sm:blur-[140px] ambient-blob opacity-35" />
+      <div className="absolute top-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/25 blur-[90px] sm:blur-[150px] ambient-blob opacity-35" />
+      <div className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] rounded-full bg-fuchsia-900/20 blur-[80px] sm:blur-[130px] ambient-blob opacity-35" />
+    </div>
+  );
+};
 
 // ─── App ────────────────────────────────────────────────────────────────────────
 function HomePage() {
@@ -2413,8 +2398,8 @@ function HomePage() {
         <Navbar onNavigate={scrollToSection} />
 
         <AmbientBackground
-          topOpacity={bgShiftTop}
-          bottomOpacity={bgShiftBottom}
+          topOpacity={boostMobileAmbient ? undefined : bgShiftTop}
+          bottomOpacity={boostMobileAmbient ? undefined : bgShiftBottom}
           mobileBoost={boostMobileAmbient}
         />
 

@@ -54,9 +54,14 @@ body {
 }
 
 @media (hover: none) and (pointer: coarse) {
+  .ambient-layer {
+    will-change: auto;
+  }
+
   .ambient-blob {
     content-visibility: visible;
     contain-intrinsic-size: auto;
+    will-change: auto;
   }
 }
 
@@ -121,8 +126,9 @@ body {
 
 @media (hover: none) and (pointer: coarse) {
   .noise::before {
-    opacity: 0.18;
+    opacity: 0.14;
     mix-blend-mode: soft-light;
+    animation: none;
   }
 }
 
