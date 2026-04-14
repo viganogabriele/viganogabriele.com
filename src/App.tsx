@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { type ClassValue, clsx } from "clsx";
 import {
   AnimatePresence,
@@ -2974,6 +2975,7 @@ function App() {
     <BrowserRouter>
       <AppRoutes />
       <Analytics />
+      <SpeedInsights />
     </BrowserRouter>
   );
 }
