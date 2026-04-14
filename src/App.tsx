@@ -59,13 +59,19 @@ const PageMeta = ({
   title,
   description,
   path,
+  noindex = false,
+  imagePath = "/og-cover.jpg",
 }: {
   title: string;
   description: string;
   path: string;
+  noindex?: boolean;
+  imagePath?: string;
 }) => {
   useEffect(() => {
     document.title = title;
+    const pageUrl = `${SITE_URL}${path}`;
+    const imageUrl = `${SITE_URL}${imagePath}`;
 
     const setMeta = (
       selector: string,
@@ -90,6 +96,42 @@ const PageMeta = ({
       "property",
       "og:description",
     );
+    setMeta('meta[property="og:url"]', pageUrl, "property", "og:url");
+    setMeta(
+      'meta[property="og:image"]',
+      imageUrl,
+      "property",
+      "og:image",
+    );
+    setMeta(
+      'meta[property="og:image:alt"]',
+      "Gabriele Viganò portfolio cover",
+      "property",
+      "og:image:alt",
+    );
+    setMeta('meta[name="twitter:card"]', "summary_large_image", "name", "twitter:card");
+    setMeta('meta[name="twitter:title"]', title, "name", "twitter:title");
+    setMeta(
+      'meta[name="twitter:description"]',
+      description,
+      "name",
+      "twitter:description",
+    );
+    setMeta('meta[name="twitter:image"]', imageUrl, "name", "twitter:image");
+    setMeta(
+      'meta[name="twitter:image:alt"]',
+      "Gabriele Viganò portfolio cover",
+      "name",
+      "twitter:image:alt",
+    );
+    setMeta(
+      'meta[name="robots"]',
+      noindex
+        ? "noindex,nofollow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+        : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
+      "name",
+      "robots",
+    );
 
     let canonical = document.head.querySelector<HTMLLinkElement>(
       'link[rel="canonical"]',
@@ -99,8 +141,8 @@ const PageMeta = ({
       canonical.setAttribute("rel", "canonical");
       document.head.appendChild(canonical);
     }
-    canonical.setAttribute("href", `${SITE_URL}${path}`);
-  }, [description, path, title]);
+    canonical.setAttribute("href", pageUrl);
+  }, [description, imagePath, noindex, path, title]);
 
   return null;
 };
@@ -2857,7 +2899,7 @@ const NoteDetailPage = () => {
   return (
     <ContentShell>
       <PageMeta
-        title={`${note.title} | Gabriele Vigano`}
+        title={`${note.title} | Gabriele Viganò`}
         description={note.preview}
         path={`/notes/${note.slug}`}
       />
@@ -2871,7 +2913,7 @@ const NoteDetailPage = () => {
           datePublished: `2026-${note.slug === "motion-performance" ? "04" : note.slug === "student-platform-peak-load" ? "03" : "02"}-01`,
           author: {
             "@type": "Person",
-            name: "Gabriele Vigano",
+            name: "Gabriele Viganò",
           },
           mainEntityOfPage: `${SITE_URL}/notes/${note.slug}`,
         }}
@@ -2914,9 +2956,10 @@ const NoteDetailPage = () => {
 const NotFoundPage = () => (
   <ContentShell>
     <PageMeta
-      title="Page Not Found | Gabriele Vigano"
+      title="Page Not Found | Gabriele Viganò"
       description="The page you are looking for does not exist."
       path="/404"
+      noindex
     />
     <main className="max-w-3xl mx-auto px-6 min-h-screen flex flex-col items-start justify-center">
       <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-500 mb-4">
