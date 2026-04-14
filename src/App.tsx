@@ -2401,8 +2401,8 @@ function HomePage() {
   return (
     <>
       <PageMeta
-        title="Gabriele Vigano | Computer Engineering Student"
-        description="Portfolio of Gabriele Vigano: design engineering, product operations, and infrastructure projects."
+        title="Gabriele Viganò"
+        description="Portfolio of Gabriele Viganò: design engineering, product operations, and infrastructure projects."
         path="/"
       />
       <JsonLd
