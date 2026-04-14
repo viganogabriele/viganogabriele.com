@@ -1188,6 +1188,15 @@ const useMatterPhysics = (
       };
 
       const handleTouchMove = (event: TouchEvent) => {
+        // Fast bail-out: while not dragging, this handler runs during normal
+        // page scroll and must stay effectively no-op on mobile/tablet.
+        const activeDrag = (
+          mouseConstraint as unknown as {
+            constraint: { bodyB: unknown };
+          }
+        ).constraint.bodyB;
+        if (!activeDrag) return;
+
         const point = event.touches[0];
         if (!point) return;
         if (!isPointInsideContainer(point.clientX, point.clientY))
@@ -2189,7 +2198,7 @@ const AmbientBackground = ({
     // scroll tick, causing blank areas during slow continuous scroll.
     return (
       <div
-        className="fixed inset-0 pointer-events-none z-0 ambient-layer"
+        className="absolute inset-0 pointer-events-none z-0 ambient-layer"
         style={{
           background: [
             "radial-gradient(88% 62% at 50% 4%, rgba(56,189,248,0.18), rgba(0,0,0,0) 72%)",
@@ -2434,7 +2443,7 @@ function HomePage() {
 
       <div
         className={cn(
-          "noise min-h-screen text-zinc-300 selection:bg-violet-900/40 selection:text-white",
+          "noise relative min-h-screen text-zinc-300 selection:bg-violet-900/40 selection:text-white",
           boostMobileAmbient ? "bg-[#090b14]" : "bg-[#060606]",
           isTelegramWebView && "telegram-safe",
         )}
@@ -2817,7 +2826,7 @@ const ContentShell = ({ children }: { children: React.ReactNode }) => {
   return (
     <div
       className={cn(
-        "noise min-h-screen text-zinc-300 selection:bg-violet-900/40 selection:text-white",
+        "noise relative min-h-screen text-zinc-300 selection:bg-violet-900/40 selection:text-white",
         boostMobileAmbient ? "bg-[#090b14]" : "bg-[#060606]",
         isTelegramBrowser() && "telegram-safe",
       )}
@@ -2971,6 +2980,40 @@ const AppRoutes = () => (
 );
 
 function App() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const setViewportUnit = () => {
+      const viewportHeight =
+        window.visualViewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty(
+        "--app-vh",
+        `${viewportHeight * 0.01}px`,
+      );
+    };
+
+    setViewportUnit();
+
+    const visualViewport = window.visualViewport;
+    window.addEventListener("resize", setViewportUnit, { passive: true });
+    window.addEventListener("orientationchange", setViewportUnit, {
+      passive: true,
+    });
+    visualViewport?.addEventListener("resize", setViewportUnit, {
+      passive: true,
+    });
+    visualViewport?.addEventListener("scroll", setViewportUnit, {
+      passive: true,
+    });
+
+    return () => {
+      window.removeEventListener("resize", setViewportUnit);
+      window.removeEventListener("orientationchange", setViewportUnit);
+      visualViewport?.removeEventListener("resize", setViewportUnit);
+      visualViewport?.removeEventListener("scroll", setViewportUnit);
+    };
+  }, []);
+
   return (
     <BrowserRouter>
       <AppRoutes />
