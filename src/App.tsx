@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import { type ClassValue, clsx } from "clsx";
 import {
   AnimatePresence,
@@ -2972,6 +2973,7 @@ function App() {
   return (
     <BrowserRouter>
       <AppRoutes />
+      <Analytics />
     </BrowserRouter>
   );
 }
