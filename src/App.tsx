@@ -2401,8 +2401,8 @@ function HomePage() {
   return (
     <>
       <PageMeta
-        title="Gabriele Viganò"
-        description="Portfolio of Gabriele Viganò: design engineering, product operations, and infrastructure projects."
+        title="Gabriele Viganò | Portfolio Website"
+        description="Gabriele Viganò | Portfolio Website"
         path="/"
       />
       <JsonLd
@@ -2412,10 +2412,9 @@ function HomePage() {
           "@graph": [
             {
               "@type": "WebSite",
-              name: "Gabriele Vigano",
+              name: "Gabriele Viganò",
               url: SITE_URL,
-              description:
-                "Portfolio focused on design engineering, product operations, and infrastructure.",
+              description: "Gabriele Viganò | Portfolio Website",
             },
             {
               "@type": "Person",
