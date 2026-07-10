@@ -2,14 +2,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #060606;
-  --color-foreground: #eaeaea;
+  --color-background: #050608;
+  --color-foreground: #f2f3f5;
   --font-sans: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", monospace;
 }
 
 html,
 body {
-  background-color: #060606;
+  background-color: #050608;
   min-height: 100%;
 }
 
@@ -23,7 +24,7 @@ body {
 }
 
 body {
-  background-color: var(--color-background, #060606);
+  background-color: var(--color-background, #050608);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   margin: 0;
@@ -47,8 +48,6 @@ body {
 }
 
 .ambient-blob {
-  /* content-visibility: auto removed — it caused the browser to defer painting
-     elements outside viewport, producing blank areas during fast scroll on mobile. */
   will-change: opacity;
   transform: translateZ(0);
 }
@@ -76,16 +75,11 @@ body {
     backface-visibility: visible;
   }
 
-  /* Prevent overscroll bounce from forcing extra paint cycles during fast
-     flick gestures — the bounce repaint competes with section rendering. */
   html,
   body {
     overscroll-behavior-y: none;
   }
 
-  /* Isolate the main content stacking context so the compositor treats it
-     as one stable layer instead of re-compositing individual sections on
-     every scroll tick. */
   .noise {
     isolation: isolate;
   }
@@ -198,4 +192,186 @@ body {
 .noise.telegram-safe::before {
   animation: none;
   opacity: 0.18;
+}
+
+/* ─── Hero grid background ───────────────────────────────────────────────────── */
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: -1px -1px;
+  transition: background-image 0.6s ease;
+}
+
+.system-overlay {
+  background-image:
+    linear-gradient(90deg, rgba(127, 231, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(127, 231, 255, 0.025) 1px, transparent 1px);
+  background-size: 160px 160px;
+  mix-blend-mode: screen;
+}
+
+.project-panel-grid {
+  background-image:
+    linear-gradient(rgba(127, 231, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127, 231, 255, 0.07) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: linear-gradient(90deg, black, transparent 78%);
+}
+
+.instrument-static::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+[data-system-mode="on"] .project-panel-grid {
+  opacity: 0.38;
+}
+
+[data-system-mode="on"] .expertise-row,
+[data-system-mode="on"] .project-panel,
+[data-system-mode="on"] .note-row,
+[data-system-mode="on"] .cert-row {
+  border-color: rgba(127, 231, 255, 0.17);
+}
+
+[data-system-mode="on"] .static-skill {
+  border-color: rgba(127, 231, 255, 0.28);
+}
+
+@media (max-width: 440px) {
+  .instrument-static {
+    min-height: 34rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .portrait-frame,
+  .portrait-wireframe-overlay,
+  .section-anchor-label,
+  .hero-grid {
+    transition: none;
+  }
+}
+
+/* ─── Hero scanlines ─────────────────────────────────────────────────────────── */
+.hero-scanlines {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.055) 3px,
+    rgba(0, 0, 0, 0.055) 4px
+  );
+  pointer-events: none;
+}
+
+/* ─── Portrait frame ─────────────────────────────────────────────────────────── */
+.portrait-frame {
+  position: relative;
+  transition: filter 0.4s ease;
+}
+
+.portrait-wireframe-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(127, 231, 255, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127, 231, 255, 0.14) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mix-blend-mode: overlay;
+  transition: opacity 0.4s ease;
+  border-radius: inherit;
+}
+
+/* ─── Section anchor labels (visible in system mode) ─────────────────────────── */
+.section-anchor-label {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ─── System Mode activated state ────────────────────────────────────────────── */
+[data-system-mode="on"] .hero-grid {
+  background-image:
+    radial-gradient(circle, rgba(127, 231, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(rgba(127, 231, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127, 231, 255, 0.028) 1px, transparent 1px);
+  background-size: 20px 20px, 64px 64px, 64px 64px;
+  background-position: 10px 10px, -1px -1px, -1px -1px;
+}
+
+[data-system-mode="on"] .portrait-frame {
+  filter: saturate(0.18) brightness(0.65);
+}
+
+[data-system-mode="on"] .portrait-wireframe-overlay {
+  opacity: 1;
+}
+
+[data-system-mode="on"] .section-anchor-label {
+  opacity: 1;
+}
+
+[data-system-mode="on"] .ambient-layer {
+  background-image: radial-gradient(
+    rgba(127, 231, 255, 0.035) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  background-position: 11px 11px;
+}
+
+[data-system-mode="on"] .nav-sys-btn {
+  border-color: rgba(127, 231, 255, 0.45) !important;
+  color: rgba(127, 231, 255, 0.9) !important;
+  box-shadow: 0 0 12px rgba(127, 231, 255, 0.15) !important;
+}
+
+/* ─── Expertise row expand ───────────────────────────────────────────────────── */
+.expertise-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.expertise-row:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Project panel ──────────────────────────────────────────────────────────── */
+.project-panel {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.project-panel:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Notes index row ────────────────────────────────────────────────────────── */
+.note-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.note-row:first-child {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ─── Cert strip row ─────────────────────────────────────────────────────────── */
+.cert-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.cert-row:first-child {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
