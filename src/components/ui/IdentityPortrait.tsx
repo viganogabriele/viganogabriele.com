@@ -1,16 +1,32 @@
 import { motion, useReducedMotion, useSpring, useMotionValue } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import portrait from "../../assets/photo-gabriele.webp";
 import { useFeatureDetect } from "../../hooks/useFeatureDetect";
+import { cn } from "../../lib/cn";
 
-export function IdentityPortrait() {
+type IdentityPortraitProps = {
+  className?: string;
+  fallbackImage?: string;
+};
+
+export function IdentityPortrait({ className, fallbackImage }: IdentityPortraitProps) {
   const { isTouch, hasNoHover, isCompact } = useFeatureDetect();
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
+  const [imageSource, setImageSource] = useState(portrait);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const rotateX = useSpring(y, { stiffness: 90, damping: 22 });
   const rotateY = useSpring(x, { stiffness: 90, damping: 22 });
+
+  useEffect(() => {
+    if (!fallbackImage) return;
+    const image = new Image();
+    image.src = fallbackImage;
+    image.onload = () => setImageSource(fallbackImage);
+    return () => { image.onload = null; };
+  }, [fallbackImage]);
+
   useEffect(() => {
     if (isTouch || hasNoHover || isCompact || reduced || !ref.current) return;
     const element = ref.current;
@@ -28,12 +44,12 @@ export function IdentityPortrait() {
     <motion.div
       ref={ref}
       data-cursor="hover"
-      className="portrait-frame group relative mx-auto w-[min(74vw,22rem)] [perspective:900px] sm:w-[20rem] lg:w-[25rem]"
+      className={cn("portrait-frame group relative mx-auto w-[min(74vw,22rem)] [perspective:900px] sm:w-[20rem] lg:w-[25rem]", className)}
       style={{ rotateX, rotateY }}
     >
       <div className="absolute -inset-px rounded-[2px] bg-gradient-to-b from-cyan-100/80 via-white/5 to-violet-500/30" />
       <div className="relative aspect-[4/5] overflow-hidden rounded-[2px] bg-[#0b0d12]">
-        <img src={portrait} alt="Gabriele Viganò" loading="eager" decoding="async" fetchPriority="high" className="h-full w-full object-cover object-[50%_14%] grayscale-[0.13] contrast-[1.06] transition-transform duration-700 group-hover:scale-[1.035]" />
+        <img src={imageSource} alt="Gabriele Viganò" loading="eager" decoding="async" fetchPriority="high" className="h-full w-full object-cover object-[50%_14%] grayscale-[0.13] contrast-[1.06] transition-transform duration-700 group-hover:scale-[1.035]" />
         <div className="absolute inset-0 bg-[linear-gradient(112deg,rgba(127,231,255,0.14),transparent_27%,transparent_72%,rgba(139,92,246,0.16))]" />
         <div className="portrait-wireframe-overlay" />
       </div>

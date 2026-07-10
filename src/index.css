@@ -261,6 +261,7 @@ body {
 
   .portrait-frame,
   .portrait-wireframe-overlay,
+  .face-hero-canvas,
   .section-anchor-label,
   .hero-grid {
     transition: none;
@@ -297,6 +298,12 @@ body {
   mix-blend-mode: overlay;
   transition: opacity 0.4s ease;
   border-radius: inherit;
+}
+
+.face-hero-canvas canvas {
+  display: block;
+  height: 100% !important;
+  width: 100% !important;
 }
 
 /* ─── Section anchor labels (visible in system mode) ─────────────────────────── */
