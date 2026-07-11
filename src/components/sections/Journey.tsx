@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { timelineItems } from "../../data/timeline";
 import { ease } from "../../lib/motion";
 import { SectionHeader } from "../ui/SectionHeader";
@@ -9,12 +9,31 @@ export function Journey() {
   const { level } = useMotionProfile();
   const staticMotion = level === "static";
   const railRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: railRef,
-    offset: ["start end", "end start"],
-  });
-  const fillScale = useTransform(scrollYProgress, [0.05, 0.85], [0, 1]);
-  const indicatorY = useTransform(scrollYProgress, [0.05, 0.85], ["0%", "100%"]);
+
+  // Use window-level scroll for reliable mobile tracking (native scroll on mobile
+  // does not guarantee that target-based useScroll fires correctly when Lenis is
+  // present, even with syncTouch: false).
+  const { scrollY } = useScroll();
+  const [scrollRange, setScrollRange] = useState<[number, number]>([0, 1]);
+
+  useEffect(() => {
+    const measure = () => {
+      if (!railRef.current) return;
+      const rect = railRef.current.getBoundingClientRect();
+      const pageTop = window.scrollY + rect.top;
+      const pageBottom = window.scrollY + rect.bottom;
+      const vh = window.innerHeight;
+      // Start filling when the rail's top is 95% down the viewport;
+      // finish when the rail's bottom is 15% from the top of the viewport.
+      setScrollRange([pageTop - vh * 0.95, pageBottom - vh * 0.15]);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  const fillScale = useTransform(scrollY, scrollRange, [0, 1]);
+  const indicatorY = useTransform(scrollY, scrollRange, ["0%", "100%"]);
 
   return (
     <section id="journey" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
@@ -23,7 +42,7 @@ export function Journey() {
         title="A path with branches."
         subtitle="A few live threads: what I’m learning, leading, and building next."
       />
-      <div ref={railRef} className="relative ml-2 border-l border-white/[0.1] pl-8 md:ml-[15%] md:pl-12">
+      <div ref={railRef} className="relative ml-4 border-l border-white/[0.1] pl-8 md:ml-[15%] md:pl-12">
         {/* Scroll-driven fill on the timeline rail */}
         {!staticMotion && (
           <>
@@ -55,7 +74,7 @@ export function Journey() {
                 {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-amber-200/50 motion-reduce:animate-none" />}
               </span>
               <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
-                <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600">{item.year}</p>
+                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600 md:mb-0">{item.year}</p>
                 <div>
                   <div className="flex items-center gap-3">
                     <Icon className="h-4 w-4 text-cyan-100/70" />

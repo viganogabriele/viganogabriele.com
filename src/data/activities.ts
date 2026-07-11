@@ -19,7 +19,7 @@ export const activities: Activity[] = [
     title: "Product & UX Direction",
     role: "PoliNetwork web ecosystem",
     description:
-      "I led the platform redesign for a 45,000+ student community, connecting existing services through clearer information architecture and user flows.",
+      "I led a full platform redesign, defining information architecture and user flows to connect existing services into a coherent product.",
     tags: ["UX strategy", "Information architecture", "Product"],
     icon: Network,
     artifact: "network",
@@ -39,7 +39,7 @@ export const activities: Activity[] = [
     title: "Event-Scale Operations",
     role: "Plans that hold under pressure",
     description:
-      "I pair planning with practical execution for community events with up to 1,000+ attendees and structured feedback at every edition.",
+      "I build event operations from scratch: planning, logistics, on-site execution, and structured feedback at every edition.",
     tags: ["Event ops", "Execution", "Governance"],
     icon: Orbit,
     artifact: "scale",
@@ -49,7 +49,7 @@ export const activities: Activity[] = [
     title: "Cross-Team Coordination",
     role: "People, process, momentum",
     description:
-      "I recruited 30+ volunteers across five teams, appointed leads, and built a multi-stage interview process in Italian and English.",
+      "I build lean high-output teams from scratch: multi-stage interviews, appointed leads, and coaching toward autonomous delivery.",
     tags: ["Leadership", "Delivery", "Teams"],
     icon: Users,
     artifact: "constellation",

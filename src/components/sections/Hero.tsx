@@ -13,10 +13,8 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
   const { scrollY } = useScroll();
   const wordmarkScale = useTransform(scrollY, [0, 420], [1, 0.86]);
   const wordmarkY = useTransform(scrollY, [0, 420], [0, -44]);
-  const portraitOpacity = useTransform(scrollY, [0, 420], [1, 0.28]);
-  const portraitScale = useTransform(scrollY, [0, 420], [1, 0.82]);
-  const portraitRotateY = useTransform(scrollY, [0, 420], [0, -14]);
-  const portraitY = useTransform(scrollY, [0, 420], [0, 40]);
+  const portraitOpacity = useTransform(scrollY, [0, 420], [1, 0.3]);
+  const portraitScale = useTransform(scrollY, [0, 420], [1, 0.85]);
   const go = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     onNavigate("#projects");
@@ -84,9 +82,9 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
               className="mt-7 grid max-w-xl grid-cols-3 border-y border-white/[0.09] py-3 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-500"
             >
               {[
-                { label: "Community", value: "45,000+", color: "text-zinc-200" },
-                { label: "Organization", value: "60+ people", color: "text-amber-200" },
-                { label: "Admins", value: "100+", color: "text-zinc-200" },
+                { label: "Volunteers recruited", value: "30+", color: "text-zinc-200" },
+                { label: "Event attendees", value: "1,000+", color: "text-amber-200" },
+                { label: "Students served", value: "45K+", color: "text-zinc-200" },
               ].map((s) => (
                 <motion.span
                   key={s.label}
@@ -130,8 +128,6 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
               : {
                   opacity: portraitOpacity,
                   scale: portraitScale,
-                  rotateY: portraitRotateY,
-                  y: portraitY,
                 }
           }
           className="relative min-h-[17rem] pt-1 sm:min-h-[22rem] lg:min-h-[34rem] lg:pt-0"
