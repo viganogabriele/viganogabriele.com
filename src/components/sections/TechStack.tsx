@@ -1,20 +1,18 @@
 import { useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { secondaryTools, techSkills } from "../../data/techStack";
-import { useFeatureDetect } from "../../hooks/useFeatureDetect";
+import { techSkills, toolGroups } from "../../data/techStack";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { useMatterPhysics } from "../../hooks/useMatterPhysics";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { SectionHeader } from "../ui/SectionHeader";
 
 export function TechStack({ systemActive = false }: { systemActive?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const { isTouch, hasNoHover, isTelegramWebView, isCompact } = useFeatureDetect();
+  const { level, canUsePointerEffects } = useMotionProfile();
   const reduced = useReducedMotion();
-  const disableMotion = Boolean(
-    reduced || isTouch || hasNoHover || isTelegramWebView || isCompact,
-  );
+  const disableMotion = Boolean(reduced || level === "static");
   // Physics is a SYS-mode-only easter egg on desktop.
-  const physicsEnabled = !disableMotion && systemActive;
+  const physicsEnabled = !disableMotion && canUsePointerEffects && systemActive;
   const positions = useMatterPhysics(ref, techSkills, !physicsEnabled);
 
   return (
@@ -66,41 +64,10 @@ export function TechStack({ systemActive = false }: { systemActive?: boolean }) 
                 <span data-sys-reveal className="text-cyan-400/80">SYS ON → physics live</span>
               )}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {techSkills.map((skill, index) => {
-                const Icon = skill.icon;
-                return (
-                  <motion.div
-                    key={skill.label}
-                    initial={disableMotion ? false : { opacity: 0, y: 12 }}
-                    whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-40px" }}
-                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                    className="flex items-center gap-2 border border-white/[0.12] bg-[#10131a]/90 px-3 py-2.5 font-mono text-[11px] text-zinc-200 transition-all hover:-translate-y-0.5 hover:border-cyan-400/40"
-                  >
-                    <Icon className="h-4 w-4 shrink-0" style={{ color: skill.color }} />
-                    {skill.label}
-                  </motion.div>
-                );
-              })}
-            </div>
+            <div className="grid gap-7 md:grid-cols-2">{toolGroups.map((group, groupIndex) => <div key={group.label}><p className="mb-3 font-mono text-[9px] uppercase tracking-[0.16em] text-cyan-100/60">{group.label}</p><div className="flex flex-wrap gap-2">{group.tools.map((tool, index) => <motion.span key={tool} initial={disableMotion ? false : { opacity: 0, y: 10, scale: 0.98 }} whileInView={disableMotion ? undefined : { opacity: 1, y: 0, scale: 1 }} whileTap={disableMotion ? undefined : { scale: 0.97 }} viewport={{ once: true, margin: "-30px" }} transition={{ duration: 0.35, delay: groupIndex * 0.04 + index * 0.025 }} className="tool-chip inline-flex min-h-10 items-center border border-white/[0.12] bg-[#10131a]/90 px-3 py-2 font-mono text-[10px] text-zinc-200">{tool}</motion.span>)}</div></div>)}</div>
           </div>
         )}
 
-        {/* Secondary tools */}
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          <span className="mr-2 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-500">
-            Secondary /
-          </span>
-          {secondaryTools.map((tool) => (
-            <span
-              key={tool}
-              className="inline-flex cursor-default items-center border border-white/[0.1] bg-[#10131a]/60 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-400 transition-all hover:-translate-y-0.5 hover:border-cyan-400/50 hover:bg-[#10131a] hover:text-cyan-100"
-            >
-              {tool}
-            </span>
-          ))}
-        </div>
       </ScrollReveal>
     </section>
   );

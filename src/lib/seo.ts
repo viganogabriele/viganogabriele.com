@@ -17,6 +17,10 @@ export function PageMeta({ title, description, path }: { title: string; descript
     setMeta('meta[name="description"]', description, "name", "description");
     setMeta('meta[property="og:title"]', title, "property", "og:title");
     setMeta('meta[property="og:description"]', description, "property", "og:description");
+    setMeta('meta[property="og:url"]', `${SITE_URL}${path}`, "property", "og:url");
+    setMeta('meta[name="twitter:card"]', "summary_large_image", "name", "twitter:card");
+    setMeta('meta[name="twitter:title"]', title, "name", "twitter:title");
+    setMeta('meta[name="twitter:description"]', description, "name", "twitter:description");
     let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!canonical) {
       canonical = document.createElement("link");

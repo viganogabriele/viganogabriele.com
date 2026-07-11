@@ -1,4 +1,4 @@
-import { Code2, Cpu, Network, Server } from "lucide-react";
+import { Code2, Mic2, Network, Server } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface TimelineItem {
@@ -12,7 +12,7 @@ export interface TimelineItem {
 
 export const timelineItems: TimelineItem[] = [
   {
-    year: "NOW",
+    year: "CURRENT",
     title: "Politecnico di Milano",
     subtitle: "Computer engineering",
     description: "Turning theory into practical systems and better decisions.",
@@ -20,25 +20,25 @@ export const timelineItems: TimelineItem[] = [
     current: true,
   },
   {
-    year: "CURRENT",
+    year: "09/2024 — PRESENT",
     title: "PoliNetwork",
     subtitle: "Product, leadership & operations",
-    description: "Coordinating product direction, operations, and team execution.",
+    description: "Board Member & Treasurer, leading product direction, QA, operations, and cross-team execution.",
     icon: Network,
     current: true,
   },
   {
-    year: "BUILDER MODE",
+    year: "ONGOING",
     title: "Homelab Infrastructure",
     subtitle: "Reliability mindset",
-    description: "A self-hosted environment where recovery and maintainability matter.",
+    description: "Proxmox and TrueNAS with LXC containers, VMs, local redundancy, and encrypted cloud backup.",
     icon: Server,
   },
   {
     year: "ALWAYS",
-    title: "Teaching & communication",
-    subtitle: "C, algorithms & public speaking",
-    description: "Making complex concepts clearer and more useful to other people.",
-    icon: Cpu,
+    title: "Communication & leadership",
+    subtitle: "Public speaking · people · clarity",
+    description: "Making complex decisions clearer in Italian and English, on stage and across teams.",
+    icon: Mic2,
   },
 ];

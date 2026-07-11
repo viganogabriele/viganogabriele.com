@@ -1,4 +1,4 @@
-export type ProjectArtifact = "network" | "portfolio" | "reserved";
+export type ProjectArtifact = "network" | "portfolio" | "studyquest";
 
 export interface Project {
   title: string;
@@ -13,6 +13,8 @@ export interface Project {
   status: string;
   link?: string;
   artifact: ProjectArtifact;
+  metrics: Array<{ value: string; label: string }>;
+  accent: "cyan" | "violet" | "amber";
 }
 
 export const projects: Project[] = [
@@ -22,16 +24,18 @@ export const projects: Project[] = [
     title: "PoliNetwork\nEcosystem",
     description:
       "A connected web and operations ecosystem for a fast-moving student community.",
-    role: "Product & UX lead",
+    role: "Board Member & Treasurer · Product & Operations Lead",
     contribution:
       "Information architecture, UX direction, and coordination across design, engineering, and operations.",
     outcome:
-      "Scaled events from ~150 to 1,000+ attendees and recruited the IT and design teams that sustain the work.",
-    proof: "Owns the web ecosystem’s product direction.",
+      "A coherent platform direction supporting a 45,000+ student community and events with up to 1,000+ attendees.",
+    proof: "30+ volunteers recruited across 5 teams.",
     stack: ["Product", "UX", "Figma", "Operations"],
     status: "In progress · ongoing",
     link: "https://github.com/PoliNetworkOrg",
     artifact: "network",
+    metrics: [{ value: "45K+", label: "students" }, { value: "1K+", label: "event attendees" }],
+    accent: "cyan",
   },
   {
     index: "02",
@@ -49,19 +53,23 @@ export const projects: Project[] = [
     status: "Continuously evolving",
     link: "https://github.com/viganogabriele/viganogabriele.com",
     artifact: "portfolio",
+    metrics: [{ value: "A–Z", label: "design & build" }, { value: "AA", label: "accessibility target" }],
+    accent: "violet",
   },
   {
     index: "03",
-    eyebrow: "An intentional empty slot",
-    title: "Next\nBuild",
+    eyebrow: "24-hour hackathon / AI learning",
+    title: "Study\nQuest",
     description:
-      "Room for the next thing worth shipping. A deliberate blank, not a broken card.",
-    role: "Reserved",
-    contribution: "The brief is still being earned.",
-    outcome: "A new proof point belongs here when it is real.",
-    proof: "Status: waiting for the right problem.",
-    stack: ["R&D", "Curiosity", "Next release"],
-    status: "Reserved",
-    artifact: "reserved",
+      "An AI-powered study planner combining spaced repetition, planning, and gamification.",
+    role: "Team Lead & Full-stack Developer",
+    contribution: "Coordinated a four-person team and shipped the React Native experience in a 24-hour hackathon.",
+    outcome: "A working study-planning concept built around useful AI guidance and repeatable learning habits.",
+    proof: "Designed and shipped by a team of 4 in 24 hours.",
+    stack: ["React Native", "Expo", "Gemini API", "Zustand"],
+    status: "Hackathon build",
+    artifact: "studyquest",
+    metrics: [{ value: "24H", label: "build time" }, { value: "4", label: "team members" }],
+    accent: "amber",
   },
 ];

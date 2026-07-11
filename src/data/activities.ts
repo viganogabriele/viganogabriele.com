@@ -19,7 +19,7 @@ export const activities: Activity[] = [
     title: "Product & UX Direction",
     role: "PoliNetwork web ecosystem",
     description:
-      "I turn fragmented requirements into clear paths, useful structure, and a consistent experience across tools.",
+      "I led the platform redesign for a 45,000+ student community, connecting existing services through clearer information architecture and user flows.",
     tags: ["UX strategy", "Information architecture", "Product"],
     icon: Network,
     artifact: "network",
@@ -29,7 +29,7 @@ export const activities: Activity[] = [
     title: "Quality & Testing",
     role: "Design quality / bug hunting",
     description:
-      "I look for the edge cases and small visual misses that separate a functional release from a finished one.",
+      "I own end-to-end QA across web, bot, and internal tools: finding edge cases, specifying fixes, and tracking them through release.",
     tags: ["QA", "UX review", "Debugging"],
     icon: CheckCircle2,
     artifact: "checklist",
@@ -39,7 +39,7 @@ export const activities: Activity[] = [
     title: "Event-Scale Operations",
     role: "Plans that hold under pressure",
     description:
-      "I pair strategic planning with practical execution, helping event operations grow without becoming chaotic.",
+      "I pair planning with practical execution for community events with up to 1,000+ attendees and structured feedback at every edition.",
     tags: ["Event ops", "Execution", "Governance"],
     icon: Orbit,
     artifact: "scale",
@@ -49,7 +49,7 @@ export const activities: Activity[] = [
     title: "Cross-Team Coordination",
     role: "People, process, momentum",
     description:
-      "I align design, engineering, and operations so that capable people can move together with less friction.",
+      "I recruited 30+ volunteers across five teams, appointed leads, and built a multi-stage interview process in Italian and English.",
     tags: ["Leadership", "Delivery", "Teams"],
     icon: Users,
     artifact: "constellation",

@@ -2,11 +2,14 @@ import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Magnetic } from "../motion/Magnetic";
 import { TextScramble } from "../motion/TextScramble";
-import { FaceHero3D } from "../ui/FaceHero3D";
+import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 import { ease } from "../../lib/motion";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 
 export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
   const reduced = useReducedMotion();
+  const { level } = useMotionProfile();
+  const scrollMotion = !reduced && level === "full";
   const { scrollY } = useScroll();
   const wordmarkScale = useTransform(scrollY, [0, 420], [1, 0.86]);
   const wordmarkY = useTransform(scrollY, [0, 420], [0, -44]);
@@ -19,18 +22,13 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
     onNavigate("#projects");
   };
   return (
-    <section id="top" className="hero-grid relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/[0.07] pt-28">
+    <section id="top" className="hero-grid relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/[0.07] pb-10 pt-24 sm:pt-28">
       <div className="hero-scanlines absolute inset-0 opacity-80" />
       <div className="pointer-events-none absolute inset-x-0 top-[18%] h-px bg-gradient-to-r from-transparent via-cyan-100/20 to-transparent" />
 
-      {/* SYS reveal — top-right build info */}
-      <span data-sys-reveal className="pointer-events-none absolute right-6 top-24 hidden font-mono text-[9px] uppercase tracking-[0.2em] text-cyan-400/80 md:block">
-        BUILD 2.0.42 · SHA a1b2c3d · UP 128d
-      </span>
-
-      <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-5 pb-16 sm:px-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-center lg:px-10">
+      <div className="relative mx-auto grid w-full max-w-7xl gap-7 px-5 pb-12 sm:px-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-10 lg:px-10">
         <motion.div
-          style={reduced ? undefined : { scale: wordmarkScale, y: wordmarkY }}
+          style={scrollMotion ? { scale: wordmarkScale, y: wordmarkY } : undefined}
           className="relative z-10"
         >
           <motion.p
@@ -41,7 +39,7 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
           >
             <motion.span
               className="inline-block h-1.5 w-1.5 rounded-full bg-cyan-300"
-              animate={{ opacity: [0.35, 1, 0.35] }}
+              animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }}
               transition={{ duration: 1.6, repeat: Infinity }}
             />
             Computer Engineering Student · Milan
@@ -54,7 +52,7 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
             initial={reduced ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.23, duration: 0.9, ease: ease.cinematic }}
-            className="mt-5 max-w-4xl text-[17vw] font-medium leading-[0.76] tracking-[-0.09em] text-[#f2f3f5] sm:text-[13vw] lg:text-[7.65rem] xl:text-[9.25rem]"
+            className="hero-wordmark mt-5 max-w-4xl font-medium leading-[0.76] tracking-[-0.09em] text-[#f2f3f5]"
           >
             <span className="block">GABRIELE</span>
             <span className="block pl-[0.06em] text-zinc-300">VIGANÒ</span>
@@ -66,11 +64,11 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
             transition={{ delay: 0.45, duration: 0.6, ease: ease.softSettle }}
             className="mt-10"
           >
-            <p className="flex items-center text-3xl font-medium tracking-[-0.05em] text-cyan-100 sm:text-4xl lg:text-5xl">
-              <TextScramble text="I build cool things." />
+            <p className="flex max-w-3xl items-start text-[clamp(1.55rem,7vw,3rem)] font-medium leading-[0.98] tracking-[-0.05em] text-cyan-100">
+              <TextScramble text="I build products, teams and systems that hold up." />
               <motion.span
                 className="ml-2 inline-block h-8 w-1 bg-cyan-300"
-                animate={{ opacity: [1, 0, 1] }}
+                animate={reduced || level !== "full" ? undefined : { opacity: [1, 0, 1] }}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
               />
             </p>
@@ -86,9 +84,9 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
               className="mt-7 grid max-w-xl grid-cols-3 border-y border-white/[0.09] py-3 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-500"
             >
               {[
-                { label: "Role", value: "Product / UX", color: "text-zinc-300", reveal: "senior · 4Y" },
-                { label: "Status", value: "Building", color: "text-amber-200", reveal: "3 projects" },
-                { label: "Stack", value: "Web / Systems", color: "text-zinc-300", reveal: "12 tools" },
+                { label: "Community", value: "45,000+", color: "text-zinc-200" },
+                { label: "Organization", value: "60+ people", color: "text-amber-200" },
+                { label: "Admins", value: "100+", color: "text-zinc-200" },
               ].map((s) => (
                 <motion.span
                   key={s.label}
@@ -100,7 +98,6 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
                   {s.label}
                   <br />
                   <b className={`mt-1 block font-normal ${s.color}`}>{s.value}</b>
-                  <span data-sys-reveal className="mt-1 block text-cyan-400/80">{s.reveal}</span>
                 </motion.span>
               ))}
             </motion.div>
@@ -118,6 +115,7 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
                   <ArrowDownRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:translate-y-0.5" />
                 </a>
               </Magnetic>
+              <a href="https://linkedin.com/in/viganogabriele" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-cyan-100/40 hover:text-white">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
             </div>
           </motion.div>
         </motion.div>
@@ -127,7 +125,7 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.34, duration: 1, ease: ease.cinematic }}
           style={
-            reduced
+            !scrollMotion
               ? undefined
               : {
                   opacity: portraitOpacity,
@@ -136,14 +134,11 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
                   y: portraitY,
                 }
           }
-          className="relative pt-4 [transform-style:preserve-3d] [perspective:1200px] lg:pt-0"
+          className="relative min-h-[17rem] pt-1 sm:min-h-[22rem] lg:min-h-[34rem] lg:pt-0"
         >
-          <FaceHero3D />
+          <AdaptiveHeroObject />
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-cyan-100/75">
             HERO / X-00 Y-00
-          </span>
-          <span data-sys-reveal className="pointer-events-none absolute -bottom-3 left-0 font-mono text-[9px] uppercase tracking-[0.17em] text-fuchsia-300/80">
-            LAT.WGS84 · TX-42ms
           </span>
         </motion.div>
       </div>
@@ -152,7 +147,7 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
         href="#about"
         onClick={(event) => { event.preventDefault(); onNavigate("#about"); }}
         data-cursor="hover"
-        className="absolute bottom-6 left-5 flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-white sm:left-8 lg:left-10"
+        className="absolute bottom-3 left-5 flex min-h-11 items-center gap-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-white sm:bottom-6 sm:left-8 lg:left-10"
       >
         Scroll to inspect <ArrowUpRight className="h-3 w-3 rotate-90" />
       </a>

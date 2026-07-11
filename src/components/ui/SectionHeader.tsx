@@ -1,13 +1,11 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 import { ScrollReveal } from "../motion/ScrollReveal";
-import { useFeatureDetect } from "../../hooks/useFeatureDetect";
-import { useReducedMotion } from "framer-motion";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 
 export function SectionHeader({ index, title, subtitle }: { index: string; title: string; subtitle?: string }) {
-  const reduced = useReducedMotion();
-  const { isTouch, hasNoHover, isTelegramWebView, isCompact } = useFeatureDetect();
-  const disableMotion = Boolean(reduced || isTouch || hasNoHover || isTelegramWebView || isCompact);
+  const { level } = useMotionProfile();
+  const disableMotion = level === "static";
 
   // Split by whitespace but preserve explicit newlines
   const words = useMemo(() => {
@@ -22,9 +20,6 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
         <span>{index}</span>
         <span className="h-px w-10 bg-zinc-700" />
         <span className="section-anchor-label text-cyan-200">GRID / {index}</span>
-        <span data-sys-reveal className="ml-auto text-fuchsia-300/70">
-          NODE.OK · CHK 7F.31
-        </span>
       </div>
 
       <div className="relative mt-4 overflow-hidden pb-2">
@@ -53,7 +48,7 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
                   key={`w-${i}`}
                   className="inline-block will-change-transform"
                   variants={{
-                    hidden: { opacity: 0, y: 40, filter: "blur(6px)" },
+                    hidden: { opacity: 0, y: level === "lite" ? 16 : 24, filter: level === "lite" ? "none" : "blur(3px)" },
                     show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
                   }}
                 >
@@ -68,8 +63,8 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
         <motion.span
           className="absolute bottom-0 left-0 h-px bg-gradient-to-r from-cyan-400/70 via-white/20 to-transparent"
           style={{ width: "100%", transformOrigin: "left" }}
-          initial={{ scaleX: 0 }}
-          whileInView={{ scaleX: 1 }}
+          initial={disableMotion ? false : { scaleX: 0 }}
+          whileInView={disableMotion ? undefined : { scaleX: 1 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 1.4, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
         />

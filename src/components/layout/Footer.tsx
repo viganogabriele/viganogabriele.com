@@ -3,6 +3,7 @@ import { ArrowUpRight, Check, Copy, Mail } from "lucide-react";
 import { useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
 import { ScrollReveal } from "../motion/ScrollReveal";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 
 const EMAIL = "info@viganogabriele.com";
 
@@ -21,14 +22,17 @@ const LinkedInIcon = ({ className }: { className?: string }) => (
 
 export function Footer({ onNavigate }: { onNavigate: (target: string) => void }) {
   const [copied, setCopied] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
+  const { level } = useMotionProfile();
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(EMAIL);
       setCopied(true);
+      setCopyMessage("Email address copied.");
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      /* graceful no-op if clipboard blocked */
+      setCopyMessage(`Copy unavailable. Email ${EMAIL}.`);
     }
   };
 
@@ -51,7 +55,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               <span className="ml-1.5 text-cyan-100">gabriele</span>
               <motion.span
                 className="ml-1.5 inline-block h-3.5 w-1.5 bg-cyan-400 align-middle"
-                animate={{ opacity: [1, 0, 1] }}
+                animate={level === "full" ? { opacity: [1, 0, 1] } : undefined}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
               />
             </div>
@@ -75,7 +79,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                 type="button"
                 onClick={copy}
                 data-cursor="hover"
-                className="group relative inline-flex items-center gap-2 border border-white/[0.14] px-4 py-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-cyan-400/60 hover:text-cyan-100"
+                className="group relative inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 py-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-cyan-400/60 hover:text-cyan-100"
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {copied ? (
@@ -106,6 +110,8 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                 </AnimatePresence>
               </button>
 
+              <span className="sr-only" aria-live="polite">{copyMessage}</span>
+
             </div>
           </div>
 
@@ -115,7 +121,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               target="_blank"
               rel="noreferrer"
               data-cursor="hover"
-              className="flex items-center justify-between border-b border-white/[0.08] pb-4 hover:text-white"
+              className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
             >
               GitHub <GitHubIcon className="h-4 w-4" />
             </a>
@@ -124,14 +130,14 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               target="_blank"
               rel="noreferrer"
               data-cursor="hover"
-              className="flex items-center justify-between border-b border-white/[0.08] pb-4 hover:text-white"
+              className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
             >
               LinkedIn <LinkedInIcon className="h-4 w-4" />
             </a>
             <button
               type="button"
-              onClick={() => onNavigate("#about")}
-              className="flex items-center justify-between border-b border-white/[0.08] pb-4 text-left hover:text-white"
+              onClick={() => onNavigate("body")}
+              className="flex min-h-12 items-center justify-between border-b border-white/[0.08] text-left hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
             >
               Back to top <span>↑</span>
             </button>

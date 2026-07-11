@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useFeatureDetect } from "../../hooks/useFeatureDetect";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 
 const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
 
 export function TextScramble({ text, className }: { text: string; className?: string }) {
   const [display, setDisplay] = useState(text);
-  const { hasNoHover } = useFeatureDetect();
+  const { level, canUsePointerEffects } = useMotionProfile();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scramble = useCallback(() => {
     let frame = 0;
@@ -23,13 +23,13 @@ export function TextScramble({ text, className }: { text: string; className?: st
     tick();
   }, [text]);
   useEffect(() => {
-    scramble();
+    if (level !== "static") scramble();
     return () => { if (timer.current) clearTimeout(timer.current); };
-  }, [scramble]);
+  }, [level, scramble]);
   return (
     <span
       className={className}
-      onMouseEnter={() => !hasNoHover && scramble()}
+      onMouseEnter={() => canUsePointerEffects && scramble()}
       aria-label={text}
     >
       {display}

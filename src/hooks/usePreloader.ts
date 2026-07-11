@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 
 export function usePreloader(reducedMotion: boolean | null) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try { return sessionStorage.getItem("gv-preloaded") !== "1"; } catch { return true; }
+  });
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    if (!loading) return;
     let frame = 0;
     let timeout = 0;
     let mounted = true;
@@ -18,20 +21,15 @@ export function usePreloader(reducedMotion: boolean | null) {
 
     const finish = async () => {
       const fonts = document.fonts?.ready ?? Promise.resolve();
-      const images = Array.from(document.images)
-        .filter((image) => !image.complete)
-        .map(
-          (image) =>
-            new Promise<void>((resolve) => {
-              image.addEventListener("load", () => resolve(), { once: true });
-              image.addEventListener("error", () => resolve(), { once: true });
-            }),
-        );
-      await Promise.all([fonts, ...images, new Promise((resolve) => setTimeout(resolve, 420))]);
+      await Promise.race([
+        Promise.all([fonts, new Promise((resolve) => setTimeout(resolve, 360))]),
+        new Promise((resolve) => setTimeout(resolve, 900)),
+      ]);
       if (!mounted) return;
       cancelAnimationFrame(frame);
       setProgress(100);
-      timeout = window.setTimeout(() => mounted && setLoading(false), reducedMotion ? 80 : 360);
+      try { sessionStorage.setItem("gv-preloaded", "1"); } catch { /* restricted storage */ }
+      timeout = window.setTimeout(() => mounted && setLoading(false), reducedMotion ? 40 : 260);
     };
 
     frame = requestAnimationFrame(tick);
@@ -41,7 +39,7 @@ export function usePreloader(reducedMotion: boolean | null) {
       cancelAnimationFrame(frame);
       clearTimeout(timeout);
     };
-  }, [reducedMotion]);
+  }, [loading, reducedMotion]);
 
   return { loading, progress };
 }

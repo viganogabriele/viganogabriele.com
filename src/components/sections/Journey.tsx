@@ -1,14 +1,13 @@
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { timelineItems } from "../../data/timeline";
 import { ease } from "../../lib/motion";
 import { SectionHeader } from "../ui/SectionHeader";
-import { useFeatureDetect } from "../../hooks/useFeatureDetect";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 
 export function Journey() {
-  const reduced = useReducedMotion();
-  const { isTouch, hasNoHover, isTelegramWebView, isCompact } = useFeatureDetect();
-  const staticMotion = Boolean(reduced || isTouch || hasNoHover || isTelegramWebView || isCompact);
+  const { level } = useMotionProfile();
+  const staticMotion = level === "static";
   const railRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: railRef,
@@ -53,7 +52,7 @@ export function Journey() {
               className="relative pb-12 last:pb-0"
             >
               <span className={`absolute -left-[2.34rem] top-1 h-4 w-4 rounded-full border ${item.current ? "border-amber-200 bg-amber-200/20 shadow-[0_0_0_5px_rgba(245,184,73,0.08)]" : "border-zinc-600 bg-[#050608]"}`}>
-                {item.current && <span className="absolute inset-1 animate-ping rounded-full bg-amber-200/50 motion-reduce:animate-none" />}
+                {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-amber-200/50 motion-reduce:animate-none" />}
               </span>
               <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
                 <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600">{item.year}</p>

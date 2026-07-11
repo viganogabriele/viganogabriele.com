@@ -1,9 +1,12 @@
 import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter, Route, Routes, useLocation, useNavigationType } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { HomePage } from "./pages/HomePage";
-import { NotePage } from "./pages/NotePage";
-import { NotFoundPage } from "./pages/NotFoundPage";
+import { useMotionProfile } from "./hooks/useMotionProfile";
+
+const NotePage = lazy(() => import("./pages/NotePage").then((module) => ({ default: module.NotePage })));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
 
 function RouteScroll() {
   const location = useLocation();
@@ -29,5 +32,12 @@ function RouteScroll() {
 }
 
 export default function App() {
-  return <BrowserRouter><RouteScroll /><Routes><Route path="/" element={<HomePage />} /><Route path="/index.html" element={<HomePage />} /><Route path="/viganogabriele.com" element={<HomePage />} /><Route path="/viganogabriele.com/" element={<HomePage />} /><Route path="/viganogabriele.com/index.html" element={<HomePage />} /><Route path="/notes/:slug" element={<NotePage />} /><Route path="*" element={<NotFoundPage />} /></Routes><Analytics /></BrowserRouter>;
+  const analyticsEnabled = !["localhost", "127.0.0.1"].includes(window.location.hostname);
+  return <BrowserRouter><RouteScroll /><AnimatedRoutes />{analyticsEnabled && <Analytics />}</BrowserRouter>;
+}
+
+function AnimatedRoutes() {
+  const location = useLocation();
+  const { prefersReducedMotion } = useMotionProfile();
+  return <AnimatePresence mode="wait" initial={false}><motion.div className="relative" key={location.pathname} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }} transition={{ duration: prefersReducedMotion ? 0 : 0.24 }}><Suspense fallback={<div className="min-h-screen bg-[#050608]" />}><Routes location={location}><Route path="/" element={<HomePage />} /><Route path="/index.html" element={<HomePage />} /><Route path="/viganogabriele.com" element={<HomePage />} /><Route path="/viganogabriele.com/" element={<HomePage />} /><Route path="/viganogabriele.com/index.html" element={<HomePage />} /><Route path="/notes/:slug" element={<NotePage />} /><Route path="*" element={<NotFoundPage />} /></Routes></Suspense></motion.div></AnimatePresence>;
 }

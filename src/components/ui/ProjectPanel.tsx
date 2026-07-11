@@ -1,15 +1,14 @@
 import { ArrowUpRight } from "lucide-react";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import type { Project } from "../../data/projects";
 import { ArtifactSVG } from "./ArtifactSVG";
 import { ease } from "../../lib/motion";
-import { useFeatureDetect } from "../../hooks/useFeatureDetect";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 
 export function ProjectPanel({ project, reverse }: { project: Project; reverse: boolean }) {
-  const reduced = useReducedMotion();
-  const { isTouch, hasNoHover, isTelegramWebView, isCompact } = useFeatureDetect();
-  const staticMotion = Boolean(reduced || isTouch || hasNoHover || isTelegramWebView || isCompact);
+  const { level } = useMotionProfile();
+  const staticMotion = level === "static";
   const panelRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: panelRef,
@@ -26,7 +25,8 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
       whileInView={staticMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-90px" }}
       transition={{ duration: 0.8, ease: ease.cinematic }}
-      className="project-panel group relative grid overflow-hidden border-x border-white/[0.06] px-5 py-7 sm:px-8 sm:py-10 lg:grid-cols-2 lg:gap-16 lg:px-12 lg:py-14"
+      data-accent={project.accent}
+      className="project-panel group relative grid overflow-hidden border-x border-white/[0.06] px-5 py-8 sm:px-8 sm:py-10 lg:grid-cols-2 lg:gap-16 lg:px-12 lg:py-14"
     >
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-700 group-hover:opacity-100 project-panel-grid" />
       <div className="absolute left-0 top-0 h-px w-0 bg-cyan-200 transition-all duration-700 group-hover:w-full" />
@@ -43,15 +43,11 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
 
       <div className={`flex flex-col justify-between gap-10 pt-7 lg:pt-0 ${reverse ? "lg:order-1" : ""}`}>
         <div className="relative z-10">
-          <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
-            <span className="flex items-center gap-2">
+          <div className="flex flex-col gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:tracking-[0.16em]">
+            <span className="flex min-w-0 items-center gap-2">
               {project.index} / {project.eyebrow}
-              <span data-sys-reveal className="text-cyan-400/80">
-                ·SHA {project.index.replace(/[^0-9]/g, "")}f{project.index.replace(/[^0-9]/g, "")}a
-              </span>
             </span>
-            <span className="flex items-center gap-2 text-amber-200">
-              <span data-sys-reveal className="text-fuchsia-300/80">LOC 1.4k ·</span>
+            <span className="flex shrink-0 items-center gap-2 text-amber-200">
               {project.status}
             </span>
           </div>
@@ -59,6 +55,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
             {project.title}
           </h3>
           <p className="mt-7 max-w-xl text-base leading-relaxed text-zinc-400">{project.description}</p>
+          <div className="mt-7 grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-5">{project.metrics.map((metric) => <div key={metric.label}><p className="text-2xl font-medium tracking-[-0.05em] text-zinc-100">{metric.value}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-600">{metric.label}</p></div>)}</div>
         </div>
         <div className="relative z-10 grid gap-6 border-t border-white/[0.09] pt-6 text-sm md:grid-cols-2">
           <div>
@@ -85,7 +82,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
               target="_blank"
               rel="noreferrer"
               data-cursor="hover"
-              className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-cyan-100 transition-colors hover:text-white"
+              className="inline-flex min-h-11 items-center gap-2 px-1 font-mono text-[10px] uppercase tracking-[0.14em] text-cyan-100 transition-colors hover:text-white"
             >
               Inspect <ArrowUpRight className="h-3.5 w-3.5" />
             </a>
