@@ -1,4 +1,4 @@
-import { motion, useReducedMotion, useSpring, useMotionValue } from "framer-motion";
+import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from "framer-motion";
 import { useEffect, useRef } from "react";
 import imageFace from "../../assets/image-face.png";
 import { useFeatureDetect } from "../../hooks/useFeatureDetect";
@@ -14,56 +14,115 @@ export function IdentityPortrait({ className }: IdentityPortraitProps) {
   const ref = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotateX = useSpring(y, { stiffness: 90, damping: 22 });
-  const rotateY = useSpring(x, { stiffness: 90, damping: 22 });
+  const rotateX = useSpring(y, { stiffness: 82, damping: 20, mass: 0.7 });
+  const rotateY = useSpring(x, { stiffness: 82, damping: 20, mass: 0.7 });
+  const glowX = useSpring(useTransform(x, (v) => v * -0.7), { stiffness: 64, damping: 20 });
+  const glowY = useSpring(useTransform(y, (v) => v * 0.5), { stiffness: 64, damping: 20 });
   const enableInteraction = !isTouch && !hasNoHover && !isCompact && !reduced;
+  // On mobile / no-hover devices, run a subtle auto-rotation loop so the card still feels 3D
+  const autoRotate = !enableInteraction && !reduced;
 
   useEffect(() => {
     if (!enableInteraction || !ref.current) return;
     const element = ref.current;
     const move = (event: PointerEvent) => {
       const box = element.getBoundingClientRect();
-      x.set(((event.clientX - box.left) / box.width - 0.5) * -7);
-      y.set(((event.clientY - box.top) / box.height - 0.5) * 7);
+      const pointerX = (event.clientX - box.left) / box.width;
+      const pointerY = (event.clientY - box.top) / box.height;
+      x.set((pointerX - 0.5) * -14);
+      y.set((pointerY - 0.5) * 14);
+      element.style.setProperty("--portrait-pointer-x", `${pointerX * 100}%`);
+      element.style.setProperty("--portrait-pointer-y", `${pointerY * 100}%`);
     };
-    const reset = () => { x.set(0); y.set(0); };
+    const reset = () => {
+      x.set(0);
+      y.set(0);
+      element.style.setProperty("--portrait-pointer-x", "50%");
+      element.style.setProperty("--portrait-pointer-y", "45%");
+    };
     element.addEventListener("pointermove", move);
     element.addEventListener("pointerleave", reset);
-    return () => { element.removeEventListener("pointermove", move); element.removeEventListener("pointerleave", reset); };
+    return () => {
+      element.removeEventListener("pointermove", move);
+      element.removeEventListener("pointerleave", reset);
+    };
   }, [enableInteraction, x, y]);
+
+  // Device orientation tilt on mobile (iOS / Android)
+  useEffect(() => {
+    if (!isTouch || reduced || !ref.current) return;
+    const element = ref.current;
+    const onOrient = (e: DeviceOrientationEvent) => {
+      if (e.beta == null || e.gamma == null) return;
+      const px = Math.max(-1, Math.min(1, e.gamma / 45));
+      const py = Math.max(-1, Math.min(1, (e.beta - 45) / 45));
+      x.set(px * -8);
+      y.set(py * 8);
+      element.style.setProperty("--portrait-pointer-x", `${50 + px * 30}%`);
+      element.style.setProperty("--portrait-pointer-y", `${50 + py * 30}%`);
+    };
+    window.addEventListener("deviceorientation", onOrient);
+    return () => window.removeEventListener("deviceorientation", onOrient);
+  }, [isTouch, reduced, x, y]);
 
   return (
     <motion.div
-      animate={reduced ? undefined : { y: [0, -10, 0] }}
-      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-      className={cn("relative mx-auto w-[min(74vw,22rem)] sm:w-[20rem] lg:w-[25rem]", className)}
+      initial={reduced ? false : { opacity: 0, scale: 0.92, y: 22 }}
+      animate={reduced ? undefined : { opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.9, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
+      className={cn("relative mx-auto w-[min(78vw,22rem)] sm:w-[20rem] lg:w-[25rem]", className)}
     >
-      {/* Soft ambient glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -inset-8 rounded-full bg-[radial-gradient(ellipse_at_55%_45%,rgba(127,231,255,0.09)_0%,transparent_65%)] blur-3xl"
-      />
       <motion.div
-        ref={ref}
-        data-cursor="hover"
-        className="portrait-frame group relative [perspective:900px]"
-        style={enableInteraction ? { rotateX, rotateY } : undefined}
+        animate={reduced ? undefined : { y: [0, -9, 0], rotateZ: [0, 0.32, 0] }}
+        transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut" }}
+        className="portrait-float"
       >
-        <div className="absolute -inset-px rounded-[2px] bg-gradient-to-b from-cyan-100/70 via-white/5 to-violet-500/30" />
-        <div className="relative aspect-[4/5] overflow-hidden rounded-[2px] bg-[#0b0d12]">
-          <img
-            src={imageFace}
-            alt="Gabriele Viganò"
-            loading="eager"
-            decoding="async"
-            fetchPriority="high"
-            className="h-full w-full object-cover object-top contrast-[1.04] transition-transform duration-700 group-hover:scale-[1.03]"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(112deg,rgba(127,231,255,0.10),transparent_27%,transparent_72%,rgba(139,92,246,0.14))]" />
-          <div className="portrait-wireframe-overlay" />
-        </div>
-        <span className="absolute -bottom-6 left-0 font-mono text-[9px] tracking-[0.16em] text-zinc-500">IDENTITY / 45.4642° N, 9.1900° E</span>
-        <span className="absolute -right-6 top-5 hidden -rotate-90 origin-top-left font-mono text-[9px] tracking-[0.16em] text-zinc-500 sm:block">MILAN / IT</span>
+        <div aria-hidden className="portrait-orbit portrait-orbit-one" />
+        <div aria-hidden className="portrait-orbit portrait-orbit-two" />
+        <motion.div
+          ref={ref}
+          data-cursor="hover"
+          className="portrait-frame group relative"
+          animate={
+            autoRotate
+              ? { rotateY: [-8, 8, -8], rotateX: [4, -4, 4] }
+              : undefined
+          }
+          transition={
+            autoRotate ? { duration: 9, repeat: Infinity, ease: "easeInOut" } : undefined
+          }
+          style={enableInteraction ? { rotateX, rotateY } : undefined}
+        >
+          <div aria-hidden className="portrait-shadow" />
+          <div aria-hidden className="portrait-border" />
+          <div className="portrait-visual relative aspect-[4/5] overflow-hidden rounded-[2px] bg-[#06090e]">
+            <img
+              src={imageFace}
+              alt="Gabriele Viganò"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              className="portrait-base h-full w-full object-cover object-top"
+              style={{ transform: "translateZ(-30px)" }}
+            />
+            <motion.div
+              aria-hidden
+              className="portrait-glow-layer"
+              style={enableInteraction ? { x: glowX, y: glowY, z: 60 } : { z: 30 }}
+            />
+            <div aria-hidden className="portrait-grid-layer" style={{ transform: "translateZ(20px)" }} />
+            <div aria-hidden className="portrait-lens" />
+            <div aria-hidden className="portrait-scan" style={{ transform: "translateZ(40px)" }} />
+            <div aria-hidden className="portrait-noise-layer" />
+            <div aria-hidden className="portrait-wireframe-overlay" />
+            <span aria-hidden className="portrait-corner portrait-corner-tl" style={{ transform: "translateZ(50px)" }} />
+            <span aria-hidden className="portrait-corner portrait-corner-tr" style={{ transform: "translateZ(50px)" }} />
+            <span aria-hidden className="portrait-corner portrait-corner-bl" style={{ transform: "translateZ(50px)" }} />
+            <span aria-hidden className="portrait-corner portrait-corner-br" style={{ transform: "translateZ(50px)" }} />
+            <span aria-hidden className="portrait-readout absolute left-3 top-3 font-mono text-[8px] uppercase tracking-[0.17em] text-cyan-100/80" style={{ transform: "translateZ(60px)" }}>Live / 3D field</span>
+            <span aria-hidden className="portrait-status absolute right-3 top-3 font-mono text-[8px] uppercase tracking-[0.13em] text-zinc-300" style={{ transform: "translateZ(60px)" }}>tracking</span>
+          </div>
+        </motion.div>
       </motion.div>
     </motion.div>
   );

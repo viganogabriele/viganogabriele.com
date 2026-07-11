@@ -32,29 +32,40 @@ export function useMatterPhysics(
       if (cancelled || !containerRef.current) return;
 
       const container = containerRef.current;
-      const engine = Matter.Engine.create({ gravity: { x: 0, y: 0, scale: 0 } });
+      const engine = Matter.Engine.create({ gravity: { x: 0, y: 1, scale: 0.0004 } });
       const bodyWidth = 140;
       const bodyHeight = 44;
       const wallThickness = 240;
+      // top/bottom insets keep pills clear of the "Bench" and "MATTER.JS" labels
+      const topInset = 48;
+      const bottomInset = 48;
       let width = container.clientWidth;
       let height = container.clientHeight;
 
       const walls = [
-        Matter.Bodies.rectangle(width / 2, -wallThickness / 2, width * 2, wallThickness, { isStatic: true }),
-        Matter.Bodies.rectangle(width / 2, height + wallThickness / 2, width * 2, wallThickness, { isStatic: true }),
+        Matter.Bodies.rectangle(width / 2, topInset - wallThickness / 2, width * 2, wallThickness, { isStatic: true }),
+        Matter.Bodies.rectangle(width / 2, height - bottomInset + wallThickness / 2, width * 2, wallThickness, { isStatic: true }),
         Matter.Bodies.rectangle(-wallThickness / 2, height / 2, wallThickness, height * 2, { isStatic: true }),
         Matter.Bodies.rectangle(width + wallThickness / 2, height / 2, wallThickness, height * 2, { isStatic: true }),
       ];
-      const bodies = items.map((item) => {
-        const body = Matter.Bodies.rectangle(
-          Math.min(Math.max(72, item.x), Math.max(72, width - 72)),
-          Math.min(Math.max(28, item.y), Math.max(28, height - 28)),
-          bodyWidth,
-          bodyHeight,
-          { chamfer: { radius: 22 }, restitution: 0.9, friction: 0.005, frictionAir: 0.015, density: 0.05 },
-        );
+      const bodies = items.map((item, i) => {
+        // spread pills across the container width on entry so they don't cluster
+        const spread = Math.max(bodyWidth / 2, width - bodyWidth / 2);
+        const spawnX = bodyWidth / 2 + ((spread - bodyWidth / 2) * (i + 0.5)) / items.length;
+        const spawnY = Math.min(Math.max(28, item.y * 0.6), Math.max(28, height / 2));
+        const body = Matter.Bodies.rectangle(spawnX, spawnY, bodyWidth, bodyHeight, {
+          chamfer: { radius: 22 },
+          restitution: 0.55,
+          friction: 0.015,
+          frictionAir: 0.03,
+          density: 0.05,
+        });
         Matter.Body.setInertia(body, Infinity);
-        Matter.Body.applyForce(body, body.position, { x: (Math.random() - 0.5) * 0.1, y: (Math.random() - 0.5) * 0.1 });
+        // gentle random impulse — no cluster explosion
+        Matter.Body.applyForce(body, body.position, {
+          x: (Math.random() - 0.5) * 0.12,
+          y: (Math.random() - 0.9) * 0.14,
+        });
         return body;
       });
       Matter.World.add(engine.world, [...walls, ...bodies]);
@@ -80,8 +91,10 @@ export function useMatterPhysics(
       };
 
       const clamp = (body: (typeof bodies)[number]) => {
+        const minY = topInset + bodyHeight / 2;
+        const maxY = Math.max(minY, height - bottomInset - bodyHeight / 2);
         const nextX = Math.min(Math.max(bodyWidth / 2, body.position.x), Math.max(bodyWidth / 2, width - bodyWidth / 2));
-        const nextY = Math.min(Math.max(bodyHeight / 2, body.position.y), Math.max(bodyHeight / 2, height - bodyHeight / 2));
+        const nextY = Math.min(Math.max(minY, body.position.y), maxY);
         if (nextX !== body.position.x || nextY !== body.position.y) Matter.Body.setPosition(body, { x: nextX, y: nextY });
       };
 
@@ -109,8 +122,8 @@ export function useMatterPhysics(
       const onResize = () => {
         width = container.clientWidth;
         height = container.clientHeight;
-        Matter.Body.setPosition(walls[0], { x: width / 2, y: -wallThickness / 2 });
-        Matter.Body.setPosition(walls[1], { x: width / 2, y: height + wallThickness / 2 });
+        Matter.Body.setPosition(walls[0], { x: width / 2, y: topInset - wallThickness / 2 });
+        Matter.Body.setPosition(walls[1], { x: width / 2, y: height - bottomInset + wallThickness / 2 });
         Matter.Body.setPosition(walls[2], { x: -wallThickness / 2, y: height / 2 });
         Matter.Body.setPosition(walls[3], { x: width + wallThickness / 2, y: height / 2 });
         bodies.forEach(clamp);

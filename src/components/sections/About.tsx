@@ -1,7 +1,56 @@
+import { motion, useReducedMotion } from "framer-motion";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { SectionHeader } from "../ui/SectionHeader";
+import { useFeatureDetect } from "../../hooks/useFeatureDetect";
+import { ease } from "../../lib/motion";
 
 export function About() {
-  const lines = ["Make the complex legible.", "Give teams a path, not another meeting.", "Polish the details that build trust."];
-  return <section id="about" className="relative mx-auto mt-28 max-w-7xl px-5 sm:px-8 lg:px-10"><SectionHeader index="01 / ABOUT" title="Serious work.\nHuman energy." /><ScrollReveal><div className="grid gap-12 border-l border-white/[0.1] pl-5 md:grid-cols-[1.2fr_0.8fr] md:pl-8"><p className="max-w-2xl text-xl leading-[1.45] tracking-[-0.025em] text-zinc-300 md:text-2xl">I’m Gabriele, a computer engineering student in Milan. I like taking messy ideas, unclear systems, and busy rooms—and giving them a shape people can actually use. At Politecnico and PoliNetwork, that means product direction, resilient operations, and a sharp eye for the experience behind the interface.</p><div className="border-t border-white/[0.1] pt-4 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500"><span className="text-amber-200">Personal detail</span><p className="mt-3 max-w-xs leading-relaxed text-zinc-400">Between lectures at Politecnico and the next PoliNetwork event, I keep a homelab running because systems are more interesting when they are yours to break and fix.</p></div></div></ScrollReveal><div className="mt-16 border-y border-white/[0.08]">{lines.map((line, index) => <ScrollReveal key={line} delay={index * 0.06}><div className="group flex items-center gap-5 border-b border-white/[0.06] py-5 last:border-b-0"><span className="font-mono text-[10px] text-zinc-600">0{index + 1}</span><p className="text-lg tracking-[-0.03em] text-zinc-300 transition-colors group-hover:text-cyan-100 md:text-2xl">{line}</p></div></ScrollReveal>)}</div></section>;
+  const reduced = useReducedMotion();
+  const { isTouch, hasNoHover, isTelegramWebView, isCompact } = useFeatureDetect();
+  const disableMotion = Boolean(reduced || isTouch || hasNoHover || isTelegramWebView || isCompact);
+  const lines = [
+    "Make the complex legible.",
+    "Give teams a path, not another meeting.",
+    "Polish the details that build trust.",
+  ];
+
+  return (
+    <section id="about" className="relative mx-auto mt-28 max-w-7xl px-5 sm:px-8 lg:px-10">
+      <SectionHeader index="01 / ABOUT" title="Serious work.\nHuman energy." />
+      <ScrollReveal>
+        <div className="grid gap-12 border-l border-white/[0.1] pl-5 md:grid-cols-[1.2fr_0.8fr] md:pl-8">
+          <p className="max-w-2xl text-xl leading-[1.45] tracking-[-0.025em] text-zinc-300 md:text-2xl">
+            I’m Gabriele, a computer engineering student in Milan. I like taking messy ideas, unclear systems, and busy rooms—and giving them a shape people can actually use. At Politecnico and PoliNetwork, that means product direction, resilient operations, and a sharp eye for the experience behind the interface.
+          </p>
+          <div className="border-t border-white/[0.1] pt-4 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
+            <span className="text-amber-200">Personal detail</span>
+            <p className="mt-3 max-w-xs leading-relaxed text-zinc-400">
+              Between lectures at Politecnico and the next PoliNetwork event, I keep a homelab running because systems are more interesting when they are yours to break and fix.
+            </p>
+          </div>
+        </div>
+      </ScrollReveal>
+
+      <div className="mt-16 border-y border-white/[0.08]">
+        {lines.map((line, index) => {
+          const fromLeft = index % 2 === 0;
+          return (
+            <motion.div
+              key={line}
+              initial={disableMotion ? false : { opacity: 0, x: fromLeft ? -40 : 40, filter: "blur(4px)" }}
+              whileInView={disableMotion ? undefined : { opacity: 1, x: 0, filter: "blur(0px)" }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.75, delay: index * 0.12, ease: ease.cinematic }}
+              className="group flex items-center gap-5 border-b border-white/[0.06] py-5 last:border-b-0"
+            >
+              <span className="font-mono text-[10px] text-zinc-600">0{index + 1}</span>
+              <p className="text-lg tracking-[-0.03em] text-zinc-300 transition-colors group-hover:text-cyan-100 md:text-2xl">
+                {line}
+              </p>
+            </motion.div>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
