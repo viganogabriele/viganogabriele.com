@@ -14,17 +14,12 @@ import { Navbar } from "../components/layout/Navbar";
 import { Preloader } from "../components/layout/Preloader";
 import { SystemModeOverlay } from "../components/layout/SystemModeOverlay";
 import { ScrollBar } from "../components/motion/ScrollBar";
-import { useMotionProfile } from "../hooks/useMotionProfile";
-import { useLenis } from "../hooks/useLenis";
 import { usePreloader } from "../hooks/usePreloader";
 import { useSystemMode } from "../hooks/useSystemMode";
 import { JsonLd, PageMeta, SITE_URL } from "../lib/seo";
 
 export function HomePage() {
   const reduced = useReducedMotion();
-  const { level } = useMotionProfile();
-  const disableMobileScrollFx = Boolean(reduced || level !== "full");
-  useLenis(disableMobileScrollFx);
   const { loading, progress } = usePreloader(reduced);
   const { active: systemActive, toggle: toggleSystem } = useSystemMode();
 

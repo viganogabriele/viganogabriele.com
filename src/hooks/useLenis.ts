@@ -22,9 +22,9 @@ export function useLenis(disabled: boolean) {
       if (disposed) return;
 
       const lenis = new Lenis({
-        duration: 1.1,
-        lerp: 0.09,
-        wheelMultiplier: 0.95,
+        duration: 1.0,
+        lerp: 0.13,
+        wheelMultiplier: 0.9,
         touchMultiplier: 1,
         smoothWheel: true,
         syncTouch: false,

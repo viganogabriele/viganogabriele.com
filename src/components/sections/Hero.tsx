@@ -11,12 +11,8 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
   const { level } = useMotionProfile();
   const scrollMotion = !reduced && level === "full";
   const { scrollY } = useScroll();
-  const wordmarkScale = useTransform(scrollY, [0, 420], [1, 0.86]);
-  const wordmarkY = useTransform(scrollY, [0, 420], [0, -44]);
-  const portraitOpacity = useTransform(scrollY, [0, 420], [1, 0.28]);
-  const portraitScale = useTransform(scrollY, [0, 420], [1, 0.82]);
-  const portraitRotateY = useTransform(scrollY, [0, 420], [0, -14]);
-  const portraitY = useTransform(scrollY, [0, 420], [0, 40]);
+  const portraitOpacity = useTransform(scrollY, [0, 420], [1, 0.3]);
+  const portraitScale = useTransform(scrollY, [0, 420], [1, 0.85]);
   const go = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     onNavigate("#projects");
@@ -27,10 +23,7 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
       <div className="pointer-events-none absolute inset-x-0 top-[18%] h-px bg-gradient-to-r from-transparent via-cyan-100/20 to-transparent" />
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-7 px-5 pb-12 sm:px-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-10 lg:px-10">
-        <motion.div
-          style={scrollMotion ? { scale: wordmarkScale, y: wordmarkY } : undefined}
-          className="relative z-10"
-        >
+        <div className="relative z-10">
           <motion.p
             initial={reduced ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -84,9 +77,9 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
               className="mt-7 grid max-w-xl grid-cols-3 border-y border-white/[0.09] py-3 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-500"
             >
               {[
-                { label: "Community", value: "45,000+", color: "text-zinc-200" },
-                { label: "Organization", value: "60+ people", color: "text-amber-200" },
-                { label: "Admins", value: "100+", color: "text-zinc-200" },
+                { label: "Volunteers recruited", value: "30+", color: "text-zinc-200" },
+                { label: "Event attendees", value: "1,000+", color: "text-amber-200" },
+                { label: "Students served", value: "45K+", color: "text-zinc-200" },
               ].map((s) => (
                 <motion.span
                   key={s.label}
@@ -118,7 +111,7 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
               <a href="https://linkedin.com/in/viganogabriele" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-cyan-100/40 hover:text-white">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
             </div>
           </motion.div>
-        </motion.div>
+        </div>
 
         <motion.div
           initial={reduced ? false : { opacity: 0, x: 30 }}
@@ -130,8 +123,6 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
               : {
                   opacity: portraitOpacity,
                   scale: portraitScale,
-                  rotateY: portraitRotateY,
-                  y: portraitY,
                 }
           }
           className="relative min-h-[17rem] pt-1 sm:min-h-[22rem] lg:min-h-[34rem] lg:pt-0"

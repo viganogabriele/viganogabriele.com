@@ -489,8 +489,6 @@ body {
     scroll-behavior: auto !important;
   }
 
-  .portrait-frame,
-  .portrait-wireframe-overlay,
   .face-hero-canvas,
   .section-anchor-label,
   .hero-grid {
@@ -518,264 +516,6 @@ body {
   52% { opacity: 0.8; }
 }
 
-/* ─── Portrait frame ─────────────────────────────────────────────────────────── */
-.portrait-float {
-  position: relative;
-  z-index: 0;
-}
-
-.portrait-frame {
-  position: relative;
-  --portrait-pointer-x: 50%;
-  --portrait-pointer-y: 45%;
-  isolation: isolate;
-  perspective: 1500px;
-  perspective-origin: 50% 40%;
-  transform-style: preserve-3d;
-  will-change: transform;
-  transition: filter 0.4s ease;
-}
-
-.portrait-visual {
-  isolation: isolate;
-  transform-style: preserve-3d;
-  box-shadow:
-    0 40px 100px rgba(0, 0, 0, 0.55),
-    0 20px 60px rgba(0, 0, 0, 0.35),
-    0 0 48px rgba(97, 208, 255, 0.18);
-  transform: translateZ(1px);
-}
-
-.portrait-border {
-  position: absolute;
-  inset: -1px;
-  z-index: 3;
-  pointer-events: none;
-  border: 1px solid rgba(189, 239, 255, 0.58);
-  border-radius: 2px;
-  box-shadow:
-    inset 0 0 22px rgba(160, 232, 255, 0.09),
-    0 0 22px rgba(104, 218, 255, 0.14);
-  transform: translateZ(30px);
-}
-
-.portrait-shadow {
-  position: absolute;
-  inset: 5% -7% -9%;
-  z-index: -1;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(70, 190, 255, 0.24), transparent 65%);
-  filter: blur(25px);
-  animation: portrait-aura 5.5s ease-in-out infinite;
-}
-
-.portrait-orbit {
-  position: absolute;
-  z-index: -1;
-  pointer-events: none;
-  border: 1px solid rgba(137, 219, 255, 0.2);
-  border-radius: 50%;
-  transform: translateZ(-10px);
-}
-
-.portrait-orbit-one {
-  top: 10%;
-  right: -12%;
-  width: 48%;
-  aspect-ratio: 1;
-  animation: portrait-orbit 15s linear infinite;
-}
-
-.portrait-orbit-two {
-  bottom: 12%;
-  left: -14%;
-  width: 34%;
-  aspect-ratio: 1;
-  border-color: rgba(168, 122, 255, 0.2);
-  animation: portrait-orbit 10s linear infinite reverse;
-}
-
-.portrait-base {
-  position: relative;
-  z-index: 0;
-  scale: 1.025;
-  filter: contrast(1.06) saturate(0.92);
-  animation: portrait-breathe 7.5s ease-in-out infinite;
-}
-
-.portrait-depth-layer {
-  position: absolute;
-  z-index: 1;
-  inset: -2.25%;
-  pointer-events: none;
-  opacity: 0.43;
-  mix-blend-mode: screen;
-  filter: drop-shadow(0 0 12px rgba(105, 220, 255, 0.23));
-  transform: translateZ(38px);
-}
-
-.portrait-glow-layer {
-  position: absolute;
-  z-index: 2;
-  inset: -10%;
-  pointer-events: none;
-  opacity: 0.75;
-  background: radial-gradient(ellipse at var(--portrait-pointer-x) var(--portrait-pointer-y), rgba(208, 249, 255, 0.22), transparent 30%);
-  mix-blend-mode: screen;
-  transform: translateZ(50px);
-}
-
-.portrait-grid-layer {
-  position: absolute;
-  z-index: 3;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.36;
-  background-image:
-    linear-gradient(rgba(153, 232, 255, 0.13) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(153, 232, 255, 0.13) 1px, transparent 1px);
-  background-size: 28px 28px;
-  background-position: 0 0;
-  mask-image: linear-gradient(135deg, transparent 5%, black 37%, transparent 74%);
-  mix-blend-mode: screen;
-  animation: portrait-grid-drift 12s linear infinite;
-}
-
-.portrait-lens {
-  position: absolute;
-  z-index: 4;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at var(--portrait-pointer-x) var(--portrait-pointer-y), rgba(255, 255, 255, 0.22) 0, rgba(135, 228, 255, 0.09) 13%, transparent 34%),
-    linear-gradient(112deg, rgba(127, 231, 255, 0.13), transparent 30%, transparent 70%, rgba(139, 92, 246, 0.15));
-  mix-blend-mode: screen;
-}
-
-.portrait-scan {
-  position: absolute;
-  z-index: 5;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.portrait-scan::before {
-  content: "";
-  position: absolute;
-  inset-inline: -10%;
-  top: -22%;
-  height: 20%;
-  background: linear-gradient(to bottom, transparent, rgba(199, 246, 255, 0.04) 38%, rgba(204, 249, 255, 0.48) 50%, rgba(109, 217, 255, 0.05) 62%, transparent);
-  filter: blur(0.4px);
-  box-shadow: 0 0 22px rgba(144, 231, 255, 0.22);
-  animation: portrait-scan 5.8s cubic-bezier(0.58, 0, 0.42, 1) infinite;
-}
-
-.portrait-noise-layer {
-  position: absolute;
-  z-index: 6;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.27;
-  background-image: radial-gradient(rgba(219, 251, 255, 0.65) 0.55px, transparent 0.7px);
-  background-size: 5px 5px;
-  mask-image: linear-gradient(to bottom, transparent, black 28%, transparent 80%);
-  mix-blend-mode: soft-light;
-  animation: portrait-noise-shift 2s steps(2, end) infinite;
-}
-
-.portrait-corner {
-  position: absolute;
-  z-index: 7;
-  width: 16px;
-  height: 16px;
-  border-color: rgba(209, 250, 255, 0.88);
-  pointer-events: none;
-  animation: portrait-corner-pulse 2.8s ease-in-out infinite;
-}
-
-.portrait-corner-tl { top: 8px; left: 8px; border-top: 1px solid; border-left: 1px solid; }
-.portrait-corner-tr { top: 8px; right: 8px; border-top: 1px solid; border-right: 1px solid; animation-delay: -0.7s; }
-.portrait-corner-bl { bottom: 8px; left: 8px; border-bottom: 1px solid; border-left: 1px solid; animation-delay: -1.4s; }
-.portrait-corner-br { right: 8px; bottom: 8px; border-right: 1px solid; border-bottom: 1px solid; animation-delay: -2.1s; }
-
-.portrait-readout,
-.portrait-status {
-  z-index: 8;
-  pointer-events: none;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.92);
-}
-
-.portrait-status::before {
-  content: "";
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-right: 5px;
-  border-radius: 50%;
-  background: #9df4d0;
-  box-shadow: 0 0 9px #9df4d0;
-  animation: portrait-status-pulse 1.65s ease-in-out infinite;
-}
-
-@keyframes portrait-aura {
-  0%, 100% { opacity: 0.5; scale: 0.92; }
-  50% { opacity: 0.9; scale: 1.08; }
-}
-
-@keyframes portrait-orbit {
-  to { rotate: 360deg; }
-}
-
-@keyframes portrait-breathe {
-  0%, 100% { scale: 1.025; }
-  50% { scale: 1.045; }
-}
-
-@keyframes portrait-grid-drift {
-  to { background-position: 56px 56px; }
-}
-
-@keyframes portrait-scan {
-  0%, 15% { transform: translateY(-15%); opacity: 0; }
-  25% { opacity: 1; }
-  70% { opacity: 0.72; }
-  85%, 100% { transform: translateY(650%); opacity: 0; }
-}
-
-@keyframes portrait-noise-shift {
-  0% { translate: 0 0; }
-  25% { translate: 1px -1px; }
-  50% { translate: -1px 1px; }
-  75% { translate: 1px 1px; }
-  100% { translate: 0 0; }
-}
-
-@keyframes portrait-corner-pulse {
-  0%, 100% { opacity: 0.38; }
-  50% { opacity: 1; }
-}
-
-@keyframes portrait-status-pulse {
-  0%, 100% { opacity: 0.4; scale: 0.82; }
-  50% { opacity: 1; scale: 1; }
-}
-
-.portrait-wireframe-overlay {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(127, 231, 255, 0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(127, 231, 255, 0.14) 1px, transparent 1px);
-  background-size: 24px 24px;
-  mix-blend-mode: overlay;
-  transition: opacity 0.4s ease;
-  border-radius: inherit;
-}
-
 .face-hero-canvas canvas {
   display: block;
   height: 100% !important;
@@ -800,22 +540,6 @@ body {
   background-position: 10px 10px, -1px -1px, -1px -1px;
 }
 
-[data-system-mode="on"] .portrait-frame {
-  filter: saturate(0.18) brightness(0.65);
-}
-
-[data-system-mode="on"] .portrait-depth-layer {
-  opacity: 0.68;
-}
-
-[data-system-mode="on"] .portrait-grid-layer {
-  opacity: 0.66;
-}
-
-[data-system-mode="on"] .portrait-wireframe-overlay {
-  opacity: 1;
-}
-
 [data-system-mode="on"] .section-anchor-label {
   opacity: 1;
 }
@@ -837,34 +561,14 @@ body {
 
 @media (hover: none) and (pointer: coarse) {
   .hero-grid,
-  .hero-scanlines,
-  .portrait-shadow,
-  .portrait-orbit,
-  .portrait-base,
-  .portrait-grid-layer,
-  .portrait-scan::before,
-  .portrait-noise-layer,
-  .portrait-corner,
-  .portrait-status::before {
+  .hero-scanlines {
     animation: none;
-  }
-
-  .portrait-depth-layer {
-    opacity: 0.28;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-grid,
-  .hero-scanlines,
-  .portrait-shadow,
-  .portrait-orbit,
-  .portrait-base,
-  .portrait-grid-layer,
-  .portrait-scan::before,
-  .portrait-noise-layer,
-  .portrait-corner,
-  .portrait-status::before {
+  .hero-scanlines {
     animation: none !important;
   }
 }

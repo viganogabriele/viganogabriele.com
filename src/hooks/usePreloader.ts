@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 
 export function usePreloader(reducedMotion: boolean | null) {
-  const [loading, setLoading] = useState(() => {
-    try { return sessionStorage.getItem("gv-preloaded") !== "1"; } catch { return true; }
-  });
+  const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -28,7 +26,6 @@ export function usePreloader(reducedMotion: boolean | null) {
       if (!mounted) return;
       cancelAnimationFrame(frame);
       setProgress(100);
-      try { sessionStorage.setItem("gv-preloaded", "1"); } catch { /* restricted storage */ }
       timeout = window.setTimeout(() => mounted && setLoading(false), reducedMotion ? 40 : 260);
     };
 

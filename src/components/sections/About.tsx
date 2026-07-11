@@ -19,7 +19,7 @@ export function About() {
       <ScrollReveal>
         <div className="grid gap-12 border-l border-white/[0.1] pl-5 md:grid-cols-[1.2fr_0.8fr] md:pl-8">
           <p className="max-w-2xl text-xl leading-[1.45] tracking-[-0.025em] text-zinc-300 md:text-2xl">
-            I’m Gabriele, a Computer Engineering student in Milan and Board Member & Treasurer at PoliNetwork. I turn fragmented requirements into products, teams, and operations that people can actually rely on.
+            I’m Gabriele, a Computer Engineering student in Milan directing product, operations and people at PoliNetwork. I turn fragmented requirements into products, teams, and operations that people can actually rely on.
           </p>
           <div className="border-t border-white/[0.1] pt-4 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
             <span className="text-amber-200">Personal detail</span>
@@ -32,7 +32,7 @@ export function About() {
 
       <ScrollReveal className="mt-14">
         <div className="proof-grid grid border-y border-white/[0.09] sm:grid-cols-2 lg:grid-cols-4">
-          {[{ value: "30+", label: "volunteers recruited" }, { value: "5", label: "teams built" }, { value: "1,000+", label: "event attendees" }, { value: "#20", label: "QS 2026 · Engineering & Technology", link: "https://www.polimi.it/en/the-politecnico/news/news-detail/qs-world-university-rankings-by-subject-polimi-tra-i-migliori-atenei-al-mondo" }].map((item, index) => <motion.div key={item.label} initial={disableMotion ? false : { opacity: 0, y: 16 }} whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06, duration: 0.5, ease: ease.cinematic }} className="border-b border-white/[0.07] px-4 py-6 sm:[&:nth-last-child(-n+2)]:border-b-0 lg:border-b-0 lg:border-r lg:last:border-r-0"><p className="text-4xl font-medium tracking-[-0.06em] text-zinc-100">{item.value}</p>{item.link ? <a href={item.link} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center py-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-cyan-100/70 hover:text-cyan-100">{item.label}</a> : <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">{item.label}</p>}</motion.div>)}
+          {[{ value: "30+", label: "volunteers recruited" }, { value: "5", label: "teams built" }, { value: "1,000+", label: "event attendees" }, { value: "Polimi", label: "QS #20 · Engineering & Technology", link: "https://www.polimi.it/en/the-politecnico/news/news-detail/qs-world-university-rankings-by-subject-polimi-tra-i-migliori-atenei-al-mondo" }].map((item, index) => <motion.div key={item.label} initial={disableMotion ? false : { opacity: 0, y: 16 }} whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06, duration: 0.5, ease: ease.cinematic }} className="border-b border-white/[0.07] px-4 py-6 sm:[&:nth-last-child(-n+2)]:border-b-0 lg:border-b-0 lg:border-r lg:last:border-r-0"><p className="text-4xl font-medium tracking-[-0.06em] text-zinc-100">{item.value}</p>{item.link ? <a href={item.link} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center py-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-cyan-100/70 hover:text-cyan-100">{item.label}</a> : <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">{item.label}</p>}</motion.div>)}
         </div>
       </ScrollReveal>
 
