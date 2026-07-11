@@ -14,9 +14,9 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
   webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 4173",
+    command: "npm run build && npm run preview -- --host 127.0.0.1 --port 4173",
     url: "http://127.0.0.1:4173",
     reuseExistingServer: true,
-    timeout: 30_000,
+    timeout: 45_000,
   },
 });

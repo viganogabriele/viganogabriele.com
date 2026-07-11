@@ -125,7 +125,7 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
                   scale: portraitScale,
                 }
           }
-          className="relative min-h-[17rem] pt-1 sm:min-h-[22rem] lg:min-h-[34rem] lg:pt-0"
+          className="relative min-h-[clamp(19rem,88vw,22rem)] pt-1 sm:min-h-[22rem] lg:min-h-[34rem] lg:pt-0"
         >
           <AdaptiveHeroObject />
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-cyan-100/75">
