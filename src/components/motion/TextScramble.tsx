@@ -26,6 +26,13 @@ export function TextScramble({ text, className }: { text: string; className?: st
     if (level !== "static") scramble();
     return () => { if (timer.current) clearTimeout(timer.current); };
   }, [level, scramble]);
+  useEffect(() => {
+    const onSystemToggle = () => {
+      if (level !== "static") scramble();
+    };
+    window.addEventListener("sys:toggle", onSystemToggle);
+    return () => window.removeEventListener("sys:toggle", onSystemToggle);
+  }, [level, scramble]);
   return (
     <span
       className={className}

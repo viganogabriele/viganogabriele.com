@@ -8,16 +8,83 @@
   src: url("@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2") format("woff2-variations");
 }
 
+/* Space Mono is Space Grotesk's ancestor — same bones, second voice.
+   It replaces ui-monospace so the technical labels render identically
+   on every OS instead of picking up whatever the system ships. */
+@font-face {
+  font-family: "Space Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("@fontsource/space-mono/files/space-mono-latin-400-normal.woff2") format("woff2");
+}
+
+/* ── Ember & Phosphor ─────────────────────────────────────────────────────
+   Warm analogue instrument by default; phosphor oscilloscope in system
+   mode. `--accent` swaps ember↔phosphor on <html> and every derived color
+   (utilities, borders, gradients, glows) crossfades with it.
+   Rule of use: ember = something you can do, phosphor = something measured. */
 @theme {
-  --color-background: #050608;
-  --color-foreground: #f2f3f5;
+  --color-background: #070606;
+  --color-surface: #100d0b;
+  --color-foreground: #ede9e2;
+  --color-bone: #ede9e2;
+  --color-ember: #ff6b3d;
+  --color-ember-bright: #ffa588;
+  --color-ember-deep: #b8431f;
+  --color-phosphor: #9fe870;
+  --color-phosphor-dim: #6fa35a;
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  /* Warm-shifted neutrals replace the stock blue-gray zinc ramp. */
+  --color-zinc-100: #ebe7e0;
+  --color-zinc-200: #dbd6ce;
+  --color-zinc-300: #c8c3bb;
+  --color-zinc-400: #a5a099;
+  --color-zinc-500: #8a857e;
+  --color-zinc-600: #78736b;
+  --color-zinc-700: #4a463f;
+  --color-zinc-800: #2a2723;
+  --color-zinc-900: #1a1815;
   --font-sans: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", monospace;
+  --font-mono: "Space Mono", ui-monospace, "SF Mono", "Cascadia Code", monospace;
+}
+
+@property --accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ff6b3d;
+}
+
+@property --accent-soft {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ffa588;
+}
+
+html {
+  --accent: #ff6b3d;
+  --accent-soft: #ffa588;
+  /* Registered custom properties interpolate: one transition retints the
+     entire site when system mode toggles. Safari <16.4 falls back to an
+     instant swap, which is acceptable. */
+  transition: --accent 600ms ease, --accent-soft 600ms ease;
+}
+
+html[data-system-mode="on"] {
+  --accent: #9fe870;
+  --accent-soft: #c8f0a8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    transition: none;
+  }
 }
 
 html,
 body {
-  background-color: #050608;
+  background-color: #070606;
   min-height: 100%;
 }
 
@@ -34,7 +101,7 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid rgba(165, 243, 252, 0.92);
+  outline: 2px solid color-mix(in srgb, var(--accent) 92%, transparent);
   outline-offset: 3px;
 }
 
@@ -47,7 +114,7 @@ a {
   display: flex;
   align-items: center;
   padding: 0 1rem;
-  background: #e8fbff;
+  background: #ede9e2;
   color: #020406;
   font: 600 0.75rem/1 var(--font-sans);
   transform: translateY(-180%);
@@ -68,7 +135,7 @@ a {
 }
 
 body {
-  background-color: var(--color-background, #050608);
+  background-color: var(--color-background, #070606);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   margin: 0;
@@ -80,6 +147,22 @@ body {
 /* Adaptive hero object */
 .hero-wordmark {
   font-size: clamp(3.55rem, 17vw, 9.25rem);
+}
+
+.hero-wordmark-line {
+  overflow: hidden;
+}
+
+.hero-wordmark-line > span {
+  display: block;
+  animation: wordmark-mask 900ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.hero-wordmark-line + .hero-wordmark-line > span { animation-delay: 80ms; }
+
+@keyframes wordmark-mask {
+  from { translate: 0 115%; }
+  to { translate: 0 0; }
 }
 
 .hero-object-shell {
@@ -95,10 +178,10 @@ body {
   width: 100%;
   min-height: 100%;
   overflow: hidden;
-  border: 1px solid rgba(190, 239, 255, 0.24);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
   background:
-    radial-gradient(circle at 55% 42%, rgba(70, 186, 220, 0.13), transparent 46%),
-    linear-gradient(145deg, rgba(11, 19, 27, 0.86), rgba(4, 6, 9, 0.42));
+    radial-gradient(circle at 55% 42%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 46%),
+    linear-gradient(145deg, rgba(18, 13, 10, 0.86), rgba(7, 5, 4, 0.42));
   color: inherit;
   touch-action: pan-y;
   transform: translateZ(0);
@@ -109,7 +192,7 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(115deg, transparent 28%, rgba(171, 239, 255, 0.09) 48%, transparent 68%);
+  background: linear-gradient(115deg, transparent 28%, color-mix(in srgb, var(--accent-soft) 9%, transparent) 48%, transparent 68%);
   translate: -130% 0;
   transition: translate 800ms cubic-bezier(.16, 1, .3, 1);
 }
@@ -124,7 +207,7 @@ body {
   position: absolute;
   inset: 12%;
   border-radius: 50%;
-  background: rgba(88, 214, 255, 0.12);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
   filter: blur(48px);
   animation: hero-aura 7s ease-in-out infinite;
 }
@@ -183,13 +266,13 @@ body {
 
 .hero-fallback-grid {
   opacity: .4;
-  background-image: linear-gradient(rgba(137, 225, 255, .11) 1px, transparent 1px), linear-gradient(90deg, rgba(137, 225, 255, .11) 1px, transparent 1px);
+  background-image: linear-gradient(color-mix(in srgb, var(--accent) 11%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--accent) 11%, transparent) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: linear-gradient(135deg, transparent, #000 35%, transparent 80%);
 }
 
 .hero-fallback-scan {
-  background: linear-gradient(to bottom, transparent 0 46%, rgba(179, 241, 255, .42) 50%, transparent 54%);
+  background: linear-gradient(to bottom, transparent 0 46%, color-mix(in srgb, var(--accent-soft) 42%, transparent) 50%, transparent 54%);
   translate: 0 -110%;
   animation: hero-scan 5.8s ease-in-out infinite;
 }
@@ -200,7 +283,7 @@ body {
   width: 20px;
   height: 20px;
   pointer-events: none;
-  border-color: rgba(198, 246, 255, .86);
+  border-color: color-mix(in srgb, var(--accent-soft) 86%, transparent);
 }
 
 .hero-object-corner-tl { left: 10px; top: 10px; border-left: 1px solid; border-top: 1px solid; }
@@ -214,11 +297,11 @@ body {
   font-family: var(--font-mono);
   font-size: 8px;
   letter-spacing: .14em;
-  color: rgba(207, 248, 255, .72);
+  color: color-mix(in srgb, var(--accent-soft) 72%, transparent);
 }
 
 .hero-object-shell.is-scanning .hero-object-button {
-  border-color: rgba(96, 223, 255, .64);
+  border-color: color-mix(in srgb, var(--accent) 64%, transparent);
 }
 
 @keyframes hero-aura {
@@ -239,24 +322,37 @@ body {
 /* Small technical labels remain legible at WCAG AA contrast. */
 .text-zinc-500,
 .text-zinc-600 {
-  color: #a1a1aa;
+  color: #a5a099;
 }
 
 .tool-chip:hover,
 .tool-chip:active {
-  border-color: rgba(103, 232, 249, .38);
-  color: #cffafe;
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  color: var(--accent-soft);
   transform: translateY(-2px);
 }
 
-.project-panel[data-accent="violet"] { --project-accent: 167 139 250; }
-.project-panel[data-accent="amber"] { --project-accent: 253 230 138; }
-.project-panel[data-accent="cyan"] { --project-accent: 165 243 252; }
+.project-panel[data-accent="ember"] { --project-accent: 255 107 61; }
+.project-panel[data-accent="phosphor"] { --project-accent: 159 232 112; }
+.project-panel[data-accent="bone"] { --project-accent: 237 233 226; }
 .project-panel:active { background-color: rgba(var(--project-accent), .025); }
+
+.project-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(28rem circle at var(--px, 50%) var(--py, 50%), color-mix(in srgb, var(--accent) 11%, transparent), transparent 54%);
+  transition: opacity 250ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .project-panel:hover::after { opacity: 1; }
+}
 
 @media (max-width: 639px) {
   .hero-wordmark { font-size: clamp(3.4rem, 17vw, 4.6rem); }
-  [data-system-mode="on"] [data-sys-reveal] { display: none; }
   .proof-grid > :last-child { border-bottom: 0; }
   .project-panel h3 { font-size: clamp(3rem, 16vw, 4.25rem); }
 }
@@ -343,13 +439,12 @@ body {
   pointer-events: none;
   z-index: 9999;
   transform: translate(-50%, -50%);
-  transition:
-    width 0.2s ease,
-    height 0.2s ease,
-    opacity 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease;
   mix-blend-mode: difference;
   opacity: 1;
 }
+
+.cursor-dot.is-active { scale: 1.45; }
 
 .cursor-ring {
   position: fixed;
@@ -372,8 +467,8 @@ body {
 }
 
 ::selection {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: #ede9e2;
 }
 
 /* Noise texture overlay */
@@ -457,16 +552,21 @@ body {
 
 .system-overlay {
   background-image:
-    linear-gradient(90deg, rgba(127, 231, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(rgba(127, 231, 255, 0.025) 1px, transparent 1px);
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--accent) 2.5%, transparent) 1px, transparent 1px);
   background-size: 160px 160px;
   mix-blend-mode: screen;
 }
 
+.system-mode-wipe {
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--accent) 76%, transparent) 38%, color-mix(in srgb, var(--accent-soft) 92%, transparent) 50%, color-mix(in srgb, var(--accent) 76%, transparent) 62%, transparent);
+  will-change: transform;
+}
+
 .project-panel-grid {
   background-image:
-    linear-gradient(rgba(127, 231, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(127, 231, 255, 0.07) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px);
   background-size: 30px 30px;
   mask-image: linear-gradient(90deg, black, transparent 78%);
 }
@@ -490,11 +590,11 @@ body {
 [data-system-mode="on"] .project-panel,
 [data-system-mode="on"] .note-row,
 [data-system-mode="on"] .cert-row {
-  border-color: rgba(127, 231, 255, 0.17);
+  border-color: color-mix(in srgb, var(--accent) 17%, transparent);
 }
 
 [data-system-mode="on"] .static-skill {
-  border-color: rgba(127, 231, 255, 0.28);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 @media (max-width: 440px) {
@@ -554,9 +654,9 @@ body {
 /* ─── System Mode activated state ────────────────────────────────────────────── */
 [data-system-mode="on"] .hero-grid {
   background-image:
-    radial-gradient(circle, rgba(127, 231, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(rgba(127, 231, 255, 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(127, 231, 255, 0.028) 1px, transparent 1px);
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--accent) 2.8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 2.8%, transparent) 1px, transparent 1px);
   background-size: 20px 20px, 64px 64px, 64px 64px;
   background-position: 10px 10px, -1px -1px, -1px -1px;
 }
@@ -567,7 +667,7 @@ body {
 
 [data-system-mode="on"] .ambient-layer {
   background-image: radial-gradient(
-    rgba(127, 231, 255, 0.035) 1px,
+    color-mix(in srgb, var(--accent) 3.5%, transparent) 1px,
     transparent 1px
   );
   background-size: 22px 22px;
@@ -575,9 +675,9 @@ body {
 }
 
 [data-system-mode="on"] .nav-sys-btn {
-  border-color: rgba(127, 231, 255, 0.45) !important;
-  color: rgba(127, 231, 255, 0.9) !important;
-  box-shadow: 0 0 12px rgba(127, 231, 255, 0.15) !important;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important;
+  color: color-mix(in srgb, var(--accent) 90%, transparent) !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 15%, transparent) !important;
 }
 
 @media (hover: none) and (pointer: coarse) {
@@ -629,9 +729,9 @@ body {
 /* ─── System-mode grid overlay ───────────────────────────────────────────────── */
 .sys-grid-overlay {
   background-image:
-    radial-gradient(circle, rgba(127, 231, 255, 0.28) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(127, 231, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(240, 100, 200, 0.04) 1px, transparent 1px);
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 28%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-ember-deep) 4%, transparent) 1px, transparent 1px);
   background-size: 28px 28px, 112px 112px, 112px 112px;
   animation: sys-grid-drift 14s linear infinite;
 }
@@ -650,8 +750,8 @@ body {
 a:hover .font-mono.uppercase,
 button:hover .font-mono.uppercase,
 [data-cursor="hover"]:hover .font-mono.uppercase {
-  color: rgb(228, 228, 231);
-  text-shadow: 0 0 12px rgba(127, 231, 255, 0.35);
+  color: #dbd6ce;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 /* ─── SYS-mode reveals — hidden info that shows only when SYS is on ──────────── */
@@ -675,6 +775,22 @@ html[data-system-mode="on"] [data-sys-reveal] {
 }
 html:not([data-system-mode="on"]) [data-sys-reveal] {
   animation: none;
+}
+
+.expertise-item {
+  border-left: 1px solid transparent;
+  transition: border-color 350ms ease, background-color 350ms ease;
+}
+
+.expertise-item:has(:focus-visible),
+.expertise-item:hover {
+  border-left-color: var(--accent);
+  background-color: color-mix(in srgb, var(--accent) 3%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-wordmark-line > span { animation: none; }
+  .system-mode-wipe { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   [data-sys-reveal] { animation: none; transition: opacity 200ms ease; }

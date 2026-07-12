@@ -9,8 +9,8 @@ export function ScrollReveal({ children, delay = 0, className }: { children: Rea
   return (
     <m.div
       className={className}
-      initial={{ opacity: 0, y: level === "lite" ? 14 : 22, filter: level === "lite" ? "none" : "blur(3px)" }}
-      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      initial={{ opacity: 0, y: level === "lite" ? 14 : 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: level === "lite" ? 0.45 : dur.reveal, delay, ease: ease.cinematic }}
     >

@@ -1,6 +1,6 @@
 import { AnimatePresence, m } from "framer-motion";
 import { ArrowUpRight, Check, Copy, Mail } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -23,6 +23,8 @@ const LinkedInIcon = ({ className }: { className?: string }) => (
 export function Footer({ onNavigate }: { onNavigate: (target: string) => void }) {
   const [copied, setCopied] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
+  const [terminalActive, setTerminalActive] = useState(false);
+  const [terminalOutput, setTerminalOutput] = useState("");
   const { level } = useMotionProfile();
 
   const copy = async () => {
@@ -36,6 +38,12 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
     }
   };
 
+  useEffect(() => {
+    if (!terminalActive) return;
+    const timer = window.setTimeout(() => setTerminalOutput(`connected / ${EMAIL}`), 400);
+    return () => window.clearTimeout(timer);
+  }, [terminalActive]);
+
   return (
     <ScrollReveal>
       <footer className="mt-36 border-t border-white/[0.08] pb-7 pt-14 md:mt-48 md:pt-20">
@@ -44,21 +52,23 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
               End of transmission / start a conversation
             </p>
-            <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-[#f2f3f5] sm:text-6xl md:text-8xl">
+            <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl">
               Let’s build something that holds up.
             </h2>
 
             {/* Terminal-style prompt */}
-            <div className="mt-9 flex items-center font-mono text-xs text-zinc-500 sm:text-sm">
-              <span className="mr-2 text-cyan-400">$</span>
+            <button type="button" onClick={() => { setTerminalActive(true); setTerminalOutput(""); }} className="mt-9 flex min-h-11 items-center text-left font-mono text-xs text-zinc-500 sm:text-sm" aria-label="Run connect command">
+              <span className="mr-2 text-ember">$</span>
               <span>connect --to</span>
-              <span className="ml-1.5 text-cyan-100">gabriele</span>
+              <span className="ml-1.5 text-bone">gabriele</span>
               <m.span
-                className="ml-1.5 inline-block h-3.5 w-1.5 bg-cyan-400 align-middle"
+                className="ml-1.5 inline-block h-3.5 w-1.5 bg-ember align-middle"
                 animate={level === "full" ? { opacity: [1, 0, 1] } : undefined}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
               />
-            </div>
+              {terminalOutput && <span className="ml-3 text-phosphor">{terminalOutput}</span>}
+            </button>
+            {terminalOutput && <a href={`mailto:${EMAIL}`} className="ml-1 font-mono text-[10px] uppercase tracking-[0.12em] text-phosphor underline underline-offset-4">open mail client</a>}
 
             {/* Multi-channel action row */}
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -66,9 +76,9 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                 <a
                   href={`mailto:${EMAIL}`}
                   data-cursor="hover"
-                  className="group relative inline-flex items-center gap-3 overflow-hidden bg-[#f2f3f5] px-6 py-4 text-sm font-semibold text-black transition-colors hover:bg-cyan-100"
+                  className="group relative inline-flex items-center gap-3 overflow-hidden bg-bone px-6 py-4 text-sm font-semibold text-black transition-colors hover:bg-ember-bright"
                 >
-                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-cyan-200/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-ember/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                   <Mail className="relative h-4 w-4" />
                   <span className="relative">Send email</span>
                   <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
@@ -79,7 +89,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                 type="button"
                 onClick={copy}
                 data-cursor="hover"
-                className="group relative inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 py-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-cyan-400/60 hover:text-cyan-100"
+                className="group relative inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 py-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-ember/60 hover:text-ember-bright"
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {copied ? (
@@ -91,8 +101,8 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                       transition={{ duration: 0.2 }}
                       className="inline-flex items-center gap-2"
                     >
-                      <Check className="h-3.5 w-3.5 text-cyan-400" />
-                      <span className="text-cyan-100">{EMAIL}</span>
+                      <Check className="h-3.5 w-3.5 text-phosphor" />
+                      <span className="text-phosphor">{EMAIL}</span>
                     </m.span>
                   ) : (
                     <m.span
@@ -121,7 +131,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               target="_blank"
               rel="noreferrer"
               data-cursor="hover"
-              className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
+              className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white"
             >
               GitHub <GitHubIcon className="h-4 w-4" />
             </a>
@@ -130,14 +140,14 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               target="_blank"
               rel="noreferrer"
               data-cursor="hover"
-              className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
+              className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white"
             >
               LinkedIn <LinkedInIcon className="h-4 w-4" />
             </a>
             <button
               type="button"
               onClick={() => onNavigate("body")}
-              className="flex min-h-12 items-center justify-between border-b border-white/[0.08] text-left hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
+              className="flex min-h-12 items-center justify-between border-b border-white/[0.08] text-left hover:text-white"
             >
               Back to top <span>↑</span>
             </button>
@@ -145,7 +155,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
         </div>
         <div className="mt-24 flex flex-col justify-between gap-2 border-t border-white/[0.06] pt-5 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-600 sm:flex-row">
           <span>Gabriele Viganò · Milan, IT</span>
-          <span>React · Vite · Motion · 2026</span>
+          <span>SYS · {level === "full" ? "MOTION" : "STATIC"} · React · Vite</span>
         </div>
       </footer>
     </ScrollReveal>

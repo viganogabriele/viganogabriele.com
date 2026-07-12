@@ -28,3 +28,5 @@ export const toolGroups = [
 ] as const;
 
 export const secondaryTools = ["Figma", "Canva", "Photoshop", "Notion", "Excel", "PowerPoint"];
+
+export const toolHeat = new Set(["JavaScript", "HTML", "CSS", "Git", "Linux", "Figma", "Notion"]);

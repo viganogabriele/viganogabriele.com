@@ -22,6 +22,7 @@ export function useSystemMode() {
     } catch {
       // ignore storage errors in restricted contexts
     }
+    window.dispatchEvent(new CustomEvent("sys:toggle", { detail: { active } }));
   }, [active]);
 
   useEffect(() => {
@@ -42,7 +43,12 @@ export function useSystemMode() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const toggle = useCallback(() => setActive((prev) => !prev), []);
+  const toggle = useCallback(() => setActive((prev) => {
+    // A short, optional tactile acknowledgement makes SYS feel like an
+    // instrument control without assuming that vibration is available.
+    navigator.vibrate?.(12);
+    return !prev;
+  }), []);
 
   return { active, toggle };
 }

@@ -14,7 +14,8 @@ export interface Project {
   link?: string;
   artifact: ProjectArtifact;
   metrics: Array<{ value: string; label: string }>;
-  accent: "cyan" | "violet" | "amber";
+  accent: "ember" | "phosphor" | "bone";
+  buildMeta: string;
 }
 
 export const projects: Project[] = [
@@ -35,7 +36,8 @@ export const projects: Project[] = [
     link: "https://github.com/PoliNetworkOrg",
     artifact: "network",
     metrics: [{ value: "45K+", label: "students" }, { value: "1K+", label: "event attendees" }],
-    accent: "cyan",
+    accent: "phosphor",
+    buildMeta: "45K network / 5 active teams",
   },
   {
     index: "02",
@@ -45,7 +47,7 @@ export const projects: Project[] = [
       "A portfolio treated as a product: designed, built, stress-tested, and continuously refined in public.",
     role: "Solo — design, build, iterate",
     contribution:
-      "React 19, Vite, Framer Motion, Lenis, and Matter.js shaped into a hardened cinematic build.",
+      "React 19, Vite, Framer Motion, and Matter.js shaped into a hardened cinematic build.",
     outcome:
       "Interactive without trading away accessibility, reduced-motion paths, or a smooth mobile experience.",
     proof: "Lint + production build clean; guarded for touch and Telegram webviews.",
@@ -54,7 +56,8 @@ export const projects: Project[] = [
     link: "https://github.com/viganogabriele/viganogabriele.com",
     artifact: "portfolio",
     metrics: [{ value: "A–Z", label: "design & build" }, { value: "AA", label: "accessibility target" }],
-    accent: "violet",
+    accent: "ember",
+    buildMeta: "React 19 / Vite 8 / Motion profile",
   },
   {
     index: "03",
@@ -70,6 +73,7 @@ export const projects: Project[] = [
     status: "Hackathon build",
     artifact: "studyquest",
     metrics: [{ value: "24H", label: "build time" }, { value: "4", label: "team members" }],
-    accent: "amber",
+    accent: "bone",
+    buildMeta: "24H delivery / 4-person build cell",
   },
 ];

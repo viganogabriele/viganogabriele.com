@@ -7,9 +7,9 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
   return (
     <m.div
       initial={{ opacity: 1 }}
-      exit={{ opacity: 0, filter: reducedMotion ? "none" : "blur(16px)" }}
-      transition={{ duration: 0.45, ease: ease.softSettle }}
-      className="fixed inset-0 z-[100] bg-[#050608]"
+      exit={reducedMotion ? { opacity: 0 } : { clipPath: "inset(0 50% 0 50%)" }}
+      transition={{ duration: reducedMotion ? 0.35 : 0.65, ease: ease.cinematic }}
+      className="fixed inset-0 z-[100] min-h-[100dvh] bg-background"
     >
       {/* Scan lines overlay */}
       <div className="hero-scanlines pointer-events-none absolute inset-0 z-10" />
@@ -21,7 +21,7 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
 
       {/* Top-right: system label */}
       <div className="absolute right-6 top-6 font-mono text-[10px] tracking-[0.18em] uppercase text-zinc-600">
-        SYSTEM BOOT
+        INSTRUMENT CALIBRATION
       </div>
 
       {/* Center content */}
@@ -36,7 +36,7 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
           <div className="text-5xl font-medium uppercase tracking-tight text-white">GABRIELE</div>
           <div className="text-5xl font-medium uppercase tracking-tight text-zinc-500">VIGANÒ</div>
           <div className="mt-4 font-mono text-[10px] tracking-[0.18em] text-zinc-600">
-            portfolio.init / {year}
+            signal calibration / {year}
           </div>
         </m.div>
 
@@ -49,14 +49,14 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
         >
           {/* Loading label + counter */}
           <div className="mb-2 flex justify-between font-mono text-[10px] tracking-[0.18em] uppercase">
-            <span className="text-zinc-500">LOADING</span>
-            <span className="text-cyan-100/60">{String(Math.round(progress)).padStart(3, "0")}</span>
+            <span className="text-zinc-500">CALIBRATING</span>
+            <span className="text-phosphor">{String(Math.round(progress)).padStart(3, "0")}</span>
           </div>
 
           {/* Progress bar */}
           <div className="h-px w-full overflow-hidden bg-white/10">
             <m.div
-              className="h-full bg-gradient-to-r from-cyan-400 to-fuchsia-500"
+              className="h-full bg-gradient-to-r from-ember to-phosphor"
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.2 }}
             />
@@ -70,7 +70,7 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
                 className="h-[3px] flex-1"
                 style={{
                   backgroundColor:
-                    (i + 1) * 5 <= progress ? "#7FE7FF" : "rgba(255,255,255,0.08)",
+                    (i + 1) * 5 <= progress ? "#9FE870" : "rgba(255,255,255,0.08)",
                 }}
               />
             ))}

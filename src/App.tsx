@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { BrowserRouter, Route, Routes, useLocation, useNavigationType } from "react-router-dom";
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { Component, lazy, Suspense, useEffect, useRef, type ReactNode } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { HomePage } from "./pages/HomePage";
 import { useMotionProfile } from "./hooks/useMotionProfile";
@@ -37,8 +37,18 @@ export default function App() {
   return <BrowserRouter><RouteScroll /><AnimatedRoutes />{analyticsEnabled && <Analytics />}{analyticsEnabled && <SpeedInsights />}</BrowserRouter>;
 }
 
+class RouteErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { /* route-level recovery UI is intentional */ }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return <main className="flex min-h-[100dvh] items-center justify-center bg-background px-6 text-bone"><div><p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ember-bright">ERR / RENDER FAULT</p><h1 className="mt-4 text-5xl tracking-[-0.06em]">Signal interrupted.</h1><button type="button" onClick={() => window.location.reload()} className="mt-7 min-h-11 bg-bone px-5 text-sm font-semibold text-black">Reload the instrument</button></div></main>;
+  }
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
   const { prefersReducedMotion } = useMotionProfile();
-  return <AnimatePresence mode="wait" initial={false}><m.div className="relative" key={location.pathname} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }} transition={{ duration: prefersReducedMotion ? 0 : 0.24 }}><Suspense fallback={<div className="min-h-screen bg-[#050608]" />}><Routes location={location}><Route path="/" element={<HomePage />} /><Route path="/index.html" element={<HomePage />} /><Route path="/viganogabriele.com" element={<HomePage />} /><Route path="/viganogabriele.com/" element={<HomePage />} /><Route path="/viganogabriele.com/index.html" element={<HomePage />} /><Route path="/notes/:slug" element={<NotePage />} /><Route path="*" element={<NotFoundPage />} /></Routes></Suspense></m.div></AnimatePresence>;
+  return <RouteErrorBoundary><AnimatePresence mode="wait" initial={false}><m.div className="relative" key={location.pathname} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }} transition={{ duration: prefersReducedMotion ? 0 : 0.24 }}><Suspense fallback={<div className="min-h-[100dvh] bg-background" />}><Routes location={location}><Route path="/" element={<HomePage />} /><Route path="/index.html" element={<HomePage />} /><Route path="/viganogabriele.com" element={<HomePage />} /><Route path="/viganogabriele.com/" element={<HomePage />} /><Route path="/viganogabriele.com/index.html" element={<HomePage />} /><Route path="/notes/:slug" element={<NotePage />} /><Route path="*" element={<NotFoundPage />} /></Routes></Suspense></m.div></AnimatePresence></RouteErrorBoundary>;
 }

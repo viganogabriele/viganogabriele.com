@@ -53,12 +53,12 @@ export function Journey() {
           <>
             <m.span
               aria-hidden
-              className="pointer-events-none absolute left-0 top-0 h-full w-px bg-gradient-to-b from-cyan-300 via-cyan-100 to-fuchsia-300"
+              className="pointer-events-none absolute left-0 top-0 h-full w-px bg-gradient-to-b from-ember via-ember-bright to-phosphor"
               style={{ scaleY: fillScale, originY: 0 }}
             />
             <m.span
               aria-hidden
-              className="pointer-events-none absolute left-0 h-2 w-2 -translate-x-1/2 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(127,231,255,0.9)]"
+              className="pointer-events-none absolute left-0 h-2 w-2 -translate-x-1/2 rounded-full bg-phosphor shadow-[0_0_12px_rgba(159,232,112,0.9)]"
               style={{ top: indicatorY }}
             />
           </>
@@ -76,19 +76,19 @@ export function Journey() {
               className="relative pb-12 last:pb-0"
             >
               <span
-                className={`absolute top-1 h-4 w-4 -translate-x-1/2 rounded-full border ${item.current ? "border-amber-200 bg-amber-200/20 shadow-[0_0_0_5px_rgba(245,184,73,0.08)]" : "border-zinc-600 bg-[#050608]"}`}
+                className={`absolute top-1 h-4 w-4 -translate-x-1/2 rounded-full border ${item.current ? "border-ember-bright bg-ember/20 shadow-[0_0_0_5px_rgba(255,107,61,0.08)]" : "border-zinc-600 bg-background"}`}
                 style={{ left: "calc(var(--journey-gutter) * -1)" }}
               >
-                {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-amber-200/50 motion-reduce:animate-none" />}
+                {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-ember-bright/50 motion-reduce:animate-none" />}
               </span>
               <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
                 <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600 md:mb-0">{item.year}</p>
                 <div>
                   <div className="flex items-center gap-3">
-                    <Icon className="h-4 w-4 text-cyan-100/70" />
+                    <Icon className="h-4 w-4 text-accent/75" />
                     <h3 className="text-2xl tracking-[-0.045em] text-zinc-100">{item.title}</h3>
                   </div>
-                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-cyan-100/60">{item.subtitle}</p>
+                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-accent">{item.subtitle}</p>
                   <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">{item.description}</p>
                 </div>
               </div>

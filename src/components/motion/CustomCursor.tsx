@@ -18,26 +18,22 @@ export function CustomCursor() {
     };
     const enter = () => setActive(true);
     const leave = () => setActive(false);
-    const bindings = new Set<HTMLElement>();
-    const bind = () => document.querySelectorAll<HTMLElement>("a, button, [data-cursor='hover']").forEach((element) => {
-      if (bindings.has(element)) return;
-      bindings.add(element);
-      element.addEventListener("mouseenter", enter);
-      element.addEventListener("mouseleave", leave);
-    });
-    bind();
-    const observer = new MutationObserver(bind);
-    observer.observe(document.body, { childList: true, subtree: true });
+    const onPointerOver = (event: PointerEvent) => {
+      if ((event.target as Element).closest("a, button, [data-cursor='hover']")) enter();
+    };
+    const onPointerOut = (event: PointerEvent) => {
+      const next = event.relatedTarget as Element | null;
+      if (!next?.closest("a, button, [data-cursor='hover']")) leave();
+    };
     window.addEventListener("mousemove", move, { passive: true });
+    document.addEventListener("pointerover", onPointerOver, { passive: true });
+    document.addEventListener("pointerout", onPointerOut, { passive: true });
     return () => {
-      observer.disconnect();
-      bindings.forEach((element) => {
-        element.removeEventListener("mouseenter", enter);
-        element.removeEventListener("mouseleave", leave);
-      });
       window.removeEventListener("mousemove", move);
+      document.removeEventListener("pointerover", onPointerOver);
+      document.removeEventListener("pointerout", onPointerOut);
     };
   }, [hasNoHover, isCompact, isTouch, x, y]);
   if (isTouch || hasNoHover || isCompact) return null;
-  return <><div ref={dot} className="cursor-dot" /><m.div className="cursor-ring" style={{ left: ringX, top: ringY }} animate={{ width: active ? 42 : 28, height: active ? 42 : 28, opacity: active ? 0.9 : 0.55 }} /></>;
+  return <><div ref={dot} className={`cursor-dot ${active ? "is-active" : ""}`} /><m.div className="cursor-ring" style={{ left: ringX, top: ringY }} animate={{ scale: active ? 1.5 : 1, opacity: active ? 0.9 : 0.55 }} /></>;
 }

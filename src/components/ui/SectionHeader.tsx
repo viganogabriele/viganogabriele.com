@@ -19,12 +19,12 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
       <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
         <span>{index}</span>
         <span className="h-px w-10 bg-zinc-700" />
-        <span className="section-anchor-label text-cyan-200">GRID / {index}</span>
+        <span className="section-anchor-label text-accent">GRID / {index}</span>
       </div>
 
       <div className="relative mt-4 overflow-hidden pb-2">
         {disableMotion ? (
-          <h2 className="max-w-4xl whitespace-pre-line text-4xl font-medium tracking-[-0.06em] text-[#f2f3f5] sm:text-5xl md:text-7xl">
+          <h2 className="max-w-4xl whitespace-pre-line text-4xl font-medium tracking-[-0.06em] text-bone sm:text-5xl md:text-7xl">
             {title}
           </h2>
         ) : (
@@ -36,7 +36,7 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
               hidden: {},
               show: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } },
             }}
-            className="max-w-4xl whitespace-pre-line text-4xl font-medium tracking-[-0.06em] text-[#f2f3f5] sm:text-5xl md:text-7xl"
+            className="max-w-4xl whitespace-pre-line text-4xl font-medium tracking-[-0.06em] text-bone sm:text-5xl md:text-7xl"
           >
             {words.map((word, i) =>
               word === "\n" ? (
@@ -61,7 +61,7 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
 
         {/* Underline sweep */}
         <m.span
-          className="absolute bottom-0 left-0 h-px bg-gradient-to-r from-cyan-400/70 via-white/20 to-transparent"
+          className="absolute bottom-0 left-0 h-px bg-gradient-to-r from-accent/70 via-white/20 to-transparent"
           style={{ width: "100%", transformOrigin: "left" }}
           initial={disableMotion ? false : { scaleX: 0 }}
           whileInView={disableMotion ? undefined : { scaleX: 1 }}
