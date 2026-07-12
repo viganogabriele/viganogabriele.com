@@ -1,18 +1,30 @@
 import { useEffect, useRef } from "react";
 import { loadHeadGltf } from "../../lib/headModel";
 
+type SceneMaterials = {
+  base: import("three").MeshStandardMaterial;
+  glint: import("three").MeshStandardMaterial;
+  points: import("three").PointsMaterial;
+};
+
+// Normal mode: dark graphite with a faint cool sheen.
+// Scan mode: phosphor wireframe — the "structure visible" read.
+function applyMode(materials: SceneMaterials, scan: boolean) {
+  materials.base.color.setHex(scan ? 0x06130a : 0x101820);
+  materials.base.emissive.setHex(scan ? 0x224d1a : 0x02080b);
+  materials.base.emissiveIntensity = scan ? 0.85 : 0.22;
+  materials.base.wireframe = scan;
+  materials.base.needsUpdate = true;
+  materials.glint.emissiveIntensity = scan ? 1.6 : 0.9;
+  materials.points.opacity = scan ? 0.95 : 0.55;
+}
+
 export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolean; onError: () => void; onReady?: () => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const materialsRef = useRef<import("three").MeshStandardMaterial[]>([]);
+  const materialsRef = useRef<SceneMaterials | null>(null);
 
   useEffect(() => {
-    materialsRef.current.forEach((material) => {
-      material.color.setHex(scan ? 0x07151b : 0x101820);
-      material.emissive.setHex(scan ? 0x0a3540 : 0x02080b);
-      material.emissiveIntensity = scan ? 0.75 : 0.22;
-      material.wireframe = scan;
-      material.needsUpdate = true;
-    });
+    if (materialsRef.current) applyMode(materialsRef.current, scan);
   }, [scan]);
 
   useEffect(() => {
@@ -26,8 +38,6 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
     let targetY = 0;
     let currentX = 0;
     let currentY = 0;
-    let scrollProgress = 0;
-    const materials: import("three").MeshStandardMaterial[] = [];
 
     const setup = async () => {
       const [THREE, gltf] = await Promise.all([import("three"), loadHeadGltf()]);
@@ -35,23 +45,25 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
       camera.position.set(0, 0.05, 6.2);
-      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
+      // High-DPI screens antialias naturally through density; MSAA is only
+      // worth its cost when the backing store is coarse.
+      const dpr = Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.5 : 1.75);
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: dpr < 1.75, powerPreference: "high-performance" });
       renderer.setClearColor(0x000000, 0);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 768 ? 1.25 : 1.5));
+      renderer.setPixelRatio(dpr);
       renderer.domElement.setAttribute("aria-hidden", "true");
       host.appendChild(renderer.domElement);
 
-      scene.add(new THREE.HemisphereLight(0xa9efff, 0x030406, 1.65));
+      // 3 lights: hemisphere carries the violet ground bounce the removed
+      // point light used to provide.
+      scene.add(new THREE.HemisphereLight(0xa9efff, 0x1a1030, 1.65));
       const key = new THREE.DirectionalLight(0xe9fbff, 4.1);
       key.position.set(-2.5, 3.5, 4);
       scene.add(key);
       const rim = new THREE.PointLight(0x62d9ff, 16, 10);
       rim.position.set(2.4, 0.8, 2.6);
       scene.add(rim);
-      const violet = new THREE.PointLight(0x8b5cf6, 9, 8);
-      violet.position.set(-2.6, -1.2, 1.5);
-      scene.add(violet);
 
       const resize = () => {
         const width = Math.max(1, host.clientWidth);
@@ -64,6 +76,17 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
       resizeObserver.observe(host);
       resize();
 
+      // Shared materials, assigned by node/material name — the whole head is
+      // a handful of merged primitives, so mode switches touch 3 materials
+      // instead of one per mesh.
+      const materials: SceneMaterials = {
+        base: new THREE.MeshStandardMaterial({ metalness: 0.76, roughness: 0.3, flatShading: true }),
+        glint: new THREE.MeshStandardMaterial({ color: 0x1a1208, emissive: 0xd9a05b, emissiveIntensity: 0.9, roughness: 0.4 }),
+        points: new THREE.PointsMaterial({ color: 0x9fb4c4, size: 0.014, transparent: true, opacity: 0.55, sizeAttenuation: true }),
+      };
+      materialsRef.current = materials;
+      applyMode(materials, scan);
+
       // Clone the cached GLTF scene: geometry stays shared (and is never
       // disposed here) so re-entering system mode is instant.
       model = gltf.scene.clone(true);
@@ -75,19 +98,12 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
       model.scale.setScalar(fit);
       model.rotation.set(0.03, -0.12, 0);
       model.traverse((child) => {
-        if (!(child instanceof THREE.Mesh)) return;
-        const material = new THREE.MeshStandardMaterial({
-          color: 0x101820,
-          emissive: 0x02080b,
-          emissiveIntensity: 0.22,
-          metalness: 0.76,
-          roughness: 0.3,
-          flatShading: true,
-          wireframe: false,
-        });
-        child.material = material;
-        materials.push(material);
-        materialsRef.current.push(material);
+        const glinted = /glint/i.test(child.name) || (child instanceof THREE.Mesh && /glint/i.test((child.material as { name?: string })?.name ?? ""));
+        if (child instanceof THREE.Points) {
+          child.material = materials.points;
+        } else if (child instanceof THREE.Mesh) {
+          child.material = glinted ? materials.glint : materials.base;
+        }
       });
       scene.add(model);
 
@@ -97,12 +113,17 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
         targetX = ((event.clientY - rect.top) / rect.height - 0.5) * 0.18;
       };
       const resetPointer = () => { targetX = 0; targetY = 0; };
-      const onScroll = () => { scrollProgress = Math.min(1, window.scrollY / Math.max(420, window.innerHeight * 0.7)); };
       const onVisibility = () => { visible = !document.hidden; if (visible && !frame) frame = requestAnimationFrame(render); };
       const intersection = new IntersectionObserver(([entry]) => {
         visible = Boolean(entry?.isIntersecting) && !document.hidden;
         if (visible && !frame) frame = requestAnimationFrame(render);
       }, { rootMargin: "120px" });
+
+      const onContextLost = (event: Event) => {
+        event.preventDefault();
+        onError();
+      };
+      renderer.domElement.addEventListener("webglcontextlost", onContextLost);
 
       let announcedReady = false;
       const render = (time: number) => {
@@ -113,6 +134,9 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
           // First real frame is about to be presented — let the host crossfade.
           onReady?.();
         }
+        // Scroll progress read inline: the loop is already rAF-gated and
+        // stops off-screen, so a scroll listener would be redundant.
+        const scrollProgress = Math.min(1, window.scrollY / Math.max(420, window.innerHeight * 0.7));
         currentX += (targetX - currentX) * 0.055;
         currentY += (targetY - currentY) * 0.055;
         if (model) {
@@ -128,10 +152,8 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
 
       host.addEventListener("pointermove", pointer, { passive: true });
       host.addEventListener("pointerleave", resetPointer);
-      window.addEventListener("scroll", onScroll, { passive: true });
       document.addEventListener("visibilitychange", onVisibility);
       intersection.observe(host);
-      onScroll();
       frame = requestAnimationFrame(render);
 
       return () => {
@@ -140,10 +162,12 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
         resizeObserver.disconnect();
         host.removeEventListener("pointermove", pointer);
         host.removeEventListener("pointerleave", resetPointer);
-        window.removeEventListener("scroll", onScroll);
         document.removeEventListener("visibilitychange", onVisibility);
-        materials.forEach((material) => material.dispose());
-        materialsRef.current = [];
+        renderer.domElement.removeEventListener("webglcontextlost", onContextLost);
+        materials.base.dispose();
+        materials.glint.dispose();
+        materials.points.dispose();
+        materialsRef.current = null;
         renderer.dispose();
         renderer.domElement.remove();
       };
@@ -152,6 +176,9 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
     let cleanup: (() => void) | undefined;
     void setup().then((dispose) => { cleanup = dispose; }).catch(onError);
     return () => { disposed = true; cleanup?.(); };
+    // `scan` is applied via the ref effect above; re-running setup for it
+    // would rebuild the renderer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onError, onReady]);
 
   return <div ref={hostRef} className="h-full w-full" aria-hidden="true" />;
