@@ -6,7 +6,7 @@ import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 import { ease } from "../../lib/motion";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 
-export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
+export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string) => void; systemActive: boolean }) {
   const reduced = useReducedMotion();
   const { level } = useMotionProfile();
   const scrollMotion = !reduced && level === "full";
@@ -127,7 +127,7 @@ export function Hero({ onNavigate }: { onNavigate: (target: string) => void }) {
           }
           className="relative min-h-[clamp(19rem,88vw,22rem)] pt-1 sm:min-h-[22rem] lg:min-h-[34rem] lg:pt-0"
         >
-          <AdaptiveHeroObject />
+          <AdaptiveHeroObject systemActive={systemActive} />
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-cyan-100/75">
             HERO / X-00 Y-00
           </span>

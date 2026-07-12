@@ -137,10 +137,30 @@ body {
   height: 100%;
 }
 
+/* WebGL layer sits above the portrait; both crossfade on mesh-ready. */
+.hero-scene-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.hero-object-shell.mesh-ready .hero-scene-layer {
+  opacity: 1;
+}
+
+.hero-object-shell.mesh-ready .hero-fallback {
+  opacity: 0;
+}
+
 .hero-fallback {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
   overflow: hidden;
+  transition: opacity 400ms ease;
 }
 
 .hero-fallback picture,

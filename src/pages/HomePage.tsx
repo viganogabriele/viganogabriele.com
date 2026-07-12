@@ -17,16 +17,25 @@ import { ScrollBar } from "../components/motion/ScrollBar";
 import { usePreloader } from "../hooks/usePreloader";
 import { useSystemMode } from "../hooks/useSystemMode";
 import { JsonLd, PageMeta, SITE_URL } from "../lib/seo";
+import { prefetchHeroHead } from "../lib/headModel";
+import { useMotionProfile } from "../hooks/useMotionProfile";
 
 export function HomePage() {
   const reduced = useReducedMotion();
   const { loading, progress } = usePreloader(reduced);
   const { active: systemActive, toggle: toggleSystem } = useSystemMode();
+  const { canUseWebGL } = useMotionProfile();
 
   useEffect(() => {
     document.body.style.overflow = loading ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [loading]);
+
+  useEffect(() => {
+    // Warm the SYS-mode 3D path after the preloader; if system mode was
+    // persisted from a previous visit, skip idle and load right away.
+    if (!loading) prefetchHeroHead(canUseWebGL, systemActive);
+  }, [loading, canUseWebGL, systemActive]);
 
   const scrollToSection = useCallback((target: string) => {
     const selector = target === "body" ? "body" : target;
@@ -40,5 +49,5 @@ export function HomePage() {
     window.scrollTo({ top: y, behavior: reduced ? "auto" : "smooth" });
   }, [reduced]);
 
-  return <AppShell><PageMeta title="Gabriele Viganò — Product, Operations & Engineering" description="Computer Engineering student building products, teams, events, and resilient systems for a 45,000+ student community." path="/" /><JsonLd id="website-person" data={{ "@context": "https://schema.org", "@graph": [{ "@type": "WebSite", name: "Gabriele Viganò", url: SITE_URL, description: "Portfolio focused on product, operations, and technical systems." }, { "@type": "Person", name: "Gabriele Viganò", url: SITE_URL, jobTitle: "Computer Engineering Student", alumniOf: { "@type": "CollegeOrUniversity", name: "Politecnico di Milano" }, sameAs: ["https://github.com/viganogabriele", "https://linkedin.com/in/viganogabriele"] }] }} /><ScrollBar /><Navbar onNavigate={scrollToSection} systemActive={systemActive} onToggleSystem={toggleSystem} /><SystemModeOverlay active={systemActive} /><main id="main-content"><Hero onNavigate={scrollToSection} /><About /><Expertise /><Projects /><TechStack systemActive={systemActive} /><Journey /><Notes /><Certifications /><div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10"><Footer onNavigate={scrollToSection} /></div></main><AnimatePresence>{loading && <Preloader progress={progress} reducedMotion={reduced} />}</AnimatePresence></AppShell>;
+  return <AppShell><PageMeta title="Gabriele Viganò — Product, Operations & Engineering" description="Computer Engineering student building products, teams, events, and resilient systems for a 45,000+ student community." path="/" /><JsonLd id="website-person" data={{ "@context": "https://schema.org", "@graph": [{ "@type": "WebSite", name: "Gabriele Viganò", url: SITE_URL, description: "Portfolio focused on product, operations, and technical systems." }, { "@type": "Person", name: "Gabriele Viganò", url: SITE_URL, jobTitle: "Computer Engineering Student", alumniOf: { "@type": "CollegeOrUniversity", name: "Politecnico di Milano" }, sameAs: ["https://github.com/viganogabriele", "https://linkedin.com/in/viganogabriele"] }] }} /><ScrollBar /><Navbar onNavigate={scrollToSection} systemActive={systemActive} onToggleSystem={toggleSystem} /><SystemModeOverlay active={systemActive} /><main id="main-content"><Hero onNavigate={scrollToSection} systemActive={systemActive} /><About /><Expertise /><Projects /><TechStack systemActive={systemActive} /><Journey /><Notes /><Certifications /><div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10"><Footer onNavigate={scrollToSection} /></div></main><AnimatePresence>{loading && <Preloader progress={progress} reducedMotion={reduced} />}</AnimatePresence></AppShell>;
 }

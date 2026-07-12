@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
+import { loadHeadGltf } from "../../lib/headModel";
 
-export default function HeroHeadScene({ scan, onError }: { scan: boolean; onError: () => void }) {
+export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolean; onError: () => void; onReady?: () => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const materialsRef = useRef<import("three").MeshStandardMaterial[]>([]);
 
@@ -29,8 +30,7 @@ export default function HeroHeadScene({ scan, onError }: { scan: boolean; onErro
     const materials: import("three").MeshStandardMaterial[] = [];
 
     const setup = async () => {
-      const THREE = await import("three");
-      const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+      const [THREE, gltf] = await Promise.all([import("three"), loadHeadGltf()]);
       if (disposed) return;
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
@@ -64,34 +64,32 @@ export default function HeroHeadScene({ scan, onError }: { scan: boolean; onErro
       resizeObserver.observe(host);
       resize();
 
-      const loader = new GLTFLoader();
-      loader.load("/models/gabriele-head.glb", (gltf) => {
-        if (disposed) return;
-        model = gltf.scene;
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        model.position.sub(center);
-        const fit = 3.15 / Math.max(size.x, size.y, size.z);
-        model.scale.setScalar(fit);
-        model.rotation.set(0.03, -0.12, 0);
-        model.traverse((child) => {
-          if (!(child instanceof THREE.Mesh)) return;
-          const material = new THREE.MeshStandardMaterial({
-            color: 0x101820,
-            emissive: 0x02080b,
-            emissiveIntensity: 0.22,
-            metalness: 0.76,
-            roughness: 0.3,
-            flatShading: true,
-            wireframe: false,
-          });
-          child.material = material;
-          materials.push(material);
-          materialsRef.current.push(material);
+      // Clone the cached GLTF scene: geometry stays shared (and is never
+      // disposed here) so re-entering system mode is instant.
+      model = gltf.scene.clone(true);
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      model.position.sub(center);
+      const fit = 3.15 / Math.max(size.x, size.y, size.z);
+      model.scale.setScalar(fit);
+      model.rotation.set(0.03, -0.12, 0);
+      model.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        const material = new THREE.MeshStandardMaterial({
+          color: 0x101820,
+          emissive: 0x02080b,
+          emissiveIntensity: 0.22,
+          metalness: 0.76,
+          roughness: 0.3,
+          flatShading: true,
+          wireframe: false,
         });
-        scene.add(model);
-      }, undefined, () => onError());
+        child.material = material;
+        materials.push(material);
+        materialsRef.current.push(material);
+      });
+      scene.add(model);
 
       const pointer = (event: PointerEvent) => {
         const rect = host.getBoundingClientRect();
@@ -106,9 +104,15 @@ export default function HeroHeadScene({ scan, onError }: { scan: boolean; onErro
         if (visible && !frame) frame = requestAnimationFrame(render);
       }, { rootMargin: "120px" });
 
+      let announcedReady = false;
       const render = (time: number) => {
         frame = 0;
         if (!visible || disposed) return;
+        if (!announcedReady) {
+          announcedReady = true;
+          // First real frame is about to be presented — let the host crossfade.
+          onReady?.();
+        }
         currentX += (targetX - currentX) * 0.055;
         currentY += (targetY - currentY) * 0.055;
         if (model) {
@@ -148,7 +152,7 @@ export default function HeroHeadScene({ scan, onError }: { scan: boolean; onErro
     let cleanup: (() => void) | undefined;
     void setup().then((dispose) => { cleanup = dispose; }).catch(onError);
     return () => { disposed = true; cleanup?.(); };
-  }, [onError]);
+  }, [onError, onReady]);
 
   return <div ref={hostRef} className="h-full w-full" aria-hidden="true" />;
 }
