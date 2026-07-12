@@ -33,12 +33,10 @@ export function useSystemMode() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const toggle = useCallback(() => setActive((prev) => {
-    // A short, optional tactile acknowledgement makes SYS feel like an
-    // instrument control without assuming that vibration is available.
+  const toggle = useCallback(() => {
     navigator.vibrate?.(12);
-    return !prev;
-  }), []);
+    setActive((prev) => !prev);
+  }, []);
 
   const toggleFromControl = useCallback(() => {
     setTransitionId((id) => id + 1);

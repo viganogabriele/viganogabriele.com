@@ -38,11 +38,11 @@ export function CustomCursor() {
       setActive(Boolean(target?.closest(INTERACTIVE) || document.querySelector(HOVERED_INTERACTIVE)));
     };
     const reset = () => { setActive(false); setVisible(false); };
-    const onScroll = () => setActive(false);
+    // Re-check CSS :hover state after scroll; pointer didn't move so no mouseover fires.
+    const onScroll = () => setActive(Boolean(document.querySelector(HOVERED_INTERACTIVE)));
     const onVisibility = () => { if (document.visibilityState !== "visible") reset(); };
     document.addEventListener("mousemove", move, { passive: true });
     document.addEventListener("mouseover", updateTarget, { passive: true });
-    document.addEventListener("pointerover", updateTarget, { passive: true });
     window.addEventListener("blur", reset);
     window.addEventListener("scroll", onScroll, { passive: true });
     document.addEventListener("pointerleave", reset);
@@ -51,14 +51,13 @@ export function CustomCursor() {
       document.documentElement.classList.remove("has-custom-cursor");
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseover", updateTarget);
-      document.removeEventListener("pointerover", updateTarget);
       window.removeEventListener("blur", reset);
       window.removeEventListener("scroll", onScroll);
       document.removeEventListener("pointerleave", reset);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [enabled, ringX, ringY, x, y]);
+  }, [enabled, x, y]);
 
   if (!enabled) return null;
-  return createPortal(<div data-custom-cursor data-visible={visible} data-active={active} aria-hidden="true"><div ref={dot} className="cursor-dot" /><m.div className="cursor-ring" style={{ left: ringX, top: ringY }} animate={{ scale: active ? 1.5 : 1, opacity: visible ? (active ? 0.9 : 0.55) : 0 }} /></div>, document.body);
+  return createPortal(<div data-custom-cursor data-visible={visible} data-active={active} aria-hidden="true"><div ref={dot} className={`cursor-dot${active ? " is-active" : ""}`} /><m.div className="cursor-ring" style={{ left: ringX, top: ringY }} animate={{ scale: active ? 1.5 : 1, opacity: visible ? (active ? 0.9 : 0.55) : 0 }} /></div>, document.body);
 }
