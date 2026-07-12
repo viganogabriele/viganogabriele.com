@@ -74,9 +74,11 @@ test("home identity metadata and favicon are exact", async ({ page }) => {
   await expect(page).toHaveTitle("Gabriele Viganò");
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Gabriele Viganò");
   await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute("content", "Gabriele Viganò");
-  await expect(page.locator('link[rel="icon"][type="image/svg+xml"]')).toHaveAttribute("href", /\/favicon\.svg/);
-  const favicon = await page.request.get("/favicon.svg");
-  expect(favicon.ok()).toBe(true);
+  await expect(page.locator('link[rel="icon"][type="image/png"]').first()).toHaveAttribute("href", /\/favicon-dark\.png/);
+  const darkFavicon = await page.request.get("/favicon-dark.png");
+  const lightFavicon = await page.request.get("/favicon-light.png");
+  expect(darkFavicon.ok()).toBe(true);
+  expect(lightFavicon.ok()).toBe(true);
 });
 
 test("SYS mode starts clean, then activates only after an explicit control interaction", async ({ page }) => {
