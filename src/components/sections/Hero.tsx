@@ -7,7 +7,7 @@ import { Magnetic } from "../motion/Magnetic";
 import { TextScramble } from "../motion/TextScramble";
 import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 
-export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string) => void; systemActive: boolean }) {
+export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate: (target: string) => void; systemActive: boolean; onToggleSystem: () => void }) {
   const reduced = useReducedMotion();
   const { level } = useMotionProfile();
   const scrollMotion = !reduced && level === "full";
@@ -145,7 +145,7 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
           }
           className="hero-visual-frame relative mx-auto w-full max-w-[34rem] aspect-[4/5] min-h-[19rem] overflow-hidden pt-1 sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem] lg:pt-0"
         >
-          <AdaptiveHeroObject systemActive={systemActive} />
+          <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-accent/75">
             HERO / X-00 Y-00
           </span>
