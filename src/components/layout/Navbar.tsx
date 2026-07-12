@@ -15,7 +15,6 @@ export function Navbar({ onNavigate, systemActive, onToggleSystem }: { onNavigat
   const { isTelegramWebView } = useFeatureDetect();
   const { level } = useMotionProfile();
   const reduced = useReducedMotion();
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -57,7 +56,6 @@ export function Navbar({ onNavigate, systemActive, onToggleSystem }: { onNavigat
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
@@ -93,7 +91,7 @@ export function Navbar({ onNavigate, systemActive, onToggleSystem }: { onNavigat
   }, [open]);
   const go = (event: React.MouseEvent<HTMLElement>, target: string) => {
     event.preventDefault(); setOpen(false); setActive(target);
-    timer.current = setTimeout(() => onNavigate(target), 50);
+    onNavigate(target);
   };
   const glass = isTelegramWebView || level === "lite" ? "rgba(8,11,22,0.94)" : scrolled ? "rgba(8,11,22,0.78)" : "rgba(8,11,22,0.52)";
   return <>

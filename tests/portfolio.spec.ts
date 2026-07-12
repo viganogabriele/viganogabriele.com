@@ -86,6 +86,10 @@ test("home identity metadata and favicon are exact", async ({ page }) => {
 });
 
 test("SYS mode starts clean, then activates only after an explicit control interaction", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "deviceMemory", { configurable: true, get: () => 2 });
+    Object.defineProperty(navigator, "hardwareConcurrency", { configurable: true, get: () => 2 });
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.evaluate(() => { localStorage.setItem("gv-system-mode", "on"); });
@@ -97,6 +101,7 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect(page.locator("html")).not.toHaveAttribute("data-system-mode", "on");
   await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
   await system.click();
+  await expect(page.locator("[data-system-wipe]")).toBeVisible();
   await expect(system).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
   await expect(page.getByText("SYS / violet trace")).toBeVisible();
