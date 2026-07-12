@@ -1,11 +1,11 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ease } from "../../lib/motion";
 
 const year = new Date().getFullYear();
 
 export function Preloader({ progress, reducedMotion }: { progress: number; reducedMotion: boolean | null }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, filter: reducedMotion ? "none" : "blur(16px)" }}
       transition={{ duration: 0.45, ease: ease.softSettle }}
@@ -27,7 +27,7 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
       {/* Center content */}
       <div className="flex h-full flex-col items-center justify-center">
         {/* Name block */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: ease.cinematic }}
@@ -38,10 +38,10 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
           <div className="mt-4 font-mono text-[10px] tracking-[0.18em] text-zinc-600">
             portfolio.init / {year}
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Progress area */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.15, ease: ease.cinematic }}
@@ -55,7 +55,7 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
 
           {/* Progress bar */}
           <div className="h-px w-full overflow-hidden bg-white/10">
-            <motion.div
+            <m.div
               className="h-full bg-gradient-to-r from-cyan-400 to-fuchsia-500"
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.2 }}
@@ -75,13 +75,13 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
               />
             ))}
           </div>
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Bottom-right: version */}
       <div className="absolute bottom-6 right-6 font-mono text-[10px] tracking-[0.18em] text-zinc-600">
         v1.0
       </div>
-    </motion.div>
+    </m.div>
   );
 }

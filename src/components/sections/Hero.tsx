@@ -1,4 +1,4 @@
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { m, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Magnetic } from "../motion/Magnetic";
 import { TextScramble } from "../motion/TextScramble";
@@ -24,13 +24,13 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-7 px-5 pb-12 sm:px-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-10 lg:px-10">
         <div className="relative z-10">
-          <motion.p
+          <m.p
             initial={reduced ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.16, duration: 0.6, ease: ease.cinematic }}
             className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-100/75"
           >
-            <motion.span
+            <m.span
               className="inline-block h-1.5 w-1.5 rounded-full bg-cyan-300"
               animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }}
               transition={{ duration: 1.6, repeat: Infinity }}
@@ -39,9 +39,9 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
             <span data-sys-reveal className="ml-2 text-fuchsia-300/70" style={{ ["--sys-op" as never]: 0.9 }}>
               45.4642 N · 9.1900 E
             </span>
-          </motion.p>
+          </m.p>
 
-          <motion.h1
+          <m.h1
             initial={reduced ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.23, duration: 0.9, ease: ease.cinematic }}
@@ -49,9 +49,9 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
           >
             <span className="block">GABRIELE</span>
             <span className="block pl-[0.06em] text-zinc-300">VIGANÒ</span>
-          </motion.h1>
+          </m.h1>
 
-          <motion.div
+          <m.div
             initial={reduced ? false : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.45, duration: 0.6, ease: ease.softSettle }}
@@ -59,7 +59,7 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
           >
             <p className="flex max-w-3xl items-start text-[clamp(1.55rem,7vw,3rem)] font-medium leading-[0.98] tracking-[-0.05em] text-cyan-100">
               <TextScramble text="I build products, teams and systems that hold up." />
-              <motion.span
+              <m.span
                 className="ml-2 inline-block h-8 w-1 bg-cyan-300"
                 animate={reduced || level !== "full" ? undefined : { opacity: [1, 0, 1] }}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -67,7 +67,7 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
             </p>
 
             {/* stat row with stagger */}
-            <motion.div
+            <m.div
               initial="hidden"
               animate="show"
               variants={{
@@ -81,7 +81,7 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
                 { label: "Event attendees", value: "1,000+", color: "text-amber-200" },
                 { label: "Students served", value: "45K+", color: "text-zinc-200" },
               ].map((s) => (
-                <motion.span
+                <m.span
                   key={s.label}
                   variants={{
                     hidden: { opacity: 0, y: 10 },
@@ -91,9 +91,9 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
                   {s.label}
                   <br />
                   <b className={`mt-1 block font-normal ${s.color}`}>{s.value}</b>
-                </motion.span>
+                </m.span>
               ))}
-            </motion.div>
+            </m.div>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Magnetic>
@@ -110,10 +110,10 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
               </Magnetic>
               <a href="https://linkedin.com/in/viganogabriele" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-cyan-100/40 hover:text-white">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
             </div>
-          </motion.div>
+          </m.div>
         </div>
 
-        <motion.div
+        <m.div
           initial={reduced ? false : { opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.34, duration: 1, ease: ease.cinematic }}
@@ -131,7 +131,7 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-cyan-100/75">
             HERO / X-00 Y-00
           </span>
-        </motion.div>
+        </m.div>
       </div>
 
       <a

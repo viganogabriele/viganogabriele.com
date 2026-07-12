@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { SectionHeader } from "../ui/SectionHeader";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -32,7 +32,7 @@ export function About() {
 
       <ScrollReveal className="mt-14">
         <div className="proof-grid grid border-y border-white/[0.09] sm:grid-cols-2 lg:grid-cols-4">
-          {[{ value: "30+", label: "volunteers recruited" }, { value: "5", label: "teams built" }, { value: "1,000+", label: "event attendees" }, { value: "Polimi", label: "QS #20 · Engineering & Technology", link: "https://www.polimi.it/en/the-politecnico/news/news-detail/qs-world-university-rankings-by-subject-polimi-tra-i-migliori-atenei-al-mondo" }].map((item, index) => <motion.div key={item.label} initial={disableMotion ? false : { opacity: 0, y: 16 }} whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06, duration: 0.5, ease: ease.cinematic }} className="border-b border-white/[0.07] px-4 py-6 sm:[&:nth-last-child(-n+2)]:border-b-0 lg:border-b-0 lg:border-r lg:last:border-r-0"><p className="text-4xl font-medium tracking-[-0.06em] text-zinc-100">{item.value}</p>{item.link ? <a href={item.link} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center py-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-cyan-100/70 hover:text-cyan-100">{item.label}</a> : <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">{item.label}</p>}</motion.div>)}
+          {[{ value: "30+", label: "volunteers recruited" }, { value: "5", label: "teams built" }, { value: "1,000+", label: "event attendees" }, { value: "Polimi", label: "QS #20 · Engineering & Technology", link: "https://www.polimi.it/en/the-politecnico/news/news-detail/qs-world-university-rankings-by-subject-polimi-tra-i-migliori-atenei-al-mondo" }].map((item, index) => <m.div key={item.label} initial={disableMotion ? false : { opacity: 0, y: 16 }} whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06, duration: 0.5, ease: ease.cinematic }} className="border-b border-white/[0.07] px-4 py-6 sm:[&:nth-last-child(-n+2)]:border-b-0 lg:border-b-0 lg:border-r lg:last:border-r-0"><p className="text-4xl font-medium tracking-[-0.06em] text-zinc-100">{item.value}</p>{item.link ? <a href={item.link} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center py-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-cyan-100/70 hover:text-cyan-100">{item.label}</a> : <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">{item.label}</p>}</m.div>)}
         </div>
       </ScrollReveal>
 
@@ -40,7 +40,7 @@ export function About() {
         {lines.map((line, index) => {
           const fromLeft = index % 2 === 0;
           return (
-            <motion.div
+            <m.div
               key={line}
               initial={disableMotion ? false : { opacity: 0, x: fromLeft ? -20 : 20, filter: level === "lite" ? "none" : "blur(3px)" }}
               whileInView={disableMotion ? undefined : { opacity: 1, x: 0, filter: "blur(0px)" }}
@@ -52,7 +52,7 @@ export function About() {
               <p className="text-lg tracking-[-0.03em] text-zinc-300 transition-colors group-hover:text-cyan-100 md:text-2xl">
                 {line}
               </p>
-            </motion.div>
+            </m.div>
           );
         })}
       </div>

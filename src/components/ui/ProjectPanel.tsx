@@ -1,5 +1,5 @@
 import { ArrowUpRight } from "lucide-react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { m, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import type { Project } from "../../data/projects";
 import { ArtifactSVG } from "./ArtifactSVG";
@@ -19,7 +19,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
   const artifactScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.95, 1.05, 0.95]);
 
   return (
-    <motion.article
+    <m.article
       ref={panelRef}
       initial={staticMotion ? false : { opacity: 0, y: 36 }}
       whileInView={staticMotion ? undefined : { opacity: 1, y: 0 }}
@@ -31,7 +31,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-700 group-hover:opacity-100 project-panel-grid" />
       <div className="absolute left-0 top-0 h-px w-0 bg-cyan-200 transition-all duration-700 group-hover:w-full" />
 
-      <motion.div
+      <m.div
         style={staticMotion ? undefined : { y: artifactY, rotate: artifactRotate, scale: artifactScale }}
         className={`relative flex min-h-[12rem] items-center justify-center overflow-hidden border-b border-white/[0.08] py-4 text-cyan-100/45 lg:min-h-full lg:border-b-0 ${reverse ? "lg:order-2 lg:border-l lg:pl-10" : "lg:border-r lg:pr-10"}`}
       >
@@ -39,7 +39,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
           type={project.artifact}
           className="w-full max-w-sm transition-all duration-700 group-hover:scale-105 group-hover:text-cyan-100/85"
         />
-      </motion.div>
+      </m.div>
 
       <div className={`flex flex-col justify-between gap-10 pt-7 lg:pt-0 ${reverse ? "lg:order-1" : ""}`}>
         <div className="relative z-10">
@@ -91,6 +91,6 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
           )}
         </div>
       </div>
-    </motion.article>
+    </m.article>
   );
 }

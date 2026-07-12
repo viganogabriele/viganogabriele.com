@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import imageAvif from "../../assets/image-face.avif";
 import imageWebp from "../../assets/image-face.webp";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -8,7 +8,7 @@ import { loadHeroSceneModule } from "../../lib/headModel";
 const HeroHeadScene = lazy(loadHeroSceneModule);
 
 function PortraitFallback({ staticMode }: { staticMode: boolean }) {
-  return <motion.div className="hero-fallback h-full w-full" animate={staticMode ? undefined : { y: [0, -7, 0], rotate: [0, 0.25, 0] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}><picture><source srcSet={imageAvif} type="image/avif" /><img src={imageWebp} alt="" width="900" height="900" decoding="async" fetchPriority="high" className="h-full w-full object-cover object-top" /></picture><span className="hero-fallback-grid" /><span className="hero-fallback-scan" /></motion.div>;
+  return <m.div className="hero-fallback h-full w-full" animate={staticMode ? undefined : { y: [0, -7, 0], rotate: [0, 0.25, 0] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}><picture><source srcSet={imageAvif} type="image/avif" /><img src={imageWebp} alt="" width="900" height="900" decoding="async" fetchPriority="high" className="h-full w-full object-cover object-top" /></picture><span className="hero-fallback-grid" /><span className="hero-fallback-scan" /></m.div>;
 }
 
 export function AdaptiveHeroObject({ systemActive }: { systemActive: boolean }) {

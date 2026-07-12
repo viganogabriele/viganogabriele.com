@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 import { techSkills, toolGroups } from "../../data/techStack";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { useMatterPhysics } from "../../hooks/useMatterPhysics";
@@ -30,7 +30,7 @@ export function TechStack({ systemActive = false }: { systemActive?: boolean }) 
             className="relative min-h-[34rem] overflow-hidden border border-cyan-400/40 bg-[#0b0d12] p-5 shadow-[0_0_60px_rgba(127,231,255,0.15)] touch-pan-y"
           >
             <div className="pointer-events-none absolute left-4 top-4 z-10 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.15em] text-cyan-100">
-              <motion.span
+              <m.span
                 className="h-1.5 w-1.5 rounded-full bg-cyan-400"
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 1.2, repeat: Infinity }}
@@ -64,7 +64,7 @@ export function TechStack({ systemActive = false }: { systemActive?: boolean }) 
                 <span data-sys-reveal className="text-cyan-400/80">SYS ON → physics live</span>
               )}
             </div>
-            <div className="grid gap-7 md:grid-cols-2">{toolGroups.map((group, groupIndex) => <div key={group.label}><p className="mb-3 font-mono text-[9px] uppercase tracking-[0.16em] text-cyan-100/60">{group.label}</p><div className="flex flex-wrap gap-2">{group.tools.map((tool, index) => <motion.span key={tool} initial={disableMotion ? false : { opacity: 0, y: 10, scale: 0.98 }} whileInView={disableMotion ? undefined : { opacity: 1, y: 0, scale: 1 }} whileTap={disableMotion ? undefined : { scale: 0.97 }} viewport={{ once: true, margin: "-30px" }} transition={{ duration: 0.35, delay: groupIndex * 0.04 + index * 0.025 }} className="tool-chip inline-flex min-h-10 items-center border border-white/[0.12] bg-[#10131a]/90 px-3 py-2 font-mono text-[10px] text-zinc-200">{tool}</motion.span>)}</div></div>)}</div>
+            <div className="grid gap-7 md:grid-cols-2">{toolGroups.map((group, groupIndex) => <div key={group.label}><p className="mb-3 font-mono text-[9px] uppercase tracking-[0.16em] text-cyan-100/60">{group.label}</p><div className="flex flex-wrap gap-2">{group.tools.map((tool, index) => <m.span key={tool} initial={disableMotion ? false : { opacity: 0, y: 10, scale: 0.98 }} whileInView={disableMotion ? undefined : { opacity: 1, y: 0, scale: 1 }} whileTap={disableMotion ? undefined : { scale: 0.97 }} viewport={{ once: true, margin: "-30px" }} transition={{ duration: 0.35, delay: groupIndex * 0.04 + index * 0.025 }} className="tool-chip inline-flex min-h-10 items-center border border-white/[0.12] bg-[#10131a]/90 px-3 py-2 font-mono text-[10px] text-zinc-200">{tool}</m.span>)}</div></div>)}</div>
           </div>
         )}
 

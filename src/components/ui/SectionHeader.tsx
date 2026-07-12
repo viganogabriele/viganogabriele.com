@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useMemo } from "react";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -28,7 +28,7 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
             {title}
           </h2>
         ) : (
-          <motion.h2
+          <m.h2
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: "-60px" }}
@@ -44,7 +44,7 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
               ) : word.trim().length === 0 ? (
                 <span key={`sp-${i}`}>{word}</span>
               ) : (
-                <motion.span
+                <m.span
                   key={`w-${i}`}
                   className="inline-block will-change-transform"
                   variants={{
@@ -53,14 +53,14 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
                   }}
                 >
                   {word}
-                </motion.span>
+                </m.span>
               ),
             )}
-          </motion.h2>
+          </m.h2>
         )}
 
         {/* Underline sweep */}
-        <motion.span
+        <m.span
           className="absolute bottom-0 left-0 h-px bg-gradient-to-r from-cyan-400/70 via-white/20 to-transparent"
           style={{ width: "100%", transformOrigin: "left" }}
           initial={disableMotion ? false : { scaleX: 0 }}

@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import type { ReactNode } from "react";
 import { dur, ease } from "../../lib/motion";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -7,7 +7,7 @@ export function ScrollReveal({ children, delay = 0, className }: { children: Rea
   const { level } = useMotionProfile();
   if (level === "static") return <div className={className}>{children}</div>;
   return (
-    <motion.div
+    <m.div
       className={className}
       initial={{ opacity: 0, y: level === "lite" ? 14 : 22, filter: level === "lite" ? "none" : "blur(3px)" }}
       whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -15,6 +15,6 @@ export function ScrollReveal({ children, delay = 0, className }: { children: Rea
       transition={{ duration: level === "lite" ? 0.45 : dur.reveal, delay, ease: ease.cinematic }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }

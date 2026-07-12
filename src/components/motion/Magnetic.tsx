@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import { m, useMotionValue, useSpring } from "framer-motion";
 import { useRef } from "react";
 import type { ReactElement } from "react";
 
@@ -9,7 +9,7 @@ export function Magnetic({ children, strength = 0.22 }: { children: ReactElement
   const springX = useSpring(x, { stiffness: 180, damping: 16, mass: 0.45 });
   const springY = useSpring(y, { stiffness: 180, damping: 16, mass: 0.45 });
   return (
-    <motion.div
+    <m.div
       ref={ref}
       className="inline-block"
       onMouseMove={(event) => {
@@ -22,6 +22,6 @@ export function Magnetic({ children, strength = 0.22 }: { children: ReactElement
       style={{ x: springX, y: springY }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }

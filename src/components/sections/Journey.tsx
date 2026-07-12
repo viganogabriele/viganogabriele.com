@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform } from "framer-motion";
+import { m, useScroll, useTransform } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { timelineItems } from "../../data/timeline";
 import { ease } from "../../lib/motion";
@@ -51,12 +51,12 @@ export function Journey() {
         {/* Scroll-driven fill on the timeline rail */}
         {!staticMotion && (
           <>
-            <motion.span
+            <m.span
               aria-hidden
               className="pointer-events-none absolute left-0 top-0 h-full w-px bg-gradient-to-b from-cyan-300 via-cyan-100 to-fuchsia-300"
               style={{ scaleY: fillScale, originY: 0 }}
             />
-            <motion.span
+            <m.span
               aria-hidden
               className="pointer-events-none absolute left-0 h-2 w-2 -translate-x-1/2 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(127,231,255,0.9)]"
               style={{ top: indicatorY }}
@@ -67,7 +67,7 @@ export function Journey() {
         {timelineItems.map((item, index) => {
           const Icon = item.icon;
           return (
-            <motion.article
+            <m.article
               key={item.title}
               initial={staticMotion ? false : { opacity: 0, x: -14 }}
               whileInView={staticMotion ? undefined : { opacity: 1, x: 0 }}
@@ -92,7 +92,7 @@ export function Journey() {
                   <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">{item.description}</p>
                 </div>
               </div>
-            </motion.article>
+            </m.article>
           );
         })}
       </div>

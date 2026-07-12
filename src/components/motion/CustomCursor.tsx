@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import { m, useMotionValue, useSpring } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useFeatureDetect } from "../../hooks/useFeatureDetect";
 
@@ -39,5 +39,5 @@ export function CustomCursor() {
     };
   }, [hasNoHover, isCompact, isTouch, x, y]);
   if (isTouch || hasNoHover || isCompact) return null;
-  return <><div ref={dot} className="cursor-dot" /><motion.div className="cursor-ring" style={{ left: ringX, top: ringY }} animate={{ width: active ? 42 : 28, height: active ? 42 : 28, opacity: active ? 0.9 : 0.55 }} /></>;
+  return <><div ref={dot} className="cursor-dot" /><m.div className="cursor-ring" style={{ left: ringX, top: ringY }} animate={{ width: active ? 42 : 28, height: active ? 42 : 28, opacity: active ? 0.9 : 0.55 }} /></>;
 }

@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { ArrowUpRight, Check, Copy, Mail } from "lucide-react";
 import { useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
@@ -53,7 +53,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               <span className="mr-2 text-cyan-400">$</span>
               <span>connect --to</span>
               <span className="ml-1.5 text-cyan-100">gabriele</span>
-              <motion.span
+              <m.span
                 className="ml-1.5 inline-block h-3.5 w-1.5 bg-cyan-400 align-middle"
                 animate={level === "full" ? { opacity: [1, 0, 1] } : undefined}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -83,7 +83,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {copied ? (
-                    <motion.span
+                    <m.span
                       key="check"
                       initial={{ scale: 0.6, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
@@ -93,9 +93,9 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                     >
                       <Check className="h-3.5 w-3.5 text-cyan-400" />
                       <span className="text-cyan-100">{EMAIL}</span>
-                    </motion.span>
+                    </m.span>
                   ) : (
-                    <motion.span
+                    <m.span
                       key="copy"
                       initial={{ scale: 0.6, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
@@ -105,7 +105,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                     >
                       <Copy className="h-3.5 w-3.5" />
                       Copy address
-                    </motion.span>
+                    </m.span>
                   )}
                 </AnimatePresence>
               </button>
