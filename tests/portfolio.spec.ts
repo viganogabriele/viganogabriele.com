@@ -69,6 +69,20 @@ test("adaptive hero exposes its interaction and a visual fallback", async ({ pag
   await expect(portrait).toHaveAttribute("aria-pressed", "true");
 });
 
+test("SYS mode retints the document and remains operable on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.evaluate(() => { sessionStorage.setItem("gv-preloaded", "1"); localStorage.setItem("gv-system-mode", "off"); });
+  await page.reload();
+  const system = page.getByRole("button", { name: "Toggle system mode" });
+  await expect(system).toBeVisible();
+  await expect(system).toHaveText("SYS");
+  await system.click();
+  await expect(system).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+  await expect(page.getByText("SYS / phosphor trace")).toBeVisible();
+});
+
 test("notes expose accurate article metadata and missing notes render a 404", async ({ page }) => {
   await page.goto("/notes/event-operations-from-zero");
   await expect(page.getByRole("heading", { name: /How I Organized Events/i })).toBeVisible();
