@@ -1,11 +1,11 @@
 import { m, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
+import { ease } from "../../lib/motion";
 import { Magnetic } from "../motion/Magnetic";
 import { TextScramble } from "../motion/TextScramble";
 import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
-import { ease } from "../../lib/motion";
-import { useMotionProfile } from "../../hooks/useMotionProfile";
 
 export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string) => void; systemActive: boolean }) {
   const reduced = useReducedMotion();
@@ -139,9 +139,9 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
             !scrollMotion
               ? undefined
               : {
-                  opacity: portraitOpacity,
-                  scale: portraitScale,
-                }
+                opacity: portraitOpacity,
+                scale: portraitScale,
+              }
           }
           className="relative min-h-[clamp(19rem,88vw,22rem)] pt-1 sm:min-h-[22rem] lg:min-h-[34rem] lg:pt-0"
         >
