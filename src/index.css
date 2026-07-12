@@ -783,9 +783,18 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 }
 
 .expertise-item:has(:focus-visible),
-.expertise-item:hover {
+.expertise-item:hover,
+.expertise-item.is-focused {
   border-left-color: var(--accent);
   background-color: color-mix(in srgb, var(--accent) 3%, transparent);
+}
+
+@media (max-width: 399px) {
+  footer .group.relative.inline-flex,
+  footer button.group {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
