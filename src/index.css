@@ -19,33 +19,28 @@
   src: url("@fontsource/space-mono/files/space-mono-latin-400-normal.woff2") format("woff2");
 }
 
-/* ── Ember & Phosphor ─────────────────────────────────────────────────────
-   Warm analogue instrument by default; phosphor oscilloscope in system
-   mode. `--accent` swaps ember↔phosphor on <html> and every derived color
-   (utilities, borders, gradients, glows) crossfades with it.
-   Rule of use: ember = something you can do, phosphor = something measured. */
+/* ── Blue & violet instrument ──────────────────────────────────────────── */
 @theme {
-  --color-background: #070606;
-  --color-surface: #100d0b;
-  --color-foreground: #ede9e2;
-  --color-bone: #ede9e2;
-  --color-ember: #ff6b3d;
-  --color-ember-bright: #ffa588;
-  --color-ember-deep: #b8431f;
-  --color-phosphor: #9fe870;
-  --color-phosphor-dim: #6fa35a;
+  --color-background: #080b16;
+  --color-surface: #101427;
+  --color-foreground: #edf1ff;
+  --color-bone: #edf1ff;
+  --color-blue: #78a9ff;
+  --color-blue-soft: #b8d0ff;
+  --color-violet: #a68bff;
+  --color-violet-soft: #d0c4ff;
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   /* Warm-shifted neutrals replace the stock blue-gray zinc ramp. */
-  --color-zinc-100: #ebe7e0;
-  --color-zinc-200: #dbd6ce;
-  --color-zinc-300: #c8c3bb;
-  --color-zinc-400: #a5a099;
-  --color-zinc-500: #8a857e;
-  --color-zinc-600: #78736b;
-  --color-zinc-700: #4a463f;
-  --color-zinc-800: #2a2723;
-  --color-zinc-900: #1a1815;
+  --color-zinc-100: #e8ecfa;
+  --color-zinc-200: #d2d8ec;
+  --color-zinc-300: #bcc4dc;
+  --color-zinc-400: #a8b0c8;
+  --color-zinc-500: #929bb5;
+  --color-zinc-600: #737d98;
+  --color-zinc-700: #444d67;
+  --color-zinc-800: #252c42;
+  --color-zinc-900: #151a2b;
   --font-sans: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
   --font-mono: "Space Mono", ui-monospace, "SF Mono", "Cascadia Code", monospace;
 }
@@ -53,18 +48,18 @@
 @property --accent {
   syntax: "<color>";
   inherits: true;
-  initial-value: #ff6b3d;
+  initial-value: #78a9ff;
 }
 
 @property --accent-soft {
   syntax: "<color>";
   inherits: true;
-  initial-value: #ffa588;
+  initial-value: #b8d0ff;
 }
 
 html {
-  --accent: #ff6b3d;
-  --accent-soft: #ffa588;
+  --accent: #78a9ff;
+  --accent-soft: #b8d0ff;
   /* Registered custom properties interpolate: one transition retints the
      entire site when system mode toggles. Safari <16.4 falls back to an
      instant swap, which is acceptable. */
@@ -72,8 +67,8 @@ html {
 }
 
 html[data-system-mode="on"] {
-  --accent: #9fe870;
-  --accent-soft: #c8f0a8;
+  --accent: #a68bff;
+  --accent-soft: #d0c4ff;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -84,7 +79,7 @@ html[data-system-mode="on"] {
 
 html,
 body {
-  background-color: #070606;
+  background-color: #080b16;
   min-height: 100%;
 }
 
@@ -125,8 +120,8 @@ a {
   transform: translateY(0);
 }
 
-/* Only hide cursor on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
+/* The native pointer is suppressed only while the portal cursor exists. */
+.has-custom-cursor {
   *,
   *::before,
   *::after {
@@ -134,8 +129,18 @@ a {
   }
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .has-custom-cursor {
+  *,
+  *::before,
+  *::after {
+    cursor: none !important;
+  }
+  }
+}
+
 body {
-  background-color: var(--color-background, #070606);
+  background-color: var(--color-background, #080b16);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   margin: 0;
@@ -166,9 +171,10 @@ body {
 }
 
 .hero-object-shell {
-  position: absolute;
-  inset: 0;
-  min-height: 17rem;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: clip;
   isolation: isolate;
 }
 
@@ -181,7 +187,7 @@ body {
   border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
   background:
     radial-gradient(circle at 55% 42%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 46%),
-    linear-gradient(145deg, rgba(18, 13, 10, 0.86), rgba(7, 5, 4, 0.42));
+    linear-gradient(145deg, rgba(21, 26, 52, 0.9), rgba(8, 11, 22, 0.5));
   color: inherit;
   touch-action: pan-y;
   transform: translateZ(0);
@@ -246,6 +252,8 @@ body {
   transition: opacity 400ms ease;
 }
 
+.hero-fallback-motion { overflow: hidden; }
+
 .hero-fallback picture,
 .hero-fallback img {
   display: block;
@@ -255,6 +263,7 @@ body {
 
 .hero-fallback img {
   filter: grayscale(.18) contrast(1.08) saturate(.82);
+  object-position: 50% 12%;
 }
 
 .hero-fallback-grid,
@@ -322,7 +331,7 @@ body {
 /* Small technical labels remain legible at WCAG AA contrast. */
 .text-zinc-500,
 .text-zinc-600 {
-  color: #a5a099;
+  color: #929bb5;
 }
 
 .tool-chip:hover,
@@ -332,9 +341,9 @@ body {
   transform: translateY(-2px);
 }
 
-.project-panel[data-accent="ember"] { --project-accent: 255 107 61; }
-.project-panel[data-accent="phosphor"] { --project-accent: 159 232 112; }
-.project-panel[data-accent="bone"] { --project-accent: 237 233 226; }
+.project-panel[data-accent="blue"] { --project-accent: 120 169 255; }
+.project-panel[data-accent="violet"] { --project-accent: 166 139 255; }
+.project-panel[data-accent="bone"] { --project-accent: 237 241 255; }
 .project-panel:active { background-color: rgba(var(--project-accent), .025); }
 
 .project-panel::after {
@@ -359,7 +368,7 @@ body {
 
 @media (max-width: 370px) {
   .hero-wordmark { font-size: clamp(3.2rem, 16.2vw, 3.75rem); }
-  .hero-object-shell { min-height: 15rem; }
+  .hero-visual-frame { min-height: 15rem; }
 }
 
 @media (max-height: 650px) and (orientation: landscape) {
@@ -437,7 +446,7 @@ body {
   background: #fff;
   border-radius: 50%;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 2147483647;
   transform: translate(-50%, -50%);
   transition: transform 0.2s ease, opacity 0.2s ease;
   mix-blend-mode: difference;
@@ -455,7 +464,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.42);
   border-radius: 50%;
   pointer-events: none;
-  z-index: 9998;
+  z-index: 2147483646;
   transform: translate(-50%, -50%);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.2) inset,
@@ -731,7 +740,7 @@ body {
   background-image:
     radial-gradient(circle, color-mix(in srgb, var(--accent) 28%, transparent) 1px, transparent 1px),
     linear-gradient(90deg, color-mix(in srgb, var(--accent) 5%, transparent) 1px, transparent 1px),
-    linear-gradient(180deg, color-mix(in srgb, var(--color-ember-deep) 4%, transparent) 1px, transparent 1px);
+    linear-gradient(180deg, color-mix(in srgb, var(--color-violet) 4%, transparent) 1px, transparent 1px);
   background-size: 28px 28px, 112px 112px, 112px 112px;
   animation: sys-grid-drift 14s linear infinite;
 }
@@ -778,8 +787,37 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 }
 
 .expertise-item {
+  position: relative;
+  padding-left: calc(var(--expertise-gutter, 2rem) + 1px);
   border-left: 1px solid transparent;
   transition: border-color 350ms ease, background-color 350ms ease;
+}
+
+.expertise-rail {
+  --expertise-gutter: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.expertise-rail::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.expertise-item:last-child { border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+.expertise-dot {
+  left: 0;
+  top: 2.55rem;
+  height: .625rem;
+  width: .625rem;
+  transform: translateX(-50%);
+  border: 1px solid #737d98;
+  border-radius: 999px;
+  background: var(--color-background);
+  transition: background-color 250ms ease, border-color 250ms ease, box-shadow 250ms ease;
 }
 
 .expertise-item:has(:focus-visible),
@@ -787,6 +825,16 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 .expertise-item.is-focused {
   border-left-color: var(--accent);
   background-color: color-mix(in srgb, var(--accent) 3%, transparent);
+}
+
+.expertise-item.is-focused .expertise-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+@media (min-width: 768px) {
+  .expertise-rail { --expertise-gutter: 2.5rem; }
 }
 
 @media (max-width: 399px) {

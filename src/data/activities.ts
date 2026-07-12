@@ -1,4 +1,4 @@
-import { CheckCircle2, Network, Orbit, Users } from "lucide-react";
+import { Bot, CheckCircle2, Network, Orbit, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type ExpertiseArtifact = "network" | "checklist" | "scale" | "constellation";
@@ -53,5 +53,15 @@ export const activities: Activity[] = [
     tags: ["Leadership", "Delivery", "Teams"],
     icon: Users,
     artifact: "constellation",
+  },
+  {
+    index: "05",
+    title: "AI-Assisted Development & Automation",
+    role: "Practical workflows with agents and self-hosted tools",
+    description:
+      "I build and evaluate AI-assisted development workflows with coding agents, self-hosted OpenClaw, Codex, Claude Code, and tool integrations. I focus on orchestration, repeatable automation, and verifying outputs so speed does not come at the cost of control or reliability.",
+    tags: ["Coding agents", "OpenClaw", "Automation", "Verification"],
+    icon: Bot,
+    artifact: "network",
   },
 ];

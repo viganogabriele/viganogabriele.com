@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
-const STORAGE_KEY = "gv-system-mode";
-
 export function useSystemMode() {
-  const [active, setActive] = useState(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY) === "on";
-    } catch {
-      return false;
-    }
-  });
+  // System mode is deliberately transient. Restoring it during hydration made
+  // its transition run without a user action on later visits.
+  const [active, setActive] = useState(false);
+  const [transitionId, setTransitionId] = useState(0);
 
   useEffect(() => {
     if (active) {
@@ -17,12 +12,6 @@ export function useSystemMode() {
     } else {
       document.documentElement.removeAttribute("data-system-mode");
     }
-    try {
-      localStorage.setItem(STORAGE_KEY, active ? "on" : "off");
-    } catch {
-      // ignore storage errors in restricted contexts
-    }
-    window.dispatchEvent(new CustomEvent("sys:toggle", { detail: { active } }));
   }, [active]);
 
   useEffect(() => {
@@ -36,6 +25,7 @@ export function useSystemMode() {
         !(e.target instanceof HTMLTextAreaElement)
       ) {
         e.preventDefault();
+        setTransitionId((id) => id + 1);
         setActive((prev) => !prev);
       }
     };
@@ -50,5 +40,10 @@ export function useSystemMode() {
     return !prev;
   }), []);
 
-  return { active, toggle };
+  const toggleFromControl = useCallback(() => {
+    setTransitionId((id) => id + 1);
+    toggle();
+  }, [toggle]);
+
+  return { active, transitionId, toggle: toggleFromControl };
 }

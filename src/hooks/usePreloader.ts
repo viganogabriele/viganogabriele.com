@@ -7,7 +7,6 @@ export function usePreloader(reducedMotion: boolean | null) {
   useEffect(() => {
     if (!loading) return;
     let frame = 0;
-    let timeout = 0;
     let mounted = true;
     let amount = 0;
 
@@ -19,14 +18,18 @@ export function usePreloader(reducedMotion: boolean | null) {
 
     const finish = async () => {
       const fonts = document.fonts?.ready ?? Promise.resolve();
-      await Promise.race([
-        Promise.all([fonts, new Promise((resolve) => setTimeout(resolve, 360))]),
-        new Promise((resolve) => setTimeout(resolve, 900)),
-      ]);
+      const hero = document.querySelector<HTMLImageElement>("[data-hero-portrait]");
+      const image = hero?.complete ? hero.decode?.().catch(() => undefined) : new Promise<void>((resolve) => {
+        hero?.addEventListener("load", () => resolve(), { once: true });
+        hero?.addEventListener("error", () => resolve(), { once: true });
+      });
+      await Promise.all([fonts, image ?? Promise.resolve()]);
       if (!mounted) return;
       cancelAnimationFrame(frame);
       setProgress(100);
-      timeout = window.setTimeout(() => mounted && setLoading(false), reducedMotion ? 40 : 260);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { if (mounted) setLoading(false); });
+      });
     };
 
     frame = requestAnimationFrame(tick);
@@ -34,7 +37,6 @@ export function usePreloader(reducedMotion: boolean | null) {
     return () => {
       mounted = false;
       cancelAnimationFrame(frame);
-      clearTimeout(timeout);
     };
   }, [loading, reducedMotion]);
 

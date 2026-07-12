@@ -53,7 +53,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
             <span className="flex min-w-0 items-center gap-2">
               {project.index} / {project.eyebrow}
             </span>
-            <span className="flex shrink-0 items-center gap-2 text-ember-bright">
+            <span className="flex shrink-0 items-center gap-2 text-blue-soft">
               {project.status}
             </span>
           </div>
@@ -61,7 +61,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
             {project.title}
           </h3>
           <p className="mt-7 max-w-xl text-base leading-relaxed text-zinc-400">{project.description}</p>
-          <div className="mt-7 grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-5">{project.metrics.map((metric) => <div key={metric.label}><p className="text-2xl font-medium tracking-[-0.05em] text-phosphor">{metric.value}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-600">MEASURED / {metric.label}</p></div>)}</div>
+          <div className="mt-7 grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-5">{project.metrics.map((metric) => <div key={metric.label}><p className="text-2xl font-medium tracking-[-0.05em] text-accent">{metric.value}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-600">MEASURED / {metric.label}</p></div>)}</div>
           <p data-sys-reveal className="mt-4 font-mono text-[9px] uppercase tracking-[0.13em] text-accent">SYS / {project.buildMeta}</p>
         </div>
         <div className="relative z-10 grid gap-6 border-t border-white/[0.09] pt-6 text-sm md:grid-cols-2">
@@ -74,7 +74,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-600">Outcome</p>
             <p className="mt-2 leading-relaxed text-zinc-300">{project.outcome}</p>
-            <p className="mt-5 border-l border-phosphor/50 pl-3 font-mono text-[10px] leading-relaxed text-phosphor/80">
+            <p className="mt-5 border-l border-accent/50 pl-3 font-mono text-[10px] leading-relaxed text-accent/80">
               {project.proof}
             </p>
           </div>
@@ -89,7 +89,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
               target="_blank"
               rel="noreferrer"
               data-cursor="hover"
-              className="inline-flex min-h-11 items-center gap-2 px-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ember-bright transition-colors hover:text-white"
+              className="inline-flex min-h-11 items-center gap-2 px-1 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:text-white"
             >
               Inspect <ArrowUpRight className="h-3.5 w-3.5" />
             </a>

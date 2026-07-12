@@ -28,8 +28,15 @@ export function Journey() {
       setScrollRange([pageTop - vh * 0.95, pageBottom - vh * 0.15]);
     };
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    const observer = new ResizeObserver(measure);
+    if (railRef.current) observer.observe(railRef.current);
+    window.addEventListener("resize", measure, { passive: true });
+    window.addEventListener("hashchange", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("hashchange", measure);
+    };
   }, []);
 
   const fillScale = useTransform(scrollY, scrollRange, [0, 1]);
@@ -45,20 +52,21 @@ export function Journey() {
       <div
         ref={railRef}
         data-journey-rail
-        className="relative ml-4 pl-[var(--journey-gutter)] [--journey-gutter:2rem] md:ml-[15%] md:[--journey-gutter:3rem]"
+        className="journey-rail relative ml-4 pl-[var(--journey-gutter)] [--journey-gutter:2rem] md:ml-[15%] md:[--journey-gutter:3rem]"
       >
-        <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-px bg-white/[0.1]" />
+        <span data-journey-axis aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-px -translate-x-1/2 bg-white/[0.1]" />
         {/* Scroll-driven fill on the timeline rail */}
         {!staticMotion && (
           <>
             <m.span
               aria-hidden
-              className="pointer-events-none absolute left-0 top-0 h-full w-px bg-gradient-to-b from-ember via-ember-bright to-phosphor"
+              className="pointer-events-none absolute left-0 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-blue via-accent to-violet"
               style={{ scaleY: fillScale, originY: 0 }}
             />
             <m.span
               aria-hidden
-              className="pointer-events-none absolute left-0 h-2 w-2 -translate-x-1/2 rounded-full bg-phosphor shadow-[0_0_12px_rgba(159,232,112,0.9)]"
+              data-journey-indicator
+              className="pointer-events-none absolute left-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_85%,transparent)]"
               style={{ top: indicatorY }}
             />
           </>
@@ -76,10 +84,11 @@ export function Journey() {
               className="relative pb-12 last:pb-0"
             >
               <span
-                className={`absolute top-1 h-4 w-4 -translate-x-1/2 rounded-full border ${item.current ? "border-ember-bright bg-ember/20 shadow-[0_0_0_5px_rgba(255,107,61,0.08)]" : "border-zinc-600 bg-background"}`}
+                data-journey-node
+                className={`absolute top-1 h-4 w-4 -translate-x-1/2 rounded-full border ${item.current ? "border-accent bg-accent/20 shadow-[0_0_0_5px_color-mix(in_srgb,var(--accent)_10%,transparent)]" : "border-zinc-600 bg-background"}`}
                 style={{ left: "calc(var(--journey-gutter) * -1)" }}
               >
-                {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-ember-bright/50 motion-reduce:animate-none" />}
+                {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-accent/50 motion-reduce:animate-none" />}
               </span>
               <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
                 <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600 md:mb-0">{item.year}</p>

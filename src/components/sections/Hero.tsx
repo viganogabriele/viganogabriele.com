@@ -85,33 +85,33 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
             </p>
 
             {/* stat row with stagger */}
-            <m.div
+            <m.dl
               initial="hidden"
               animate="show"
               variants={{
                 hidden: {},
                 show: { transition: { staggerChildren: 0.1, delayChildren: 0.55 } },
               }}
-              className="mt-7 grid max-w-xl grid-cols-3 border-y border-white/[0.09] py-3 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-500"
+              className="hero-stat-grid mt-7 grid max-w-xl grid-cols-3 border-y border-white/[0.09] font-mono uppercase tracking-[0.13em] text-zinc-500"
             >
               {[
                 { label: "Volunteers recruited", value: "30+" },
                 { label: "Event attendees", value: "1,000+" },
                 { label: "Students served", value: "45K+" },
               ].map((s) => (
-                <m.span
+                <m.div
                   key={s.label}
                   variants={{
                     hidden: { opacity: 0, y: 10 },
                     show: { opacity: 1, y: 0 },
                   }}
+                  className="hero-stat-cell flex min-w-0 flex-col justify-between py-4"
                 >
-                  {s.label}
-                  <br />
-                  <b className="mt-1 block font-normal text-phosphor">{s.value}</b>
-                </m.span>
+                  <dt className="text-[9px] leading-[1.35]">{s.label}</dt>
+                  <dd className="mt-3 text-lg font-normal leading-none tracking-[-0.04em] text-accent">{s.value}</dd>
+                </m.div>
               ))}
-            </m.div>
+            </m.dl>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Magnetic>
@@ -119,14 +119,14 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
                   href="#projects"
                   onClick={go}
                   data-cursor="hover"
-                  className="group relative inline-flex items-center gap-3 overflow-hidden bg-bone px-5 py-3.5 text-sm font-semibold text-black transition-colors hover:bg-ember-bright"
+                  className="group relative inline-flex items-center gap-3 overflow-hidden bg-bone px-5 py-3.5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
                 >
-                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-ember/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                   <span className="relative">See the work</span>
                   <ArrowDownRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:translate-y-0.5" />
                 </a>
               </Magnetic>
-              <a href="https://linkedin.com/in/viganogabriele" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-ember/40 hover:text-white">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
+              <a href="https://linkedin.com/in/viganogabriele" target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
             </div>
           </m.div>
         </div>
@@ -143,7 +143,7 @@ export function Hero({ onNavigate, systemActive }: { onNavigate: (target: string
                 scale: portraitScale,
               }
           }
-          className="relative min-h-[clamp(19rem,88vw,22rem)] pt-1 sm:min-h-[22rem] lg:min-h-[34rem] lg:pt-0"
+          className="hero-visual-frame relative mx-auto w-full max-w-[34rem] aspect-[4/5] min-h-[19rem] overflow-hidden pt-1 sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem] lg:pt-0"
         >
           <AdaptiveHeroObject systemActive={systemActive} />
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-accent/75">

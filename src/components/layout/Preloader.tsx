@@ -9,6 +9,7 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
       initial={{ opacity: 1 }}
       exit={reducedMotion ? { opacity: 0 } : { clipPath: "inset(0 50% 0 50%)" }}
       transition={{ duration: reducedMotion ? 0.35 : 0.65, ease: ease.cinematic }}
+      data-preloader
       className="fixed inset-0 z-[100] min-h-[100dvh] bg-background"
     >
       {/* Scan lines overlay */}
@@ -50,13 +51,13 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
           {/* Loading label + counter */}
           <div className="mb-2 flex justify-between font-mono text-[10px] tracking-[0.18em] uppercase">
             <span className="text-zinc-500">CALIBRATING</span>
-            <span className="text-phosphor">{String(Math.round(progress)).padStart(3, "0")}</span>
+            <span className="text-accent">{String(Math.round(progress)).padStart(3, "0")}</span>
           </div>
 
           {/* Progress bar */}
           <div className="h-px w-full overflow-hidden bg-white/10">
             <m.div
-              className="h-full bg-gradient-to-r from-ember to-phosphor"
+              className="h-full bg-gradient-to-r from-accent to-violet"
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.2 }}
             />
@@ -70,7 +71,7 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
                 className="h-[3px] flex-1"
                 style={{
                   backgroundColor:
-                    (i + 1) * 5 <= progress ? "#9FE870" : "rgba(255,255,255,0.08)",
+                    (i + 1) * 5 <= progress ? "var(--accent)" : "rgba(255,255,255,0.08)",
                 }}
               />
             ))}

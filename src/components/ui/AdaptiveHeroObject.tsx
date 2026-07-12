@@ -8,7 +8,7 @@ import { loadHeroSceneModule } from "../../lib/headModel";
 const HeroHeadScene = lazy(loadHeroSceneModule);
 
 function PortraitFallback({ staticMode }: { staticMode: boolean }) {
-  return <m.div className="hero-fallback h-full w-full" animate={staticMode ? undefined : { y: [0, -7, 0], rotate: [0, 0.25, 0] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}><picture><source srcSet={imageAvif} type="image/avif" /><img src={imageWebp} alt="" width="900" height="900" decoding="async" fetchPriority="high" className="h-full w-full object-cover object-top" /></picture><span className="hero-fallback-grid" /><span className="hero-fallback-scan" /></m.div>;
+  return <div className="hero-fallback"><m.div className="hero-fallback-motion h-full w-full" animate={staticMode ? undefined : { y: [0, -7, 0], rotate: [0, 0.25, 0] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}><picture><source srcSet={imageAvif} type="image/avif" /><img data-hero-portrait src={imageWebp} alt="" width="900" height="900" decoding="async" fetchPriority="high" className="h-full w-full object-cover object-top" /></picture></m.div><span className="hero-fallback-grid" /><span className="hero-fallback-scan" /></div>;
 }
 
 export function AdaptiveHeroObject({ systemActive }: { systemActive: boolean }) {

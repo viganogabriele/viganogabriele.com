@@ -14,7 +14,7 @@ export interface Project {
   link?: string;
   artifact: ProjectArtifact;
   metrics: Array<{ value: string; label: string }>;
-  accent: "ember" | "phosphor" | "bone";
+  accent: "blue" | "violet" | "bone";
   buildMeta: string;
 }
 
@@ -36,7 +36,7 @@ export const projects: Project[] = [
     link: "https://github.com/PoliNetworkOrg",
     artifact: "network",
     metrics: [{ value: "45K+", label: "students" }, { value: "1K+", label: "event attendees" }],
-    accent: "phosphor",
+    accent: "violet",
     buildMeta: "45K network / 5 active teams",
   },
   {
@@ -56,7 +56,7 @@ export const projects: Project[] = [
     link: "https://github.com/viganogabriele/viganogabriele.com",
     artifact: "portfolio",
     metrics: [{ value: "A–Z", label: "design & build" }, { value: "AA", label: "accessibility target" }],
-    accent: "ember",
+    accent: "blue",
     buildMeta: "React 19 / Vite 8 / Motion profile",
   },
   {

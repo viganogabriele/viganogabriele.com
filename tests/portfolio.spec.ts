@@ -69,18 +69,78 @@ test("adaptive hero exposes its interaction and a visual fallback", async ({ pag
   await expect(portrait).toHaveAttribute("aria-pressed", "true");
 });
 
-test("SYS mode retints the document and remains operable on mobile", async ({ page }) => {
+test("home identity metadata and favicon are exact", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveTitle("Gabriele Viganò");
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Gabriele Viganò");
+  await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute("content", "Gabriele Viganò");
+  await expect(page.locator('link[rel="icon"][type="image/svg+xml"]')).toHaveAttribute("href", /\/favicon\.svg/);
+  const favicon = await page.request.get("/favicon.svg");
+  expect(favicon.ok()).toBe(true);
+});
+
+test("SYS mode starts clean, then activates only after an explicit control interaction", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.evaluate(() => { sessionStorage.setItem("gv-preloaded", "1"); localStorage.setItem("gv-system-mode", "off"); });
+  await page.evaluate(() => { localStorage.setItem("gv-system-mode", "on"); });
   await page.reload();
   const system = page.getByRole("button", { name: "Toggle system mode" });
   await expect(system).toBeVisible();
   await expect(system).toHaveText("SYS");
+  await expect(system).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("html")).not.toHaveAttribute("data-system-mode", "on");
+  await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
-  await expect(page.getByText("SYS / phosphor trace")).toBeVisible();
+  await expect(page.getByText("SYS / violet trace")).toBeVisible();
+  await expect(page.locator("[data-system-wipe]")).toHaveCount(1);
+  await page.reload();
+  await expect(system).toHaveAttribute("aria-pressed", "false");
+});
+
+test("fine-pointer cursor works at compact desktop width and is absent on touch", async ({ page }) => {
+  await page.setViewportSize({ width: 676, height: 822 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await expect(page.locator("[data-custom-cursor]")).toBeAttached();
+  const target = page.locator(".hero-object-button");
+  await target.hover();
+  await target.dispatchEvent("mouseover");
+  await expect(page.locator("[data-custom-cursor]")).toHaveAttribute("data-visible", "true");
+  await expect(page.locator("[data-custom-cursor]")).toHaveAttribute("data-active", "true");
+});
+
+test("capability selection and journey axis stay deterministic while scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.locator('[data-index="4"]').evaluate((node) => {
+    window.scrollTo({ top: node.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.42 + 48, behavior: "auto" });
+    window.dispatchEvent(new Event("scroll"));
+  });
+  await expect(page.locator('[data-index="4"]')).toHaveAttribute("data-active", "true");
+  await page.locator("[data-journey-rail]").scrollIntoViewIfNeeded();
+  const alignment = await page.evaluate(() => {
+    const axis = document.querySelector<HTMLElement>("[data-journey-axis]")?.getBoundingClientRect();
+    const indicator = document.querySelector<HTMLElement>("[data-journey-indicator]")?.getBoundingClientRect();
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-journey-node]")).map((node) => node.getBoundingClientRect());
+    if (!axis || !indicator || !nodes.length) return null;
+    const x = axis.left + axis.width / 2;
+    return { indicator: indicator.left + indicator.width / 2 - x, nodes: nodes.map((node) => node.left + node.width / 2 - x) };
+  });
+  expect(alignment).not.toBeNull();
+  expect(Math.abs(alignment!.indicator)).toBeLessThanOrEqual(1);
+  expect(alignment!.nodes.every((offset) => Math.abs(offset) <= 1)).toBe(true);
+});
+
+test("home loads without browser console errors", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  expect(errors).toEqual([]);
 });
 
 test("notes expose accurate article metadata and missing notes render a 404", async ({ page }) => {

@@ -58,17 +58,17 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
 
             {/* Terminal-style prompt */}
             <button type="button" onClick={() => { setTerminalActive(true); setTerminalOutput(""); }} className="mt-9 flex min-h-11 items-center text-left font-mono text-xs text-zinc-500 sm:text-sm" aria-label="Run connect command">
-              <span className="mr-2 text-ember">$</span>
+              <span className="mr-2 text-blue">$</span>
               <span>connect --to</span>
               <span className="ml-1.5 text-bone">gabriele</span>
               <m.span
-                className="ml-1.5 inline-block h-3.5 w-1.5 bg-ember align-middle"
+                className="ml-1.5 inline-block h-3.5 w-1.5 bg-blue align-middle"
                 animate={level === "full" ? { opacity: [1, 0, 1] } : undefined}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
               />
-              {terminalOutput && <span className="ml-3 text-phosphor">{terminalOutput}</span>}
+              {terminalOutput && <span className="ml-3 text-accent">{terminalOutput}</span>}
             </button>
-            {terminalOutput && <a href={`mailto:${EMAIL}`} className="ml-1 font-mono text-[10px] uppercase tracking-[0.12em] text-phosphor underline underline-offset-4">open mail client</a>}
+            {terminalOutput && <a href={`mailto:${EMAIL}`} className="ml-1 font-mono text-[10px] uppercase tracking-[0.12em] text-accent underline underline-offset-4">open mail client</a>}
 
             {/* Multi-channel action row */}
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -76,9 +76,9 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                 <a
                   href={`mailto:${EMAIL}`}
                   data-cursor="hover"
-                  className="group relative inline-flex items-center gap-3 overflow-hidden bg-bone px-6 py-4 text-sm font-semibold text-black transition-colors hover:bg-ember-bright"
+                  className="group relative inline-flex items-center gap-3 overflow-hidden bg-bone px-6 py-4 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
                 >
-                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-ember/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                   <Mail className="relative h-4 w-4" />
                   <span className="relative">Send email</span>
                   <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
@@ -89,7 +89,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                 type="button"
                 onClick={copy}
                 data-cursor="hover"
-                className="group relative inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 py-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-ember/60 hover:text-ember-bright"
+                className="group relative inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 py-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-blue/60 hover:text-blue-soft"
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {copied ? (
@@ -101,8 +101,8 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                       transition={{ duration: 0.2 }}
                       className="inline-flex items-center gap-2"
                     >
-                      <Check className="h-3.5 w-3.5 text-phosphor" />
-                      <span className="text-phosphor">{EMAIL}</span>
+                      <Check className="h-3.5 w-3.5 text-accent" />
+                      <span className="text-accent">{EMAIL}</span>
                     </m.span>
                   ) : (
                     <m.span
