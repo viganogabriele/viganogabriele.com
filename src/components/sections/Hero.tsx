@@ -13,7 +13,6 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
   const scrollMotion = !reduced && level === "full";
   const { scrollY } = useScroll();
   const portraitOpacity = useTransform(scrollY, [0, 420], [1, 0.3]);
-  const portraitScale = useTransform(scrollY, [0, 420], [1, 0.85]);
   const wordmarkRef = useRef<HTMLHeadingElement>(null);
   const [weight, setWeight] = useState(520);
   useEffect(() => {
@@ -140,7 +139,6 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
               ? undefined
               : {
                 opacity: portraitOpacity,
-                scale: portraitScale,
               }
           }
           className="hero-visual-frame relative mx-auto w-full max-w-[34rem] aspect-[4/5] min-h-[19rem] overflow-hidden pt-1 sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem] lg:pt-0"

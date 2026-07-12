@@ -53,8 +53,8 @@ export function HomePage() {
         data={{
           "@context": "https://schema.org",
           "@graph": [
-            { "@type": "WebSite", name: "Gabriele Viganò", url: SITE_URL, description: "Portfolio focused on product, operations, and technical systems." },
-            { "@type": "Person", name: "Gabriele Viganò", url: SITE_URL, jobTitle: "Computer Engineering Student", alumniOf: { "@type": "CollegeOrUniversity", name: "Politecnico di Milano" }, sameAs: ["https://github.com/viganogabriele", "https://linkedin.com/in/viganogabriele"] },
+            { "@type": "WebSite", name: "Gabriele Viganò", url: SITE_URL, description: "Portfolio focused on product, operations, and technical systems.", inLanguage: "en" },
+            { "@type": "Person", name: "Gabriele Viganò", url: SITE_URL, image: `${SITE_URL}/og-cover-landing.png`, jobTitle: "Computer Engineering Student", alumniOf: { "@type": "CollegeOrUniversity", name: "Politecnico di Milano" }, sameAs: ["https://github.com/viganogabriele", "https://linkedin.com/in/viganogabriele"] },
           ],
         }}
       />

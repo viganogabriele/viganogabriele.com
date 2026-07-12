@@ -63,7 +63,7 @@ test("adaptive hero exposes its interaction and a visual fallback", async ({ pag
   await page.reload();
   const portrait = page.locator(".hero-object-button");
   await expect(portrait).toBeVisible();
-  await expect(portrait).toHaveAccessibleName(/TAP TO SCAN/);
+  await expect(portrait).toHaveAccessibleName(/PORTRAIT · ENTER SYS/);
   await expect(page.locator(".hero-object-button canvas, .hero-object-button picture").first()).toBeVisible();
   await portrait.click();
   await expect(portrait).toHaveAttribute("aria-pressed", "true");
@@ -74,11 +74,15 @@ test("home identity metadata and favicon are exact", async ({ page }) => {
   await expect(page).toHaveTitle("Gabriele Viganò");
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Gabriele Viganò");
   await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute("content", "Gabriele Viganò");
-  await expect(page.locator('link[rel="icon"][type="image/png"]').first()).toHaveAttribute("href", /\/favicon-dark\.png/);
+  await expect(page.locator('link[rel="icon"][media="(prefers-color-scheme: dark)"]')).toHaveAttribute("href", /\/favicon-dark\.png/);
+  await expect(page.locator('link[rel="icon"][media="(prefers-color-scheme: light)"]')).toHaveAttribute("href", /\/favicon-light\.png/);
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", /\/apple-touch-icon\.png/);
   const darkFavicon = await page.request.get("/favicon-dark.png");
   const lightFavicon = await page.request.get("/favicon-light.png");
+  const appleTouchIcon = await page.request.get("/apple-touch-icon.png");
   expect(darkFavicon.ok()).toBe(true);
   expect(lightFavicon.ok()).toBe(true);
+  expect(appleTouchIcon.ok()).toBe(true);
 });
 
 test("SYS mode starts clean, then activates only after an explicit control interaction", async ({ page }) => {
