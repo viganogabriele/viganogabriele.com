@@ -400,13 +400,17 @@ body {
   }
 }
 
-/* Custom cursor — desktop only */
+/* Custom cursor — desktop only.
+   Centering uses negative margins so the transform property is free for
+   Framer Motion (ring's scale animation) and direct JS translations
+   (dot + trail) without clobbering the -50%,-50% shift. */
 .cursor-dot {
   position: fixed;
   top: 0;
   left: 0;
   width: 8px;
   height: 8px;
+  margin: -4px 0 0 -4px;
   background: rgba(255, 255, 255, 0.95);
   /* Dark outline keeps the dot visible on bright surfaces (portrait, white text).
      mix-blend-mode: difference was used here before but made the dot invisible
@@ -415,12 +419,16 @@ body {
   border-radius: 50%;
   pointer-events: none;
   z-index: 2147483647;
-  transform: translate(-50%, -50%);
-  transition: scale 0.15s ease;
+  transition: scale 0.15s ease, opacity 0.18s ease;
   opacity: 1;
 }
 
 .cursor-dot.is-active { scale: 1.45; }
+
+[data-custom-cursor][data-visible="false"] .cursor-dot,
+[data-custom-cursor][data-visible="false"] .cursor-trail-dot {
+  opacity: 0;
+}
 
 .cursor-ring {
   position: fixed;
@@ -428,11 +436,11 @@ body {
   left: 0;
   width: 28px;
   height: 28px;
+  margin: -14px 0 0 -14px;
   border: 1px solid rgba(255, 255, 255, 0.42);
   border-radius: 50%;
   pointer-events: none;
   z-index: 2147483646;
-  transform: translate(-50%, -50%);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.2) inset,
     0 0 22px rgba(255, 255, 255, 0.1);
@@ -1003,10 +1011,10 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
   left: 0;
   width: 5px;
   height: 5px;
+  margin: -2.5px 0 0 -2.5px;
   border-radius: 50%;
   background: var(--accent);
   pointer-events: none;
   z-index: 2147483645;
   opacity: 0;
-  transform: translate(-50%, -50%);
 }

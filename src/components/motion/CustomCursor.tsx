@@ -31,10 +31,18 @@ export function CustomCursor() {
     if (!enabled) return;
     document.documentElement.classList.add("has-custom-cursor");
 
+    const clearTrail = () => {
+      trailPositions.current.length = 0;
+      trailRefs.current.forEach((ref) => { if (ref) ref.style.opacity = "0"; });
+    };
+
     const move = (event: MouseEvent) => {
       x.set(event.clientX);
       y.set(event.clientY);
-      dot.current?.style.setProperty("transform", `translate(${event.clientX}px, ${event.clientY}px) translate(-50%, -50%)`);
+      // Use the individual `translate` property so it composes correctly
+      // with the `scale` property (CSS applies translate then scale, so the
+      // translation distance isn't multiplied by the scale factor).
+      dot.current?.style.setProperty("translate", `${event.clientX}px ${event.clientY}px`);
       setVisible(true);
 
       // Update trail only when SYS mode is active — read the attribute directly
@@ -46,15 +54,14 @@ export function CustomCursor() {
         trailRefs.current.forEach((ref, i) => {
           const pos = positions[i];
           if (ref && pos) {
-            ref.style.transform = `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%)`;
-            ref.style.opacity = String(((TRAIL_LENGTH - i) / TRAIL_LENGTH * 0.38).toFixed(2));
+            ref.style.translate = `${pos.x}px ${pos.y}px`;
+            ref.style.opacity = ((TRAIL_LENGTH - i) / TRAIL_LENGTH * 0.38).toFixed(2);
           } else if (ref) {
             ref.style.opacity = "0";
           }
         });
       } else if (trailPositions.current.length > 0) {
-        trailPositions.current.length = 0;
-        trailRefs.current.forEach((ref) => { if (ref) ref.style.opacity = "0"; });
+        clearTrail();
       }
     };
 
@@ -63,14 +70,16 @@ export function CustomCursor() {
       setActive(Boolean(target?.closest(INTERACTIVE) || document.querySelector(HOVERED_INTERACTIVE)));
     };
 
-    const clearTrail = () => {
-      trailPositions.current.length = 0;
-      trailRefs.current.forEach((ref) => { if (ref) ref.style.opacity = "0"; });
-    };
-
     const reset = () => { setActive(false); setVisible(false); clearTrail(); };
     const onScroll = () => setActive(Boolean(document.querySelector(HOVERED_INTERACTIVE)));
     const onVisibility = () => { if (document.visibilityState !== "visible") reset(); };
+
+    // SYS mode can toggle off while the mouse is idle — clear the trail
+    // immediately so leftover dots don't linger on the page.
+    const observer = new MutationObserver(() => {
+      if (!document.documentElement.hasAttribute("data-system-mode")) clearTrail();
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-system-mode"] });
 
     document.addEventListener("mousemove", move, { passive: true });
     document.addEventListener("mouseover", updateTarget, { passive: true });
@@ -81,6 +90,7 @@ export function CustomCursor() {
 
     return () => {
       document.documentElement.classList.remove("has-custom-cursor");
+      observer.disconnect();
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseover", updateTarget);
       window.removeEventListener("blur", reset);
@@ -97,7 +107,7 @@ export function CustomCursor() {
       <div ref={dot} className={`cursor-dot${active ? " is-active" : ""}`} />
       <m.div
         className="cursor-ring"
-        style={{ left: ringX, top: ringY }}
+        style={{ x: ringX, y: ringY }}
         animate={{ scale: active ? 1.5 : 1, opacity: visible ? (active ? 0.9 : 0.55) : 0 }}
       />
       {Array.from({ length: TRAIL_LENGTH }, (_, i) => (
