@@ -1,6 +1,6 @@
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-export const MODEL_URL = "/models/gabriele-head.glb";
+export const MODEL_URL = "/models/gabriele-head.v2.glb";
 
 type HeroSceneModule = typeof import("../components/ui/HeroHeadScene");
 

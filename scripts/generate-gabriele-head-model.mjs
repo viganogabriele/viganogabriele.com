@@ -45,9 +45,12 @@ const material = new MeshStandardMaterial({
 });
 
 function makeMesh(geometry, name, position = [0, 0, 0], scale = [1, 1, 1], rotation = [0, 0, 0]) {
-  const faceted = geometry.index ? geometry.toNonIndexed() : geometry;
-  faceted.computeVertexNormals();
-  const mesh = new Mesh(faceted, material);
+  // Keep geometry indexed and strip attributes the runtime never reads:
+  // flat shading is derived per-fragment (screen-space derivatives), so
+  // exported NORMALs are dead weight, and no material samples a texture.
+  geometry.deleteAttribute("normal");
+  geometry.deleteAttribute("uv");
+  const mesh = new Mesh(geometry, material);
   mesh.name = name;
   mesh.position.set(...position);
   mesh.scale.set(...scale);
@@ -305,7 +308,74 @@ const output = await new Promise((resolveExport, rejectExport) => {
   });
 });
 
-const outputPath = resolve(dirname(fileURLToPath(import.meta.url)), "../public/models/gabriele-head.glb");
+// ---------------------------------------------------------------------------
+// Optimization pipeline + hard budgets. The runtime pays for every mesh (draw
+// call), vertex and byte at SYS-mode toggle time, so the generator fails loud
+// instead of shipping a regression.
+// ---------------------------------------------------------------------------
+const BUDGET = {
+  meshes: 6,
+  vertices: 14_000,
+  triangles: 22_000,
+  bytes: 100 * 1024,
+};
+
+const { optimized, report } = await optimizeGlb(new Uint8Array(output));
+
+async function optimizeGlb(binary) {
+  const { NodeIO } = await import("@gltf-transform/core");
+  const { ALL_EXTENSIONS } = await import("@gltf-transform/extensions");
+  const { prune, dedup, flatten, join, weld, quantize, meshopt } = await import("@gltf-transform/functions");
+  const { MeshoptEncoder } = await import("meshoptimizer");
+  await MeshoptEncoder.ready;
+
+  const io = new NodeIO()
+    .registerExtensions(ALL_EXTENSIONS)
+    .registerDependencies({ "meshopt.encoder": MeshoptEncoder });
+
+  const document = await io.readBinary(binary);
+  await document.transform(
+    dedup(),
+    flatten(),
+    join({ keepNamed: false }),
+    weld(),
+    prune(),
+    quantize({ quantizePosition: 14 }),
+    meshopt({ encoder: MeshoptEncoder, level: "high" }),
+  );
+
+  const stats = { meshes: 0, primitives: 0, vertices: 0, triangles: 0 };
+  for (const mesh of document.getRoot().listMeshes()) {
+    stats.meshes += 1;
+    for (const primitive of mesh.listPrimitives()) {
+      stats.primitives += 1;
+      stats.vertices += primitive.getAttribute("POSITION")?.getCount() ?? 0;
+      const index = primitive.getIndices();
+      stats.triangles += Math.round((index ? index.getCount() : 0) / 3);
+    }
+  }
+
+  const bytes = await io.writeBinary(document);
+  return { optimized: bytes, report: { ...stats, bytes: bytes.byteLength } };
+}
+
+console.log(
+  `model report — meshes: ${report.meshes}, primitives: ${report.primitives}, ` +
+  `vertices: ${report.vertices}, triangles: ${report.triangles}, size: ${(report.bytes / 1024).toFixed(1)} KB`,
+);
+
+const violations = [
+  report.primitives > BUDGET.meshes && `primitives ${report.primitives} > ${BUDGET.meshes}`,
+  report.vertices > BUDGET.vertices && `vertices ${report.vertices} > ${BUDGET.vertices}`,
+  report.triangles > BUDGET.triangles && `triangles ${report.triangles} > ${BUDGET.triangles}`,
+  report.bytes > BUDGET.bytes && `size ${report.bytes} > ${BUDGET.bytes} bytes`,
+].filter(Boolean);
+if (violations.length) {
+  console.error(`BUDGET EXCEEDED:\n  ${violations.join("\n  ")}`);
+  process.exit(1);
+}
+
+const outputPath = resolve(dirname(fileURLToPath(import.meta.url)), "../public/models/gabriele-head.v2.glb");
 await mkdir(dirname(outputPath), { recursive: true });
-await writeFile(outputPath, Buffer.from(output));
+await writeFile(outputPath, Buffer.from(optimized));
 console.log(`Generated ${outputPath}`);
