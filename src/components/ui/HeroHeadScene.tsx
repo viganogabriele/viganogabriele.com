@@ -1,27 +1,31 @@
 import { useEffect, useRef } from "react";
 import { loadHeadGltf } from "../../lib/headModel";
 
-type SceneMaterials = {
+type SceneKit = {
   base: import("three").MeshStandardMaterial;
+  hair: import("three").MeshStandardMaterial;
   glint: import("three").MeshStandardMaterial;
   points: import("three").PointsMaterial;
+  wireBase: import("three").MeshBasicMaterial;
+  wireHair: import("three").MeshBasicMaterial;
+  baseMeshes: import("three").Mesh[];
+  hairMeshes: import("three").Mesh[];
 };
 
-// Normal mode: dark graphite with a faint cool sheen.
-// Scan mode: phosphor wireframe — the "structure visible" read.
-function applyMode(materials: SceneMaterials, scan: boolean) {
-  materials.base.color.setHex(scan ? 0x06130a : 0x101820);
-  materials.base.emissive.setHex(scan ? 0x224d1a : 0x02080b);
-  materials.base.emissiveIntensity = scan ? 0.85 : 0.22;
-  materials.base.wireframe = scan;
-  materials.base.needsUpdate = true;
-  materials.glint.emissiveIntensity = scan ? 1.6 : 0.9;
-  materials.points.opacity = scan ? 0.95 : 0.55;
+// Normal mode: lit dark graphite. Scan mode: unlit phosphor wireframe — the
+// model ships without NORMALs (flat shading uses triangle derivatives), and
+// on GL line primitives those derivatives degenerate, so a lit wireframe
+// would render black. Swapping to MeshBasicMaterial sidesteps lighting.
+function applyMode(kit: SceneKit, scan: boolean) {
+  for (const mesh of kit.baseMeshes) mesh.material = scan ? kit.wireBase : kit.base;
+  for (const mesh of kit.hairMeshes) mesh.material = scan ? kit.wireHair : kit.hair;
+  kit.glint.emissiveIntensity = scan ? 1.1 : 0.55;
+  kit.points.opacity = scan ? 0.95 : 0.55;
 }
 
 export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolean; onError: () => void; onReady?: () => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const materialsRef = useRef<SceneMaterials | null>(null);
+  const materialsRef = useRef<SceneKit | null>(null);
 
   useEffect(() => {
     if (materialsRef.current) applyMode(materialsRef.current, scan);
@@ -79,13 +83,17 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
       // Shared materials, assigned by node/material name — the whole head is
       // a handful of merged primitives, so mode switches touch 3 materials
       // instead of one per mesh.
-      const materials: SceneMaterials = {
-        base: new THREE.MeshStandardMaterial({ metalness: 0.76, roughness: 0.3, flatShading: true }),
-        glint: new THREE.MeshStandardMaterial({ color: 0x1a1208, emissive: 0xd9a05b, emissiveIntensity: 0.9, roughness: 0.4 }),
+      const kit: SceneKit = {
+        base: new THREE.MeshStandardMaterial({ color: 0x101820, emissive: 0x02080b, emissiveIntensity: 0.22, metalness: 0.76, roughness: 0.3, flatShading: true }),
+        hair: new THREE.MeshStandardMaterial({ color: 0x0a0d12, emissive: 0x01050a, emissiveIntensity: 0.2, metalness: 0.55, roughness: 0.5, flatShading: true }),
+        glint: new THREE.MeshStandardMaterial({ color: 0x1a1208, emissive: 0xd9a05b, emissiveIntensity: 0.55, roughness: 0.4 }),
         points: new THREE.PointsMaterial({ color: 0x9fb4c4, size: 0.014, transparent: true, opacity: 0.55, sizeAttenuation: true }),
+        wireBase: new THREE.MeshBasicMaterial({ color: 0x6fce4a, wireframe: true, transparent: true, opacity: 0.5 }),
+        wireHair: new THREE.MeshBasicMaterial({ color: 0x3f7a2e, wireframe: true, transparent: true, opacity: 0.38 }),
+        baseMeshes: [],
+        hairMeshes: [],
       };
-      materialsRef.current = materials;
-      applyMode(materials, scan);
+      materialsRef.current = kit;
 
       // Clone the cached GLTF scene: geometry stays shared (and is never
       // disposed here) so re-entering system mode is instant.
@@ -98,13 +106,16 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
       model.scale.setScalar(fit);
       model.rotation.set(0.03, -0.12, 0);
       model.traverse((child) => {
-        const glinted = /glint/i.test(child.name) || (child instanceof THREE.Mesh && /glint/i.test((child.material as { name?: string })?.name ?? ""));
+        const sourceName = `${child.name} ${(child as { material?: { name?: string } }).material?.name ?? ""}`;
         if (child instanceof THREE.Points) {
-          child.material = materials.points;
+          child.material = kit.points;
         } else if (child instanceof THREE.Mesh) {
-          child.material = glinted ? materials.glint : materials.base;
+          if (/glint/i.test(sourceName)) child.material = kit.glint;
+          else if (/hair/i.test(sourceName)) kit.hairMeshes.push(child);
+          else kit.baseMeshes.push(child);
         }
       });
+      applyMode(kit, scan);
       scene.add(model);
 
       const pointer = (event: PointerEvent) => {
@@ -164,9 +175,12 @@ export default function HeroHeadScene({ scan, onError, onReady }: { scan: boolea
         host.removeEventListener("pointerleave", resetPointer);
         document.removeEventListener("visibilitychange", onVisibility);
         renderer.domElement.removeEventListener("webglcontextlost", onContextLost);
-        materials.base.dispose();
-        materials.glint.dispose();
-        materials.points.dispose();
+        kit.base.dispose();
+        kit.hair.dispose();
+        kit.glint.dispose();
+        kit.points.dispose();
+        kit.wireBase.dispose();
+        kit.wireHair.dispose();
         materialsRef.current = null;
         renderer.dispose();
         renderer.domElement.remove();

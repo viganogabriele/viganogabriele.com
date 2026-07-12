@@ -2,14 +2,17 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  BoxGeometry,
+  BufferAttribute,
   BufferGeometry,
   CatmullRomCurve3,
-  ConeGeometry,
   CylinderGeometry,
   Float32BufferAttribute,
   Group,
   Mesh,
   MeshStandardMaterial,
+  Points,
+  PointsMaterial,
   SphereGeometry,
   TubeGeometry,
   Uint32BufferAttribute,
@@ -29,25 +32,39 @@ globalThis.FileReader ??= class FileReader {
   }
 };
 
+// ---------------------------------------------------------------------------
+// Likeness targets (docs/face.md):
+// slim oval-to-long-oval face · narrow tapered jaw · softly pointed chin ·
+// carved almond eye sockets under a straight low brow ridge · straight nose
+// with a prominent bridge · thinner upper / fuller lower lip · thick wavy
+// hair with a curtain fringe and a center lock · light stubble · visible ears.
+//
 // Coordinate system: +y up, +z toward viewer (face front), +x subject's left.
-// Likeness target (see docs/face.md): slim oval-to-long-oval face, narrow
-// tapered jaw, softly pointed chin, thick wavy hair with front locks and a
-// center curl, strong low straight brows, straight defined nose, almond eyes.
+// The skull is a ring/segment grid; every facial plane (sockets, brow,
+// cheekbones, chin) is carved INTO the grid as a radial displacement field so
+// the features read in wireframe mode, instead of spheres glued on top.
+// ---------------------------------------------------------------------------
+
+// Deterministic RNG so regenerating the model never changes the asymmetry.
+function mulberry32(seed) {
+  let a = seed;
+  return () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = mulberry32(20260712);
 
 const root = new Group();
 root.name = "GabrieleHead";
 
-const material = new MeshStandardMaterial({
-  color: "#111820",
-  metalness: 0.74,
-  roughness: 0.32,
-  flatShading: true,
-});
+const headMaterial = new MeshStandardMaterial({ name: "head", color: "#111820", metalness: 0.74, roughness: 0.32, flatShading: true });
+const hairMaterial = new MeshStandardMaterial({ name: "hair", color: "#0a0d12", metalness: 0.55, roughness: 0.5, flatShading: true });
+const glintMaterial = new MeshStandardMaterial({ name: "glint", color: "#1a1208", emissive: "#d9a05b", emissiveIntensity: 0.9, roughness: 0.4 });
 
-function makeMesh(geometry, name, position = [0, 0, 0], scale = [1, 1, 1], rotation = [0, 0, 0]) {
-  // Keep geometry indexed and strip attributes the runtime never reads:
-  // flat shading is derived per-fragment (screen-space derivatives), so
-  // exported NORMALs are dead weight, and no material samples a texture.
+function addMesh(geometry, material, name, position = [0, 0, 0], scale = [1, 1, 1], rotation = [0, 0, 0]) {
   geometry.deleteAttribute("normal");
   geometry.deleteAttribute("uv");
   const mesh = new Mesh(geometry, material);
@@ -59,35 +76,91 @@ function makeMesh(geometry, name, position = [0, 0, 0], scale = [1, 1, 1], rotat
   return mesh;
 }
 
-// Slim, longer-than-wide skull with a broader upper face, lean cheeks with a
-// subtle hollow beneath the cheekbones, a narrow tapered jaw and a softly
-// pointed chin. The front plane is gently flattened so features read cleanly.
-function makeHeadGeometry() {
-  const rings = 30;
-  const segments = 40;
+// t: 0 = crown, 1 = under the chin. y spans +1.24 → −1.18.
+const T = {
+  brow: 0.335,
+  eye: 0.397,
+  cheekbone: 0.47,
+  noseTip: 0.57,
+  upperLip: 0.636,
+  lowerLip: 0.678,
+  chin: 0.875,
+};
+const FRONT = Math.PI / 2;
+const EYE_A = 0.42; // angular offset of each eye from the front axis
+
+// Base horizontal profile of the skull at a given t: [width, depth].
+function skullProfile(t) {
+  const oval = Math.pow(Math.sin(Math.PI * Math.min(Math.max(t, 0.004), 0.996)), 0.42);
+  const upperFace = 0.86 + 0.2 * Math.exp(-Math.pow((t - 0.29) / 0.2, 2));
+  const cheekHollow = 1 - 0.05 * Math.exp(-Math.pow((t - 0.55) / 0.1, 2));
+  // Narrow tapered jaw pulling toward the softly pointed chin — tapered but
+  // never gaunt (face.md: slim, not skeletal).
+  const jaw = t > 0.6 ? 1 - Math.pow((t - 0.6) / 0.4, 1.5) * 0.5 : 1;
+  const width = 0.76 * oval * upperFace * cheekHollow * jaw;
+  const depth = 0.7 * oval * cheekHollow * (0.92 + 0.09 * Math.cos(t * Math.PI));
+  return [width, depth];
+}
+
+// Radial displacement field: carved features. Positive pushes outward.
+// Each bump is a 2D gaussian in (angle, t) space, mirrored when `mirror`.
+const FEATURES = [
+  // Almond eye sockets — recessed, wider than tall (σa > σt).
+  { a: FRONT - EYE_A, t: T.eye, sa: 0.17, st: 0.042, amp: -0.085 },
+  { a: FRONT + EYE_A, t: T.eye, sa: 0.17, st: 0.042, amp: -0.085 },
+  // Straight, low brow ridge casting the shadow line over the eyes.
+  { a: FRONT, t: T.brow, sa: 0.5, st: 0.03, amp: 0.055 },
+  // Nose root recess between the brows so the bridge reads from 3/4.
+  { a: FRONT, t: T.eye - 0.015, sa: 0.075, st: 0.04, amp: -0.028 },
+  // Cheekbones — defined but not heavy, set above the lean hollow.
+  { a: FRONT - 0.78, t: T.cheekbone, sa: 0.16, st: 0.065, amp: 0.038 },
+  { a: FRONT + 0.78, t: T.cheekbone, sa: 0.16, st: 0.065, amp: 0.038 },
+  // Lean under-cheek hollow.
+  { a: FRONT - 0.58, t: 0.60, sa: 0.2, st: 0.08, amp: -0.032 },
+  { a: FRONT + 0.58, t: 0.60, sa: 0.2, st: 0.08, amp: -0.032 },
+  // Mouth barrel recess between lower lip and chin.
+  { a: FRONT, t: 0.765, sa: 0.22, st: 0.05, amp: -0.018 },
+  // Softly pointed chin with subtle forward projection.
+  { a: FRONT, t: T.chin, sa: 0.26, st: 0.075, amp: 0.06 },
+];
+
+function displacement(angle, t) {
+  let d = 0;
+  for (const f of FEATURES) {
+    const da = Math.atan2(Math.sin(angle - f.a), Math.cos(angle - f.a));
+    d += f.amp * Math.exp(-(da * da) / (2 * f.sa * f.sa) - ((t - f.t) * (t - f.t)) / (2 * f.st * f.st));
+  }
+  return d;
+}
+
+// Non-uniform ring spacing: denser mesh through the eye–nose–mouth band
+// (face.md: "denser mesh around eyes, nose, lips"), sparser on the crown.
+function remapT(u) {
+  return u + 0.16 * Math.sin(Math.PI * u) * (u < 0.5 ? (u - 0.18) : (0.82 - u));
+}
+
+function buildSkull() {
+  const rings = 46;
+  const segments = 48;
   const positions = [];
   const indices = [];
 
+  // The grid stops at the base of the chin and closes with a rounded cap —
+  // letting the parametric oval run to t=1 makes a dagger, not a chin.
+  const tMax = 0.93;
   for (let ring = 0; ring <= rings; ring += 1) {
-    const t = ring / rings;
+    const t = remapT(ring / rings) * tMax;
     const y = 1.24 - t * 2.42;
-    const oval = Math.pow(Math.sin(Math.PI * Math.min(t, 0.995)), 0.5);
-    // Broader upper face (forehead / temples), then narrowing.
-    const upperFace = 0.86 + 0.2 * Math.exp(-Math.pow((t - 0.29) / 0.2, 2));
-    // Lean cheek hollow just below the cheekbones.
-    const cheekHollow = 1 - 0.08 * Math.exp(-Math.pow((t - 0.52) / 0.1, 2));
-    // Narrow tapered jaw that pulls in toward a softly pointed chin.
-    const jaw = t > 0.58 ? 1 - Math.pow((t - 0.58) / 0.42, 1.35) * 0.62 : 1;
-    const width = 0.72 * oval * upperFace * cheekHollow * jaw;
-    const depth = 0.68 * oval * cheekHollow * (0.92 + 0.09 * Math.cos(t * Math.PI));
-
+    const [width, depth] = skullProfile(t);
     for (let segment = 0; segment <= segments; segment += 1) {
       const angle = (segment / segments) * Math.PI * 2;
       const front = Math.max(0, Math.sin(angle));
-      const x = Math.cos(angle) * width;
-      // Gentle front flattening concentrated around the mid-face plane.
+      // Gentle front flattening around the mid-face plane.
       const facePlanes = 0.03 + 0.04 * Math.exp(-Math.pow((t - 0.44) / 0.22, 2));
-      const z = Math.sin(angle) * depth + front * facePlanes;
+      const bump = displacement(angle, t);
+      const wobble = 1 + (rand() - 0.5) * 0.012; // natural asymmetry
+      const x = Math.cos(angle) * (width + bump * 0.9) * wobble;
+      const z = Math.sin(angle) * (depth + bump) + front * facePlanes;
       positions.push(x, y, z);
     }
   }
@@ -100,205 +173,234 @@ function makeHeadGeometry() {
     }
   }
 
+  // Rounded under-chin cap: one shrunken ring plus a center point.
+  const capRing = rings + 1;
+  const [wEnd, dEnd] = skullProfile(tMax);
+  const yEnd = 1.24 - tMax * 2.42;
+  for (let segment = 0; segment <= segments; segment += 1) {
+    const angle = (segment / segments) * Math.PI * 2;
+    const front = Math.max(0, Math.sin(angle));
+    positions.push(Math.cos(angle) * wEnd * 0.55, yEnd - 0.07, Math.sin(angle) * dEnd * 0.55 + front * 0.05);
+  }
+  const centerIndex = positions.length / 3;
+  positions.push(0, yEnd - 0.11, 0.06);
+  for (let segment = 0; segment < segments; segment += 1) {
+    const a = rings * (segments + 1) + segment;
+    const b = capRing * (segments + 1) + segment;
+    indices.push(a, b, a + 1, b, b + 1, a + 1);
+    indices.push(b, centerIndex, b + 1);
+  }
+
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
   geometry.setIndex(new Uint32BufferAttribute(indices, 1));
   return geometry;
 }
 
-function addCurve(name, points, radius, radialSegments = 4, tubularSegments = 18) {
-  const curve = new CatmullRomCurve3(points.map(([x, y, z]) => new Vector3(x, y, z)));
-  makeMesh(new TubeGeometry(curve, tubularSegments, radius, radialSegments, false), name);
+// Surface point of the skull for placing features / stubble.
+function surfacePoint(angle, t, outset = 0) {
+  const y = 1.24 - t * 2.42;
+  const [width, depth] = skullProfile(t);
+  const front = Math.max(0, Math.sin(angle));
+  const facePlanes = 0.03 + 0.04 * Math.exp(-Math.pow((t - 0.44) / 0.22, 2));
+  const bump = displacement(angle, t);
+  const x = Math.cos(angle) * (width + bump * 0.9 + outset);
+  const z = Math.sin(angle) * (depth + bump + outset) + front * facePlanes;
+  return [x, y, z];
 }
 
-makeMesh(makeHeadGeometry(), "face");
+addMesh(buildSkull(), headMaterial, "skull");
 
 // ---------------------------------------------------------------------------
-// HAIR — the strongest identity feature. Thick, dark, voluminous and wavy:
-// tall swept volume on top, shorter tapered sides, a curtain-like front with a
-// prominent curved lock dropping toward the center of the forehead, and a
-// natural left-heavy asymmetry to match the photos.
+// HAIR — one sculpted wavy mass over the same parametric grid: volume on top,
+// short tapered sides, a curtain fringe over the forehead with a deeper
+// center lock, low-frequency waves and a left-heavy asymmetry. The bottom row
+// tucks under the skull surface so the edge never shows a gap.
 // ---------------------------------------------------------------------------
-
-// Main crown mass — taller than wide, pushed up and slightly back for volume.
-makeMesh(
-  new SphereGeometry(1, 32, 18, 0, Math.PI * 2, 0, 1.9),
-  "hair-cap",
-  [0.02, 0.46, -0.06],
-  [0.82, 1.04, 0.78],
-);
-
-// Swept top volume (the quiff) sitting forward-of-center, giving the loose
-// wave its lift instead of a helmet silhouette.
-makeMesh(
-  new SphereGeometry(1, 24, 16),
-  "hair-volume",
-  [0.08, 1.02, 0.16],
-  [0.52, 0.4, 0.46],
-);
-makeMesh(
-  new SphereGeometry(1, 20, 14),
-  "hair-volume",
-  [-0.24, 0.98, 0.06],
-  [0.38, 0.32, 0.4],
-);
-
-// Front fringe locks. x = lateral position across the forehead, drop = how far
-// the lock falls, curl = forward hook of the tip. The center/right locks fall
-// lowest to create the loose wave that hooks toward the forehead center.
-const frontLocks = [
-  { x: -0.5, drop: 0.62, curl: 0.05, r: 0.05 },
-  { x: -0.34, drop: 0.5, curl: 0.09, r: 0.055 },
-  { x: -0.16, drop: 0.44, curl: 0.12, r: 0.06 },
-  { x: 0.02, drop: 0.4, curl: 0.15, r: 0.062 }, // prominent center curl
-  { x: 0.2, drop: 0.46, curl: 0.11, r: 0.058 },
-  { x: 0.36, drop: 0.54, curl: 0.07, r: 0.052 },
-  { x: 0.5, drop: 0.66, curl: 0.04, r: 0.048 },
-];
-
-for (const { x, drop, curl, r } of frontLocks) {
-  const sway = x * 0.12; // natural sideways wave
-  addCurve(
-    "hair-lock",
-    [
-      [x * 0.72, 1.16, 0.34],
-      [x * 0.86 + sway, 1.0, 0.58],
-      [x * 0.94 + sway * 1.4, 0.86, 0.74],
-      [x * 0.9 + sway, 0.86 - drop, 0.78 + curl],
-    ],
-    r,
-  );
+function hairEdge(angle) {
+  // How far down (in t) the hair reaches at this angle.
+  const front = Math.sin(angle); // 1 = front center, -1 = back
+  const side = Math.abs(Math.cos(angle));
+  let edge = 0.5 - side * 0.02; // sides reach just above the ears
+  if (front < -0.2) edge = 0.56 + 0.06 * -front; // nape falls lower
+  if (front > 0.35) {
+    // Curtain fringe: scalloped lobes, deepest lock just right of center.
+    const da = Math.atan2(Math.sin(angle - FRONT), Math.cos(angle - FRONT));
+    const lobes = 0.045 * Math.cos(da * 7.0 + 0.8) + 0.02 * Math.cos(da * 3.0 - 0.4);
+    const centerLock = 0.085 * Math.exp(-Math.pow((da - 0.07) / 0.16, 2));
+    edge = 0.315 + (lobes + centerLock) * Math.min(1, (front - 0.35) / 0.4);
+  }
+  return edge;
 }
 
-// Sideburns — short hair tapering in front of each ear.
-for (const side of [-1, 1]) {
-  addCurve(
-    "hair-lock",
-    [
-      [side * 0.72, 0.5, 0.36],
-      [side * 0.74, 0.26, 0.34],
-      [side * 0.72, 0.06, 0.32],
-    ],
-    0.045,
-    3,
-  );
-}
+function buildHair() {
+  const rows = 22;
+  const segments = 48;
+  const positions = [];
+  const indices = [];
 
-// ---------------------------------------------------------------------------
-// FACE FEATURES
-// ---------------------------------------------------------------------------
+  for (let row = 0; row <= rows + 1; row += 1) {
+    for (let segment = 0; segment <= segments; segment += 1) {
+      const angle = (segment / segments) * Math.PI * 2;
+      const edge = hairEdge(angle);
+      const tucked = row === rows + 1;
+      const s = tucked ? 1 : row / rows;
+      const t = Math.max(0.004, s * edge);
+      const [width, depth] = skullProfile(t);
+      const front = Math.max(0, Math.sin(angle));
 
-for (const side of [-1, 1]) {
-  // Ears — visible, oval, slightly protruding, not buried under the hair.
-  makeMesh(new SphereGeometry(1, 14, 10), "ear", [side * 0.74, 0.02, -0.02], [0.14, 0.28, 0.09]);
-  addCurve(
-    "ear-fold",
-    [
-      [side * 0.78, 0.17, 0.07],
-      [side * 0.86, 0.02, 0.09],
-      [side * 0.78, -0.13, 0.07],
-    ],
-    0.017,
-    3,
-  );
+      // Thickness: tall volume on top, tapering toward the edge; waves give
+      // the mass directionality instead of a helmet silhouette.
+      const volume = 0.22 * (1 - s * 0.55) + 0.05;
+      const wave = 0.038 * Math.sin(angle * 5 + t * 9 + 0.7) * (0.35 + 0.65 * s)
+        + 0.016 * Math.sin(angle * 2 + 1.3);
+      // Fringe locks get extra forward push so they read as falling strands.
+      const fringe = front > 0.5 && s > 0.6
+        ? 0.05 * Math.sin(angle * 9 + 0.5) * (s - 0.6) * front
+        : 0;
+      const k = tucked ? -0.05 : volume + wave + fringe;
 
-  // Almond eyes — recessed sockets with a small warm brown glint. Slightly
-  // deep-set, sitting under strong brows.
-  makeMesh(new SphereGeometry(1, 14, 10), "eye-socket", [side * 0.28, 0.28, 0.71], [0.185, 0.086, 0.07]);
-  makeMesh(new SphereGeometry(1, 10, 8), "eye-glint", [side * 0.28, 0.288, 0.79], [0.026, 0.02, 0.02]);
-
-  // Cheekbone — defined but not heavy, set above the lean cheek hollow.
-  makeMesh(new SphereGeometry(1, 14, 10), "cheekbone", [side * 0.4, -0.12, 0.66], [0.22, 0.15, 0.07]);
-
-  // Eyebrow — dark, thick, mostly straight with a slight arch, sitting low.
-  addCurve(
-    "eyebrow",
-    [
-      [side * 0.48, 0.44, 0.72],
-      [side * 0.3, 0.48, 0.79],
-      [side * 0.08, 0.45, 0.77],
-    ],
-    0.046,
-  );
-
-  // Jawline — defined but slim, sweeping in toward the chin.
-  addCurve(
-    "jawline",
-    [
-      [side * 0.62, -0.28, 0.46],
-      [side * 0.48, -0.66, 0.57],
-      [side * 0.18, -0.86, 0.66],
-      [0, -0.9, 0.68],
-    ],
-    0.02,
-    3,
-  );
-}
-
-// Nose — straight narrow bridge running down from between the brows, a defined
-// ridge, moderate projection and a softly rounded tip.
-makeMesh(
-  new CylinderGeometry(0.1, 0.15, 0.56, 5, 1),
-  "nose-bridge",
-  [0, 0.13, 0.66],
-  [1, 1, 0.72],
-  [0, 0, Math.PI],
-);
-makeMesh(new ConeGeometry(0.17, 0.5, 5, 1), "nose", [0, 0.0, 0.76], [1, 1, 1], [Math.PI / 2, 0, 0]);
-makeMesh(new SphereGeometry(1, 14, 10), "nose-tip", [0, -0.14, 0.98], [0.13, 0.11, 0.11]);
-for (const side of [-1, 1]) {
-  makeMesh(new SphereGeometry(1, 10, 8), "nose-wing", [side * 0.12, -0.16, 0.9], [0.06, 0.06, 0.06]);
-}
-
-// Lips — thinner, defined upper lip and a fuller lower lip, neutral closed
-// mouth with a mostly horizontal line and gentle Cupid's bow.
-addCurve(
-  "upper-lip",
-  [
-    [-0.24, -0.3, 0.67],
-    [-0.09, -0.27, 0.72],
-    [0, -0.3, 0.73],
-    [0.09, -0.27, 0.72],
-    [0.24, -0.3, 0.67],
-  ],
-  0.024,
-  4,
-);
-addCurve(
-  "lower-lip",
-  [
-    [-0.19, -0.37, 0.68],
-    [0, -0.41, 0.74],
-    [0.19, -0.37, 0.68],
-  ],
-  0.035,
-  4,
-);
-
-// Chin — narrow, softly rounded and slightly pointed with a subtle projection.
-makeMesh(new SphereGeometry(1, 16, 10), "chin", [0, -0.85, 0.66], [0.22, 0.19, 0.13]);
-
-// Stubble — subtle sparse dots along the jaw, chin, upper lip and sideburns.
-function stubbleField(name, cx, cy, cz, spanX, spanY, cols, rowsCount, jitter) {
-  for (let c = 0; c < cols; c += 1) {
-    for (let r = 0; r < rowsCount; r += 1) {
-      const fx = cols > 1 ? c / (cols - 1) - 0.5 : 0;
-      const fy = rowsCount > 1 ? r / (rowsCount - 1) - 0.5 : 0;
-      const x = cx + fx * spanX + (r % 2) * jitter;
-      const y = cy + fy * spanY;
-      addCurve(name, [[x, y, cz], [x + jitter, y - 0.03, cz - 0.005]], 0.005, 3, 1);
+      const facePlanes = 0.03 + 0.04 * Math.exp(-Math.pow((t - 0.44) / 0.22, 2));
+      const lift = tucked ? 0 : 0.08 * Math.pow(1 - s, 1.6); // crown volume
+      const x = Math.cos(angle) * (width + k);
+      const y = 1.24 - t * 2.42 + lift;
+      const z = Math.sin(angle) * (depth + k) + front * facePlanes * (tucked ? 1 : 0.6);
+      positions.push(x, y, z);
     }
   }
+
+  for (let row = 0; row < rows + 1; row += 1) {
+    for (let segment = 0; segment < segments; segment += 1) {
+      const a = row * (segments + 1) + segment;
+      const b = a + segments + 1;
+      indices.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+  }
+
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geometry.setIndex(new Uint32BufferAttribute(indices, 1));
+  return geometry;
+}
+
+addMesh(buildHair(), hairMaterial, "hair");
+
+// ---------------------------------------------------------------------------
+// FACE FEATURES — kept minimal and correctly proportioned; the planes carved
+// into the skull do most of the likeness work.
+// ---------------------------------------------------------------------------
+
+// Nose: straight prominent bridge (diamond cross-section reads as a ridge),
+// softly rounded tip, small alae. A major likeness anchor per face.md.
+const bridgeTopY = 0.36;
+const bridgeBottomY = -0.10;
+addMesh(
+  new CylinderGeometry(0.045, 0.085, bridgeTopY - bridgeBottomY, 4, 3),
+  headMaterial,
+  "nose-bridge",
+  [0, (bridgeTopY + bridgeBottomY) / 2, 0.735],
+  [1, 1, 0.85],
+  [-0.16, Math.PI / 4, 0],
+);
+addMesh(new SphereGeometry(1, 12, 9), headMaterial, "nose-tip", [0, -0.11, 0.775], [0.078, 0.068, 0.072]);
+for (const side of [-1, 1]) {
+  addMesh(new SphereGeometry(1, 9, 7), headMaterial, "nose-wing", [side * 0.085, -0.145, 0.715], [0.045, 0.04, 0.044]);
 }
 
 for (const side of [-1, 1]) {
-  // Along the jaw/lower cheek.
-  stubbleField("stubble", side * 0.34, -0.52, 0.62, 0.24, 0.26, 4, 4, side * 0.012);
-}
-// Chin patch and upper-lip (moustache-area) stubble — sparse, not a beard.
-stubbleField("stubble", 0, -0.68, 0.68, 0.26, 0.14, 5, 2, 0.01);
-stubbleField("stubble", 0, -0.24, 0.72, 0.28, 0.05, 6, 1, 0.008);
+  // Eyebrows: dark, thick, dense, nearly straight, sitting low on the ridge.
+  addMesh(
+    new BoxGeometry(0.26, 0.055, 0.05),
+    headMaterial,
+    "eyebrow",
+    [side * 0.235, 0.435, 0.69],
+    [1, 1, 1],
+    [0.14, side * -0.42, side * -0.04],
+  );
 
+  // Warm amber glint set inside the carved socket (never a full eyeball).
+  const [gx, gy, gz] = surfacePoint(FRONT - side * EYE_A, T.eye, -0.02);
+  addMesh(new SphereGeometry(1, 10, 8), glintMaterial, "eye-glint", [gx, gy + 0.005, gz + 0.012], [0.026, 0.02, 0.015]);
+
+  // Ears: visible, oval, slightly protruding, anchored to the skull surface
+  // (face.md insists they show; they sit brow-to-nose-tip in height).
+  const earT = 0.45;
+  const [earW] = skullProfile(earT);
+  const earY = 1.24 - earT * 2.42;
+  addMesh(new SphereGeometry(1, 12, 9), headMaterial, "ear", [side * (earW - 0.01), earY, -0.06], [0.07, 0.155, 0.06], [0, 0, side * 0.16]);
+  addMesh(new SphereGeometry(1, 8, 6), headMaterial, "ear-inner", [side * (earW + 0.02), earY - 0.01, -0.04], [0.042, 0.095, 0.045], [0, 0, side * 0.16]);
+}
+
+// Lips: thinner defined upper lip, fuller lower lip, neutral closed mouth.
+function lipCurve(points, radius, name, squash = 0.55) {
+  const curve = new CatmullRomCurve3(points.map(([x, y, z]) => new Vector3(x, y, z)));
+  const mesh = addMesh(new TubeGeometry(curve, 14, radius, 5, false), headMaterial, name);
+  mesh.scale.z = 1; // depth squash baked into control points instead
+  mesh.scale.y = squash + 0.45;
+  return mesh;
+}
+lipCurve(
+  [
+    [-0.17, -0.302, 0.60],
+    [-0.07, -0.286, 0.645],
+    [0, -0.298, 0.65], // Cupid's bow dip
+    [0.07, -0.286, 0.645],
+    [0.17, -0.302, 0.60],
+  ],
+  0.018,
+  "upper-lip",
+);
+lipCurve(
+  [
+    [-0.14, -0.36, 0.60],
+    [0, -0.382, 0.645],
+    [0.14, -0.36, 0.60],
+  ],
+  0.028,
+  "lower-lip",
+);
+
+// ---------------------------------------------------------------------------
+// STUBBLE — a single Points cloud along jaw, chin, upper lip and sideburns:
+// one draw call, and it doubles as the halftone read face.md asks for.
+// ---------------------------------------------------------------------------
+function buildStubble() {
+  const positions = [];
+  const target = 320;
+  let attempts = 0;
+  while (positions.length / 3 < target && attempts < 6000) {
+    attempts += 1;
+    const angle = FRONT + (rand() - 0.5) * 2 * 1.05;
+    const t = 0.56 + rand() * 0.33;
+    const da = Math.abs(Math.atan2(Math.sin(angle - FRONT), Math.cos(angle - FRONT)));
+    // Skip the lips themselves; keep the moustache band above the upper lip.
+    const inMouth = t > 0.615 && t < 0.71 && da < 0.3;
+    if (inMouth) continue;
+    // Density: strongest along the jaw band and chin, lighter on the cheeks.
+    const jawBand = Math.exp(-Math.pow((t - 0.78) / 0.12, 2));
+    const chin = Math.exp(-Math.pow((t - 0.86) / 0.08, 2) - Math.pow(da / 0.35, 2));
+    const moustache = Math.exp(-Math.pow((t - 0.585) / 0.03, 2) - Math.pow(da / 0.32, 2));
+    const sideburn = Math.exp(-Math.pow((da - 1.0) / 0.14, 2) - Math.pow((t - 0.52) / 0.1, 2));
+    const density = jawBand * 0.9 + chin + moustache * 0.8 + sideburn;
+    if (rand() > density) continue;
+    const [x, y, z] = surfacePoint(angle, t, 0.012);
+    positions.push(x, y, z);
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
+  return geometry;
+}
+
+const stubbleMaterial = new PointsMaterial({ name: "stubble", color: "#9fb4c4", size: 0.014, transparent: true, opacity: 0.55 });
+const stubble = new Points(buildStubble(), stubbleMaterial);
+stubble.name = "stubble";
+root.add(stubble);
+
+// ---------------------------------------------------------------------------
+// Export + optimization pipeline + hard budgets. The runtime pays for every
+// mesh (draw call), vertex and byte at SYS-mode toggle time, so the generator
+// fails loud instead of shipping a regression.
+// ---------------------------------------------------------------------------
 const exporter = new GLTFExporter();
 const output = await new Promise((resolveExport, rejectExport) => {
   exporter.parse(root, resolveExport, rejectExport, {
@@ -308,13 +410,8 @@ const output = await new Promise((resolveExport, rejectExport) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Optimization pipeline + hard budgets. The runtime pays for every mesh (draw
-// call), vertex and byte at SYS-mode toggle time, so the generator fails loud
-// instead of shipping a regression.
-// ---------------------------------------------------------------------------
 const BUDGET = {
-  meshes: 6,
+  primitives: 6,
   vertices: 14_000,
   triangles: 22_000,
   bytes: 100 * 1024,
@@ -365,7 +462,7 @@ console.log(
 );
 
 const violations = [
-  report.primitives > BUDGET.meshes && `primitives ${report.primitives} > ${BUDGET.meshes}`,
+  report.primitives > BUDGET.primitives && `primitives ${report.primitives} > ${BUDGET.primitives}`,
   report.vertices > BUDGET.vertices && `vertices ${report.vertices} > ${BUDGET.vertices}`,
   report.triangles > BUDGET.triangles && `triangles ${report.triangles} > ${BUDGET.triangles}`,
   report.bytes > BUDGET.bytes && `size ${report.bytes} > ${BUDGET.bytes} bytes`,
