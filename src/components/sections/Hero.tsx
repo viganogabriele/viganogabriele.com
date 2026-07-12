@@ -1,4 +1,4 @@
-import { m, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -11,8 +11,6 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
   const reduced = useReducedMotion();
   const { level } = useMotionProfile();
   const scrollMotion = !reduced && level === "full";
-  const { scrollY } = useScroll();
-  const portraitOpacity = useTransform(scrollY, [0, 420], [1, 0.3]);
   const wordmarkRef = useRef<HTMLHeadingElement>(null);
   const [weight, setWeight] = useState(520);
   useEffect(() => {
@@ -57,6 +55,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
           </m.p>
 
           <m.h1
+            aria-label="GABRIELE VIGANÒ"
             initial={reduced ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.23, duration: 0.9, ease: ease.cinematic }}
@@ -65,7 +64,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
             className="hero-wordmark mt-5 max-w-4xl font-medium leading-[0.76] tracking-[-0.09em] text-bone"
           >
             <span className="hero-wordmark-line block"><span>GABRIELE</span></span>
-            <span className="hero-wordmark-line block pl-[0.06em] text-zinc-300"><span>VIGANÒ</span></span>
+            <span className="hero-wordmark-line hero-wordmark-line-accent block pl-[0.06em] text-zinc-300" aria-hidden="true"><span>VIGAN<span className="hero-wordmark-o-grave">O</span></span></span>
           </m.h1>
 
           <m.div
@@ -134,13 +133,6 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
           initial={reduced ? false : { opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.34, duration: 1, ease: ease.cinematic }}
-          style={
-            !scrollMotion
-              ? undefined
-              : {
-                opacity: portraitOpacity,
-              }
-          }
           className="hero-visual-frame relative mx-auto w-full max-w-[34rem] aspect-[4/5] min-h-[19rem] overflow-hidden pt-1 sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem] lg:pt-0"
         >
           <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />

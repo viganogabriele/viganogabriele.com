@@ -148,6 +148,34 @@ body {
   overflow: hidden;
 }
 
+.hero-wordmark-line-accent {
+  overflow: visible;
+  margin-top: -0.04em;
+  padding-top: 0.16em;
+}
+
+.hero-wordmark-line-accent > span {
+  animation: none;
+}
+
+.hero-wordmark-o-grave {
+  position: relative;
+  display: inline-block;
+}
+
+.hero-wordmark-o-grave::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: -0.14em;
+  left: 0.35em;
+  width: 0.065em;
+  height: 0.16em;
+  background: currentColor;
+  transform: rotate(-34deg);
+  transform-origin: bottom center;
+}
+
 .hero-wordmark-line > span {
   display: block;
   animation: wordmark-mask 900ms cubic-bezier(.16, 1, .3, 1) both;
@@ -515,6 +543,13 @@ body {
   }
 }
 
+/* Keep the lighter touch profile authoritative on Retina mobile displays. */
+@media (hover: none) and (pointer: coarse) and (min-resolution: 2dppx) {
+  .noise::before {
+    opacity: 0.14;
+  }
+}
+
 .noise.telegram-safe::before {
   animation: none;
   opacity: 0.18;
@@ -839,14 +874,15 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 
 .not-found-code {
   font-size: clamp(10rem, 34vw, 30rem);
-  will-change: transform, opacity;
 }
 
 @media (max-width: 640px) {
   .not-found-code {
-    right: auto;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    inset-inline: 0;
+    top: 41%;
+    width: max-content;
+    margin-inline: auto;
+    transform: none;
     font-size: clamp(9rem, 39vw, 11rem);
     color: rgba(255, 255, 255, .05);
   }

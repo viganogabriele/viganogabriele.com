@@ -69,6 +69,14 @@ test("adaptive hero exposes its interaction and a visual fallback", async ({ pag
   await expect(portrait).toHaveAttribute("aria-pressed", "true");
 });
 
+test("hero portrait stays crisp while scrolling and the surname keeps its accent", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /GABRIELE VIGANÒ/i })).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 420));
+  await expect(page.locator(".hero-visual-frame")).toHaveCSS("opacity", "1");
+});
+
 test("home identity metadata and favicon are exact", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle("Gabriele Viganò");
