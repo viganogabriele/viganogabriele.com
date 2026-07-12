@@ -27,14 +27,12 @@ export function NotFoundPage() {
         <section className="not-found-section relative flex flex-1 items-center py-16 sm:py-20" aria-labelledby="not-found-title">
           <div className="hero-grid absolute inset-x-0 top-0 h-full opacity-60 [mask-image:linear-gradient(90deg,transparent,black_18%,black_82%,transparent)]" aria-hidden />
           <div className="absolute left-[8%] top-[18%] h-px w-[84%] bg-gradient-to-r from-transparent via-accent/45 to-transparent" aria-hidden />
-          <m.div
+          <div
             aria-hidden
             className="not-found-code pointer-events-none absolute right-[2%] top-1/2 -translate-y-1/2 select-none font-mono font-bold leading-none tracking-[-0.13em] text-white/[0.035]"
-            animate={motion ? { x: [0, -14, 0], opacity: [0.7, 1, 0.7] } : undefined}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
           >
             404
-          </m.div>
+          </div>
 
           <m.div
             className="not-found-content relative z-10 max-w-3xl"
