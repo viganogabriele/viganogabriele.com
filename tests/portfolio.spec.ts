@@ -164,6 +164,14 @@ test("notes expose accurate article metadata and missing notes render a 404", as
   await expect(page.getByRole("heading", { name: "Not here." })).toBeVisible();
 });
 
+test("404 fits the viewport on mobile without scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/route-that-does-not-exist");
+  await expect(page.getByRole("heading", { name: "Not here." })).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
 test("reduced motion preserves content and accessibility", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });

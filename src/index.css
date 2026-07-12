@@ -828,6 +828,46 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
   [data-sys-reveal] { animation: none; transition: opacity 200ms ease; }
 }
 
+/* ─── Not found route ───────────────────────────────────────────────────────── */
+.not-found-main {
+  height: 100dvh;
+  height: 100svh;
+}
+
+.not-found-section { min-height: 0; }
+
+.not-found-code {
+  font-size: clamp(10rem, 34vw, 30rem);
+  will-change: transform, opacity;
+}
+
+@media (max-width: 640px) {
+  .not-found-code {
+    right: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(9rem, 39vw, 11rem);
+    color: rgba(255, 255, 255, .05);
+  }
+}
+
+@media (max-height: 700px) {
+  .not-found-main { padding-top: 1rem; padding-bottom: 1rem; }
+  .not-found-header { padding-bottom: .75rem; }
+  .not-found-section { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+  .not-found-content > h1 { margin-top: .85rem; font-size: clamp(3.75rem, 12vw, 7rem); }
+  .not-found-content > p { margin-top: 1rem; }
+  .not-found-actions { margin-top: 1.25rem; }
+  .not-found-coordinate { margin-top: 1.5rem; }
+  .not-found-footer { padding-top: .75rem; }
+}
+
+@media (max-height: 520px) {
+  .not-found-coordinate,
+  .not-found-footer { display: none; }
+  .not-found-content > p { font-size: .875rem; line-height: 1.45; }
+}
+
 /* ─── Hero reticle — CSS-only targeting overlay, visible in SYS mode ─────────── */
 .hero-reticle {
   position: absolute;
