@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+
+# Private reference material — never commit
+docs/cv-AI.md
