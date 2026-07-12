@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { BrowserRouter, Route, Routes, useLocation, useNavigationType } from "react-router-dom";
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -33,7 +34,7 @@ function RouteScroll() {
 
 export default function App() {
   const analyticsEnabled = !["localhost", "127.0.0.1"].includes(window.location.hostname);
-  return <BrowserRouter><RouteScroll /><AnimatedRoutes />{analyticsEnabled && <Analytics />}</BrowserRouter>;
+  return <BrowserRouter><RouteScroll /><AnimatedRoutes />{analyticsEnabled && <Analytics />}{analyticsEnabled && <SpeedInsights />}</BrowserRouter>;
 }
 
 function AnimatedRoutes() {
