@@ -46,7 +46,7 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
               ) : (
                 <m.span
                   key={`w-${i}`}
-                  className="inline-block will-change-transform"
+                  className="inline-block"
                   variants={{
                     hidden: { opacity: 0, y: level === "lite" ? 16 : 24, filter: level === "lite" ? "none" : "blur(3px)" },
                     show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },

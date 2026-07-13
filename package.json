@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
     "preview": "vite preview",
-    "generate:face-model": "node scripts/generate-gabriele-head-model.mjs"
+    "generate:face-model": "node scripts/generate-gabriele-head-model.mjs",
+    "generate:og-card": "node scripts/generate-og-card.mjs"
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "^5.2.10",

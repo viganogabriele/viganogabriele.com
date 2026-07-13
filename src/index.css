@@ -45,25 +45,9 @@
   --font-mono: "Space Mono", ui-monospace, "SF Mono", "Cascadia Code", monospace;
 }
 
-@property --accent {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #78a9ff;
-}
-
-@property --accent-soft {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #b8d0ff;
-}
-
 html {
   --accent: #78a9ff;
   --accent-soft: #b8d0ff;
-  /* Registered custom properties interpolate: one transition retints the
-     entire site when system mode toggles. Safari <16.4 falls back to an
-     instant swap, which is acceptable. */
-  transition: --accent 600ms ease, --accent-soft 600ms ease;
 }
 
 html[data-system-mode="on"] {
@@ -381,19 +365,15 @@ body {
 }
 
 .gpu-promote {
-  will-change: transform, opacity;
-  transform: translateZ(0);
   backface-visibility: hidden;
 }
 
 .ambient-layer {
-  will-change: opacity;
-  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .ambient-blob {
-  will-change: opacity;
-  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 @media (hover: none) and (pointer: coarse) {
@@ -404,18 +384,14 @@ body {
      it can re-rasterize. Removing all hints lets the browser manage tiling
      with its own built-in strategy. */
   .ambient-layer {
-    will-change: auto;
-    transform: none;
+    backface-visibility: visible;
   }
 
   .ambient-blob {
-    will-change: auto;
-    transform: none;
+    backface-visibility: visible;
   }
 
   .gpu-promote {
-    will-change: auto;
-    transform: none;
     backface-visibility: visible;
   }
 
@@ -495,7 +471,6 @@ body {
   opacity: 0.32;
   mix-blend-mode: overlay;
   animation: grainShift 8s steps(10) infinite;
-  transform: translateZ(0);
 }
 
 @media (hover: none) and (pointer: coarse) {
@@ -576,6 +551,11 @@ body {
     linear-gradient(color-mix(in srgb, var(--accent) 2.5%, transparent) 1px, transparent 1px);
   background-size: 160px 160px;
   mix-blend-mode: screen;
+}
+
+.system-overlay-safe {
+  background-image: none;
+  mix-blend-mode: normal;
 }
 
 .system-mode-wipe {
@@ -866,25 +846,43 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 
 /* ─── Not found route ───────────────────────────────────────────────────────── */
 .not-found-main {
-  height: 100dvh;
-  height: 100svh;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  padding-left: max(1.25rem, env(safe-area-inset-left));
 }
 
-.not-found-section { min-height: 0; }
+@media (min-width: 640px) {
+  .not-found-main {
+    padding-top: max(1.75rem, env(safe-area-inset-top));
+    padding-right: max(2rem, env(safe-area-inset-right));
+    padding-bottom: max(1.75rem, env(safe-area-inset-bottom));
+    padding-left: max(2rem, env(safe-area-inset-left));
+  }
+}
+
+@media (min-width: 1024px) {
+  .not-found-main {
+    padding-right: max(2.5rem, env(safe-area-inset-right));
+    padding-left: max(2.5rem, env(safe-area-inset-left));
+  }
+}
+
+.not-found-section { min-height: min-content; }
 
 .not-found-code {
   font-size: clamp(10rem, 34vw, 30rem);
+  max-inline-size: 100%;
+  overflow: clip;
+  text-align: center;
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {
   .not-found-code {
-    inset-inline: 0;
-    top: 41%;
-    width: max-content;
-    margin-inline: auto;
-    transform: none;
-    font-size: clamp(9rem, 39vw, 11rem);
-    color: rgba(255, 255, 255, .05);
+    display: none;
   }
 }
 
@@ -900,9 +898,37 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 }
 
 @media (max-height: 520px) {
-  .not-found-coordinate,
   .not-found-footer { display: none; }
   .not-found-content > p { font-size: .875rem; line-height: 1.45; }
+}
+
+@media (max-width: 520px) {
+  .not-found-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .not-found-actions > a {
+    justify-content: center;
+  }
+}
+
+html[data-webkit-safe] .hero-reticle-ring,
+html[data-webkit-safe] .hero-reticle-ring::before,
+html[data-webkit-safe] .hero-reticle-inner,
+html[data-webkit-safe] [data-sys-reveal] {
+  animation: none;
+}
+
+html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
+  background-image: none;
+}
+
+@media (max-width: 399px) {
+  .not-found-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* ─── Hero reticle — CSS-only targeting overlay, visible in SYS mode ─────────── */
@@ -1079,6 +1105,12 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 
 @media (prefers-reduced-motion: reduce) {
   .sys-hud-dot, .sys-hud-blink { animation: none; }
+}
+
+/* The mobile SYS status is supplied by the overlay. Avoid both a visual clash
+   and continual diagnostic updates on touch/coarse-pointer devices. */
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .sys-hud { display: none; }
 }
 
 /* ─── Cursor trail — scia di punti in SYS mode ───────────────────────────────── */

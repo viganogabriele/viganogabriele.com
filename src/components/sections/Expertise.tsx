@@ -11,6 +11,7 @@ export function Expertise() {
   const staticMotion = level === "static";
   const [activeIndex, setActiveIndex] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
+  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
     const updateActive = () => {
@@ -27,8 +28,15 @@ export function Expertise() {
       }
       setActiveIndex((current) => current === nextIndex ? current : nextIndex);
     };
-    const resizeObserver = new ResizeObserver(updateActive);
-    const visibilityObserver = new IntersectionObserver(updateActive, { threshold: 0 });
+    const scheduleUpdate = () => {
+      if (frameRef.current !== null) return;
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = null;
+        updateActive();
+      });
+    };
+    const resizeObserver = new ResizeObserver(scheduleUpdate);
+    const visibilityObserver = new IntersectionObserver(scheduleUpdate, { threshold: 0 });
     const rows = Array.from(sectionRef.current?.querySelectorAll<HTMLElement>("[data-index]") ?? []);
     rows.forEach((row) => {
       if (!row) return;
@@ -36,15 +44,16 @@ export function Expertise() {
       visibilityObserver.observe(row);
     });
     updateActive();
-    window.addEventListener("scroll", updateActive, { passive: true });
-    window.addEventListener("resize", updateActive, { passive: true });
-    window.addEventListener("hashchange", updateActive);
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate, { passive: true });
+    window.addEventListener("hashchange", scheduleUpdate);
     return () => {
+      if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
-      window.removeEventListener("scroll", updateActive);
-      window.removeEventListener("resize", updateActive);
-      window.removeEventListener("hashchange", updateActive);
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("hashchange", scheduleUpdate);
     };
   }, []);
 

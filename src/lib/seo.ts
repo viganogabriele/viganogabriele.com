@@ -1,34 +1,69 @@
 import { useEffect } from "react";
+import { pageUrl, site, type PageMetadata } from "../data/site";
 
-export const SITE_URL = "https://viganogabriele.com";
+export { pageUrl, site };
+export const SITE_URL = site.url;
 
-export function PageMeta({ title, description, path }: { title: string; description: string; path: string }) {
+type MetaAttribute = "name" | "property";
+
+function setMeta(selector: string, attribute: MetaAttribute, value: string, content?: string) {
+  let element = document.head.querySelector<HTMLMetaElement>(selector);
+  if (content === undefined) {
+    element?.remove();
+    return;
+  }
+  if (!element) {
+    element = document.createElement("meta");
+    element.setAttribute(attribute, value);
+    document.head.appendChild(element);
+  }
+  element.content = content;
+}
+
+function setCanonical(url?: string) {
+  let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (!url) {
+    canonical?.remove();
+    return;
+  }
+  if (!canonical) {
+    canonical = document.createElement("link");
+    canonical.rel = "canonical";
+    document.head.appendChild(canonical);
+  }
+  canonical.href = url;
+}
+
+export function PageMeta({ metadata }: { metadata: PageMetadata }) {
   useEffect(() => {
-    document.title = title;
-    const setMeta = (selector: string, content: string, attribute: "name" | "property", value: string) => {
-      let element = document.head.querySelector<HTMLMetaElement>(selector);
-      if (!element) {
-        element = document.createElement("meta");
-        element.setAttribute(attribute, value);
-        document.head.appendChild(element);
-      }
-      element.content = content;
-    };
-    setMeta('meta[name="description"]', description, "name", "description");
-    setMeta('meta[property="og:title"]', title, "property", "og:title");
-    setMeta('meta[property="og:description"]', description, "property", "og:description");
-    setMeta('meta[property="og:url"]', `${SITE_URL}${path}`, "property", "og:url");
-    setMeta('meta[name="twitter:card"]', "summary_large_image", "name", "twitter:card");
-    setMeta('meta[name="twitter:title"]', title, "name", "twitter:title");
-    setMeta('meta[name="twitter:description"]', description, "name", "twitter:description");
-    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement("link");
-      canonical.rel = "canonical";
-      document.head.appendChild(canonical);
-    }
-    canonical.href = `${SITE_URL}${path}`;
-  }, [description, path, title]);
+    const url = metadata.canonical ? pageUrl(metadata.path) : undefined;
+    const image = metadata.image ? pageUrl(metadata.image.path) : undefined;
+
+    document.title = metadata.title;
+    setMeta('meta[name="description"]', "name", "description", metadata.description);
+    setMeta('meta[name="robots"]', "name", "robots", metadata.robots);
+    setCanonical(url);
+
+    setMeta('meta[property="og:title"]', "property", "og:title", url ? metadata.title : undefined);
+    setMeta('meta[property="og:description"]', "property", "og:description", url ? metadata.description : undefined);
+    setMeta('meta[property="og:type"]', "property", "og:type", url ? metadata.type : undefined);
+    setMeta('meta[property="og:url"]', "property", "og:url", url);
+    setMeta('meta[property="og:site_name"]', "property", "og:site_name", url ? site.name : undefined);
+    setMeta('meta[property="og:locale"]', "property", "og:locale", url ? site.locale : undefined);
+    setMeta('meta[property="og:image"]', "property", "og:image", image);
+    setMeta('meta[property="og:image:width"]', "property", "og:image:width", image ? String(metadata.image?.width) : undefined);
+    setMeta('meta[property="og:image:height"]', "property", "og:image:height", image ? String(metadata.image?.height) : undefined);
+    setMeta('meta[property="og:image:type"]', "property", "og:image:type", image ? metadata.image?.type : undefined);
+    setMeta('meta[property="og:image:alt"]', "property", "og:image:alt", image ? metadata.image?.alt : undefined);
+    setMeta('meta[property="article:published_time"]', "property", "article:published_time", metadata.publishedTime);
+    setMeta('meta[property="article:modified_time"]', "property", "article:modified_time", metadata.modifiedTime);
+
+    setMeta('meta[name="twitter:card"]', "name", "twitter:card", image ? "summary_large_image" : undefined);
+    setMeta('meta[name="twitter:title"]', "name", "twitter:title", image ? metadata.title : undefined);
+    setMeta('meta[name="twitter:description"]', "name", "twitter:description", image ? metadata.description : undefined);
+    setMeta('meta[name="twitter:image"]', "name", "twitter:image", image);
+    setMeta('meta[name="twitter:image:alt"]', "name", "twitter:image:alt", image ? metadata.image?.alt : undefined);
+  }, [metadata]);
   return null;
 }
 

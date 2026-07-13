@@ -1,14 +1,15 @@
 import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ease } from "../../lib/motion";
 
 const SECTIONS: { id: string; label: string }[] = [
-  { id: "top",       label: "00 / HERO" },
-  { id: "about",     label: "01 / ABOUT" },
+  { id: "top", label: "00 / HERO" },
+  { id: "about", label: "01 / ABOUT" },
   { id: "expertise", label: "02 / CAPABILITIES" },
-  { id: "projects",  label: "03 / PROJECTS" },
-  { id: "stack",     label: "04 / TOOLKIT" },
-  { id: "journey",   label: "05 / JOURNEY" },
+  { id: "projects", label: "03 / PROJECTS" },
+  { id: "stack", label: "04 / TOOLKIT" },
+  { id: "journey", label: "05 / JOURNEY" },
 ];
 
 function buildBar(pct: number) {
@@ -16,49 +17,73 @@ function buildBar(pct: number) {
   return "▓".repeat(filled) + "░".repeat(10 - filled);
 }
 
+function viewportLabel() {
+  return `${window.innerWidth} × ${window.innerHeight} · ×${window.devicePixelRatio}`;
+}
+
 export function SystemHUD({ active }: { active: boolean }) {
+  const { canUsePointerEffects, isCompact, level } = useMotionProfile();
   const [cur, setCur] = useState({ x: 0, y: 0 });
   const [scrollPct, setScrollPct] = useState(0);
   const [section, setSection] = useState("00 / HERO");
   const [env, setEnv] = useState("");
+  const visible = active && canUsePointerEffects && !isCompact;
+  const animated = level === "full";
 
   useEffect(() => {
-    if (!active) return;
+    if (!visible) return;
 
-    setEnv(`${window.innerWidth} × ${window.innerHeight} · ×${window.devicePixelRatio}`);
+    let metricFrame = 0;
+    let cursorFrame = 0;
+    let latestCursor: { x: number; y: number } | null = null;
 
-    const onMove = (e: MouseEvent) => setCur({ x: e.clientX, y: e.clientY });
-
-    const onScroll = () => {
+    const updateMetrics = () => {
+      metricFrame = 0;
       const total = document.documentElement.scrollHeight - window.innerHeight;
-      const pct = total > 0 ? Math.round((window.scrollY / total) * 100) : 0;
-      setScrollPct(pct);
-
+      const nextScrollPct = total > 0 ? Math.round((window.scrollY / total) * 100) : 0;
       const probe = window.innerHeight * 0.38;
-      for (const sec of [...SECTIONS].reverse()) {
-        const el = document.getElementById(sec.id);
-        if (!el) continue;
-        const rect = el.getBoundingClientRect();
-        if (rect.top <= probe) { setSection(sec.label); break; }
+      let nextSection = "00 / HERO";
+
+      for (const item of [...SECTIONS].reverse()) {
+        const element = document.getElementById(item.id);
+        const top = element?.getBoundingClientRect().top;
+        if (top !== undefined && top <= probe) {
+          nextSection = item.label;
+          break;
+        }
       }
+
+      setScrollPct((current) => current === nextScrollPct ? current : nextScrollPct);
+      setSection((current) => current === nextSection ? current : nextSection);
+      const nextEnv = viewportLabel();
+      setEnv((current) => current === nextEnv ? current : nextEnv);
     };
 
-    const onResize = () => {
-      setEnv(`${window.innerWidth} × ${window.innerHeight} · ×${window.devicePixelRatio}`);
-      onScroll();
+    const scheduleMetrics = () => {
+      if (!metricFrame) metricFrame = requestAnimationFrame(updateMetrics);
+    };
+    const onMove = (event: MouseEvent) => {
+      latestCursor = { x: event.clientX, y: event.clientY };
+      if (cursorFrame) return;
+      cursorFrame = requestAnimationFrame(() => {
+        cursorFrame = 0;
+        if (latestCursor) setCur(latestCursor);
+      });
     };
 
-    onScroll();
+    scheduleMetrics();
     document.addEventListener("mousemove", onMove, { passive: true });
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize, { passive: true });
+    window.addEventListener("scroll", scheduleMetrics, { passive: true });
+    window.addEventListener("resize", scheduleMetrics, { passive: true });
 
     return () => {
       document.removeEventListener("mousemove", onMove);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", scheduleMetrics);
+      window.removeEventListener("resize", scheduleMetrics);
+      if (metricFrame) cancelAnimationFrame(metricFrame);
+      if (cursorFrame) cancelAnimationFrame(cursorFrame);
     };
-  }, [active]);
+  }, [visible]);
 
   const px = String(cur.x).padStart(4, "0");
   const py = String(cur.y).padStart(4, "0");
@@ -66,15 +91,14 @@ export function SystemHUD({ active }: { active: boolean }) {
 
   return (
     <AnimatePresence>
-      {active && (
+      {visible && (
         <m.div
-          role="status"
-          aria-label="System diagnostics"
+          aria-hidden="true"
           className="sys-hud"
-          initial={{ opacity: 0, x: 16 }}
+          initial={animated ? { opacity: 0, x: 16 } : false}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 16 }}
-          transition={{ duration: 0.35, ease: ease.softSettle }}
+          exit={animated ? { opacity: 0, x: 16 } : undefined}
+          transition={{ duration: animated ? 0.35 : 0, ease: ease.softSettle }}
         >
           <div className="sys-hud-header">
             <span>SYS / ONLINE</span>

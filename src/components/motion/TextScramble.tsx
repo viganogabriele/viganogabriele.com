@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
+import type { SystemToggleDetail } from "../../hooks/useSystemMode";
 
 const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
 
@@ -27,8 +28,10 @@ export function TextScramble({ text, className }: { text: string; className?: st
     return () => { if (timer.current) clearTimeout(timer.current); };
   }, [level, scramble]);
   useEffect(() => {
-    const onSystemToggle = () => {
-      if (level !== "static") scramble();
+    const onSystemToggle = (event: CustomEvent<SystemToggleDetail>) => {
+      // Reading the typed detail also keeps this listener compatible with
+      // consumers that use SYS state to coordinate other visual responses.
+      if (typeof event.detail.active === "boolean" && level !== "static") scramble();
     };
     window.addEventListener("sys:toggle", onSystemToggle);
     return () => window.removeEventListener("sys:toggle", onSystemToggle);

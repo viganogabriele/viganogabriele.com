@@ -3,11 +3,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/index.html", "destination": "/", "permanent": true },
+    { "source": "/viganogabriele.com", "destination": "/", "permanent": true },
+    { "source": "/viganogabriele.com/", "destination": "/", "permanent": true },
+    { "source": "/viganogabriele.com/index.html", "destination": "/", "permanent": true }
   ],
   "headers": [
     {
