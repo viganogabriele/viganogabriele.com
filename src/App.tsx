@@ -5,35 +5,31 @@ import { Component, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState
 import { AnimatePresence, m } from "framer-motion";
 import { HomePage } from "./pages/HomePage";
 import { useMotionProfile } from "./hooks/useMotionProfile";
+import { findScrollAnchor, getRegisteredNoteReturn, getScrollSnapshot, type ScrollSnapshot } from "./lib/navigationState";
+import { usePreloader } from "./hooks/usePreloader";
+import { Preloader } from "./components/layout/Preloader";
 
 const NotePage = lazy(() => import("./pages/NotePage").then((module) => ({ default: module.NotePage })));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
+const HOME_PATHS = new Set(["/", "/index.html", "/viganogabriele.com", "/viganogabriele.com/", "/viganogabriele.com/index.html"]);
 
-type ScrollSnapshot = {
-  y: number;
-  anchor?: { id: string; offset: number };
-};
+function InitialHomePreloader({ enabled }: { enabled: boolean }) {
+  const { prefersReducedMotion } = useMotionProfile();
+  const { loading, progress } = usePreloader(enabled, prefersReducedMotion);
 
-function getScrollSnapshot(): ScrollSnapshot {
-  const anchors = Array.from(document.querySelectorAll<HTMLElement>("main section[id], [data-scroll-anchor]"));
-  const closest = anchors.reduce<HTMLElement | null>((candidate, element) => {
-    if (!candidate) return element;
-    return Math.abs(element.getBoundingClientRect().top) < Math.abs(candidate.getBoundingClientRect().top) ? element : candidate;
-  }, null);
-  const anchorId = closest?.dataset.scrollAnchor ?? closest?.id;
+  useEffect(() => {
+    if (!loading) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [loading]);
 
-  return {
-    y: window.scrollY,
-    anchor: closest && anchorId ? { id: anchorId, offset: closest.getBoundingClientRect().top } : undefined,
-  };
-}
-
-function findAnchor(id: string) {
-  return document.getElementById(id) ?? document.querySelector<HTMLElement>(`[data-scroll-anchor="${CSS.escape(id)}"]`);
+  return <AnimatePresence>{loading && <Preloader progress={progress} reducedMotion={prefersReducedMotion} />}</AnimatePresence>;
 }
 
 function RouteScrollManager() {
   const location = useLocation();
+  const [showInitialPreloader] = useState(() => HOME_PATHS.has(location.pathname));
   const [positions, setPositions] = useState(() => new Map<string, ScrollSnapshot>());
   const previousLocation = useRef<Location>(location);
 
@@ -56,7 +52,7 @@ function RouteScrollManager() {
     }
   }, [location]);
 
-  return <AnimatedRoutes positions={positions} />;
+  return <><AnimatedRoutes positions={positions} /><InitialHomePreloader enabled={showInitialPreloader} /></>;
 }
 
 export default function App() {
@@ -102,12 +98,12 @@ function RouteScrollCommit({ location, navigationType, positions }: { location: 
         window.scrollTo({ top: 0, behavior: "auto" });
         return;
       }
-      const snapshot = positions.get(location.key);
+      const snapshot = getRegisteredNoteReturn(location.key) ?? positions.get(location.key);
       if (!snapshot) {
         window.scrollTo({ top: 0, behavior: "auto" });
         return;
       }
-      const anchor = correctAnchor && snapshot.anchor ? findAnchor(snapshot.anchor.id) : null;
+      const anchor = correctAnchor && snapshot.anchor ? findScrollAnchor(snapshot.anchor.id) : null;
       const top = anchor ? window.scrollY + anchor.getBoundingClientRect().top - snapshot.anchor!.offset : snapshot.y;
       window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
     };

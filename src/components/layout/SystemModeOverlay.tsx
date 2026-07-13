@@ -11,10 +11,10 @@ const CORNER_POS = [
   { key: "br", cls: "bottom-6 right-6 border-b-2 border-r-2" },
 ];
 
-export function SystemModeOverlay({ active, transitionId, safeMode = false }: { active: boolean; transitionId: number; safeMode?: boolean }) {
+export function SystemModeOverlay({ active, transitionId, safeMode = false, laserEnabled = true }: { active: boolean; transitionId: number; safeMode?: boolean; laserEnabled?: boolean }) {
   const { level } = useMotionProfile();
   const animated = level === "full" && !safeMode;
-  const shouldWipe = level !== "static" && !safeMode;
+  const shouldWipe = level !== "static" && laserEnabled;
 
   // A transition token, rather than an effect-driven boolean, means that a
   // completion callback from an earlier rapid toggle can never hide a newer
@@ -26,7 +26,7 @@ export function SystemModeOverlay({ active, transitionId, safeMode = false }: { 
   return <>
     <div aria-live="polite" className="sr-only">{announcement}</div>
     <AnimatePresence>
-      {wipeId !== null && <m.div key={wipeId} data-system-wipe initial={{ y: "-120%" }} animate={{ y: "400%" }} transition={{ duration: dur.mode, ease: ease.cinematic }} onAnimationComplete={() => setCompletedWipeId((completed) => Math.max(completed, wipeId))} aria-hidden className="system-mode-wipe pointer-events-none fixed inset-x-0 top-0 z-[80] h-[28vh]" />}
+      {wipeId !== null && <div key={wipeId} data-system-wipe aria-hidden className="system-mode-wipe-container pointer-events-none fixed inset-0 z-[80]"><m.div initial={{ y: "-100%" }} animate={{ y: "100%" }} transition={{ duration: dur.mode, ease: ease.cinematic }} onAnimationComplete={() => setCompletedWipeId((completed) => Math.max(completed, wipeId))} className="system-mode-wipe absolute inset-0" /></div>}
     </AnimatePresence>
     <AnimatePresence>
       {active && <m.div key="sys-overlay" initial={animated ? { opacity: 0 } : false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: animated ? 0.35 : 0 }} aria-hidden className={cn("system-overlay pointer-events-none fixed inset-0 z-[45]", safeMode && "system-overlay-safe")}>

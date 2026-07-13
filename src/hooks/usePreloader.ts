@@ -1,37 +1,21 @@
 import { useEffect, useState } from "react";
 
-const PRELOADED_KEY = "gv-preloaded";
+const MINIMUM_VISIBLE_MS = 650;
+const ASSET_TIMEOUT_MS = 3000;
 
-function hasPreloaded() {
-  try {
-    return window.sessionStorage.getItem(PRELOADED_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function markPreloaded() {
-  try {
-    window.sessionStorage.setItem(PRELOADED_KEY, "1");
-  } catch {
-    // Storage can be unavailable in private or embedded browsing contexts.
-  }
-}
-
-export function usePreloader(reducedMotion: boolean | null) {
-  const [loading, setLoading] = useState(() => !reducedMotion && !hasPreloaded());
+export function usePreloader(enabled: boolean, reducedMotion: boolean) {
+  const [loading, setLoading] = useState(enabled);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    if (!loading) return;
-    if (reducedMotion) {
-      const frame = requestAnimationFrame(() => setLoading(false));
-      return () => cancelAnimationFrame(frame);
-    }
+    if (!enabled || !loading) return;
     let frame = 0;
     let mounted = true;
     let amount = 0;
-    let timeout = 0;
+    let assetTimeout = 0;
+    let minimumTimeout = 0;
+    let completionFrame = 0;
+    let removalFrame = 0;
 
     const tick = () => {
       amount = Math.min(92, amount + (92 - amount) * 0.08 + 0.35);
@@ -47,29 +31,33 @@ export function usePreloader(reducedMotion: boolean | null) {
         hero?.addEventListener("error", () => resolve(), { once: true });
       });
       const ready = Promise.all([fonts, image ?? Promise.resolve()]);
-      const fallback = new Promise<void>((resolve) => { timeout = window.setTimeout(resolve, 3000); });
-      await Promise.race([ready, fallback]);
+      const fallback = new Promise<void>((resolve) => { assetTimeout = window.setTimeout(resolve, ASSET_TIMEOUT_MS); });
+      const minimum = new Promise<void>((resolve) => { minimumTimeout = window.setTimeout(resolve, MINIMUM_VISIBLE_MS); });
+      await Promise.all([Promise.race([ready, fallback]), minimum]);
       if (!mounted) return;
-      window.clearTimeout(timeout);
+      window.clearTimeout(assetTimeout);
+      window.clearTimeout(minimumTimeout);
       cancelAnimationFrame(frame);
       setProgress(100);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      completionFrame = requestAnimationFrame(() => {
+        removalFrame = requestAnimationFrame(() => {
           if (!mounted) return;
-          markPreloaded();
           setLoading(false);
         });
       });
     };
 
-    frame = requestAnimationFrame(tick);
+    if (!reducedMotion) frame = requestAnimationFrame(tick);
     void finish();
     return () => {
       mounted = false;
       cancelAnimationFrame(frame);
-      window.clearTimeout(timeout);
+      cancelAnimationFrame(completionFrame);
+      cancelAnimationFrame(removalFrame);
+      window.clearTimeout(assetTimeout);
+      window.clearTimeout(minimumTimeout);
     };
-  }, [loading, reducedMotion]);
+  }, [enabled, loading, reducedMotion]);
 
   return { loading, progress };
 }

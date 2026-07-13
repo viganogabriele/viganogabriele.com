@@ -19,8 +19,7 @@ test("home has no horizontal overflow across target viewports", async ({ page })
     await test.step(viewport.name, async () => {
       await page.setViewportSize(viewport);
       await page.goto("/");
-      await page.evaluate(() => sessionStorage.setItem("gv-preloaded", "1"));
-      await page.reload();
+      await expect(page.locator("[data-preloader]")).toHaveCount(0);
       await expect(page.getByRole("heading", { name: /GABRIELE VIGANÒ/i })).toBeVisible();
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(1);
@@ -35,8 +34,7 @@ test("home has no horizontal overflow across target viewports", async ({ page })
 test("mobile navigation is keyboard-safe and anchors work", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.evaluate(() => sessionStorage.setItem("gv-preloaded", "1"));
-  await page.reload();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const menu = page.getByRole("button", { name: "Toggle navigation" });
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
@@ -59,8 +57,7 @@ test("projects contain the three real case studies", async ({ page }) => {
 test("adaptive hero exposes its interaction and a visual fallback", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.evaluate(() => sessionStorage.setItem("gv-preloaded", "1"));
-  await page.reload();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const portrait = page.locator(".hero-object-button");
   await expect(portrait).toBeVisible();
   await expect(portrait).toHaveAccessibleName(/PORTRAIT · ENTER SYS/);
@@ -166,8 +163,7 @@ test("SYS keyboard shortcut is resilient and ignores editable or repeated keys",
   });
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto("/");
-  await page.evaluate(() => sessionStorage.setItem("gv-preloaded", "1"));
-  await page.reload();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   const system = page.getByRole("button", { name: "Toggle system mode" });
   await expect(system).toHaveAttribute("aria-keyshortcuts", "Shift+S");
@@ -190,27 +186,153 @@ test("SYS keyboard shortcut is resilient and ignores editable or repeated keys",
   expect(await page.evaluate(() => (window as Window & { sysEvents?: boolean[] }).sysEvents)).toEqual([true, false]);
 });
 
-test("SYS uses the lightweight rendering path on Apple WebKit", async ({ page }) => {
+test("SYS keeps the safe rendering path and enables the laser on iPhone", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "userAgent", {
       configurable: true,
       get: () => "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
     });
-    sessionStorage.setItem("gv-preloaded", "1");
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   await expect(page.locator("html")).toHaveAttribute("data-webkit-safe", "");
   const system = page.getByRole("button", { name: "Toggle system mode" });
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".system-overlay-safe")).toBeVisible();
-  await expect(page.locator(".sys-grid-overlay, [data-system-wipe]")).toHaveCount(0);
+  await expect(page.locator(".sys-grid-overlay")).toHaveCount(0);
+  await expect(page.locator("[data-system-wipe]")).toBeVisible();
 
   await system.click();
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
+});
+
+test("SYS disables only the laser on desktop Safari", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperties(navigator, {
+      userAgent: {
+        configurable: true,
+        get: () => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15",
+      },
+      vendor: { configurable: true, get: () => "Apple Computer, Inc." },
+      platform: { configurable: true, get: () => "MacIntel" },
+      maxTouchPoints: { configurable: true, get: () => 0 },
+    });
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const system = page.getByRole("button", { name: "Toggle system mode" });
+  await system.click();
+  await expect(system).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".system-overlay-safe")).toBeVisible();
+  await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
+});
+
+test("SYS keeps the laser enabled on Brave", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperties(navigator, {
+      userAgent: {
+        configurable: true,
+        get: () => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      },
+      vendor: { configurable: true, get: () => "Google Inc." },
+      brave: { configurable: true, value: { isBrave: async () => true } },
+    });
+  });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const system = page.getByRole("button", { name: "Toggle system mode" });
+  await system.click();
+  await expect(page.locator("[data-system-wipe]")).toBeVisible();
+  await expect(page.locator(".system-overlay-safe")).toHaveCount(0);
+});
+
+test("SYS laser never changes page or viewport dimensions", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo({ top: 420, behavior: "auto" }));
+
+  const readDimensions = () => page.evaluate(() => {
+    const hero = document.querySelector<HTMLElement>(".hero-visual-frame")?.getBoundingClientRect();
+    return {
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      scrollHeight: document.documentElement.scrollHeight,
+      scrollY: window.scrollY,
+      heroWidth: hero?.width ?? 0,
+      heroHeight: hero?.height ?? 0,
+    };
+  });
+  const baseline = await readDimensions();
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  const samples = await page.evaluate(async () => {
+    const values: Array<Record<string, number>> = [];
+    const read = () => {
+      const hero = document.querySelector<HTMLElement>(".hero-visual-frame")?.getBoundingClientRect();
+      values.push({
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+        scrollY: window.scrollY,
+        heroWidth: hero?.width ?? 0,
+        heroHeight: hero?.height ?? 0,
+      });
+    };
+    read();
+    await new Promise<void>((resolve) => {
+      const interval = window.setInterval(read, 40);
+      window.setTimeout(() => { window.clearInterval(interval); resolve(); }, 900);
+    });
+    return values;
+  });
+  for (const sample of samples) {
+    for (const key of Object.keys(baseline) as Array<keyof typeof baseline>) {
+      expect(Math.abs(sample[key] - baseline[key]), `${key} changed during the laser`).toBeLessThanOrEqual(1);
+    }
+  }
+});
+
+test("preloader appears on every full home load and stays deterministic with cached assets", async ({ page }) => {
+  await page.goto("/");
+  const preloader = page.locator("[data-preloader]");
+  await expect(preloader).toBeVisible();
+  await page.waitForTimeout(250);
+  await expect(preloader).toBeVisible();
+  await expect(preloader).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
+
+  await page.reload();
+  await expect(preloader).toBeVisible();
+  await page.waitForTimeout(250);
+  await expect(preloader).toBeVisible();
+  await expect(preloader).toHaveCount(0);
+});
+
+test("preloader remains static with reduced motion and is absent on direct secondary routes", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const preloader = page.locator("[data-preloader]");
+  await expect(preloader).toBeVisible();
+  await expect(preloader).toHaveAttribute("data-reduced-motion", "true");
+  await expect(preloader).toHaveCount(0);
+
+  await page.goto("/notes/event-operations-from-zero");
+  await expect(page.getByRole("heading", { name: /How I Organized Events/i })).toBeVisible();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.goto("/does-not-exist");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
 });
 
 test("fine-pointer cursor works at compact desktop width and is absent on touch", async ({ page }) => {
@@ -291,31 +413,57 @@ test("notes expose accurate article metadata and missing notes render a 404", as
   await expect(page.getByRole("heading", { name: "Not here." })).toBeVisible();
 });
 
-test("back restores the exact note position and remains stable", async ({ page }) => {
-  await page.addInitScript(() => sessionStorage.setItem("gv-preloaded", "1"));
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
-  const note = page.locator('[data-scroll-anchor="note-portfolio-vibe-coding-to-production"]');
-  await note.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 240, behavior: "auto" }));
-  await expect(note).toBeInViewport();
-  const expectedY = await page.evaluate(() => window.scrollY);
+test("closing a note restores its exact position on desktop and iPhone", async ({ page }) => {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    const note = page.locator('[data-scroll-anchor="note-portfolio-vibe-coding-to-production"]');
+    await note.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 240, behavior: "auto" }));
+    await expect(note).toBeInViewport();
+    const expectedY = await page.evaluate(() => window.scrollY);
 
-  await note.click();
-  await expect(page.getByRole("heading", { name: /How I Built This Website/i })).toBeVisible();
-  await page.goBack();
-  await expect(note).toBeVisible();
+    await note.click();
+    await expect(page.getByRole("heading", { name: /How I Built This Website/i })).toBeVisible();
+    await page.getByRole("button", { name: "Close note and return to notes" }).click();
+    await expect(note).toBeVisible();
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
-  for (const delay of [100, 600, 2500]) {
-    await page.waitForTimeout(delay);
-    const actualY = await page.evaluate(() => window.scrollY);
-    expect(Math.abs(actualY - expectedY), `scroll drift after ${delay}ms`).toBeLessThanOrEqual(2);
+    for (const delay of [100, 600, 2500]) {
+      await page.waitForTimeout(delay);
+      const actualY = await page.evaluate(() => window.scrollY);
+      expect(Math.abs(actualY - expectedY), `scroll drift at ${viewport.width}px after ${delay}ms`).toBeLessThanOrEqual(2);
+    }
   }
 });
 
-test("a manual interaction cancels a pending scroll correction", async ({ page }) => {
-  await page.addInitScript(() => sessionStorage.setItem("gv-preloaded", "1"));
+test("browser back still restores the exact note position", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const note = page.locator('[data-scroll-anchor="note-homelab-security-first"]');
+  await note.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 180, behavior: "auto" }));
+  const expectedY = await page.evaluate(() => window.scrollY);
+  await note.click();
+  await page.goBack();
+  await expect(note).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(expectedY);
+});
+
+test("direct note close falls back to the notes section without replaying the preloader", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/notes/event-operations-from-zero");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.getByRole("button", { name: "Close note and return to notes" }).click();
+  await expect(page).toHaveURL(/\/#notes$/);
+  await expect(page.locator("#notes")).toBeInViewport();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+});
+
+test("a manual interaction cancels a pending scroll correction", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const note = page.locator('[data-scroll-anchor="note-homelab-security-first"]');
   await note.evaluate((element) => window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 180));
   await note.click();
@@ -355,9 +503,12 @@ test("reduced motion preserves content and accessibility", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.evaluate(() => sessionStorage.setItem("gv-preloaded", "1"));
-  await page.reload();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await expect(page.getByText("I build products, teams and systems that hold up.")).toBeVisible();
+  const system = page.getByRole("button", { name: "Toggle system mode" });
+  await system.click();
+  await expect(system).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
   const results = await new AxeBuilder({ page }).exclude("canvas").analyze();
   const serious = results.violations.filter((violation) => ["serious", "critical"].includes(violation.impact ?? ""));
   expect(serious, serious.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
@@ -366,8 +517,7 @@ test("reduced motion preserves content and accessibility", async ({ page }) => {
 test("interactive controls meet the minimum touch target", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.evaluate(() => sessionStorage.setItem("gv-preloaded", "1"));
-  await page.reload();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const undersized = await page.locator("a:visible, button:visible").evaluateAll((nodes) => nodes.map((node) => {
     const rect = node.getBoundingClientRect();
     return { label: node.getAttribute("aria-label") || node.textContent?.trim(), width: rect.width, height: rect.height };

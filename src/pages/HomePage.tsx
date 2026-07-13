@@ -1,5 +1,5 @@
-import { AnimatePresence, useReducedMotion } from "framer-motion";
-import { useCallback, useEffect } from "react";
+import { useReducedMotion } from "framer-motion";
+import { useCallback } from "react";
 import { About } from "../components/sections/About";
 import { Certifications } from "../components/sections/Certifications";
 import { Expertise } from "../components/sections/Expertise";
@@ -11,24 +11,16 @@ import { TechStack } from "../components/sections/TechStack";
 import { AppShell } from "../components/layout/AppShell";
 import { Footer } from "../components/layout/Footer";
 import { Navbar } from "../components/layout/Navbar";
-import { Preloader } from "../components/layout/Preloader";
 import { SystemModeOverlay } from "../components/layout/SystemModeOverlay";
 import { ScrollBar } from "../components/motion/ScrollBar";
 import { SystemHUD } from "../components/motion/SystemHUD";
-import { usePreloader } from "../hooks/usePreloader";
 import { useSystemMode } from "../hooks/useSystemMode";
 import { homeMetadata, websitePersonJsonLd } from "../data/site";
 import { JsonLd, PageMeta } from "../lib/seo";
 
 export function HomePage() {
   const reduced = useReducedMotion();
-  const { loading, progress } = usePreloader(reduced);
-  const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode } = useSystemMode();
-
-  useEffect(() => {
-    document.body.style.overflow = loading ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [loading]);
+  const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
 
   const scrollToSection = useCallback((target: string) => {
     const selector = target === "body" ? "body" : target;
@@ -48,7 +40,7 @@ export function HomePage() {
       <JsonLd id="website-person" data={websitePersonJsonLd} />
       <ScrollBar />
       <Navbar onNavigate={scrollToSection} systemActive={systemActive} onToggleSystem={toggleSystem} />
-      <SystemModeOverlay active={systemActive} transitionId={systemTransitionId} safeMode={webkitSafeMode} />
+      <SystemModeOverlay active={systemActive} transitionId={systemTransitionId} safeMode={webkitSafeMode} laserEnabled={laserEnabled} />
       <SystemHUD active={systemActive} />
       <main id="main-content">
         <Hero onNavigate={scrollToSection} systemActive={systemActive} onToggleSystem={toggleSystem} />
@@ -63,9 +55,6 @@ export function HomePage() {
           <Footer onNavigate={scrollToSection} />
         </div>
       </main>
-      <AnimatePresence>
-        {loading && <Preloader progress={progress} reducedMotion={reduced} />}
-      </AnimatePresence>
     </AppShell>
   );
 }

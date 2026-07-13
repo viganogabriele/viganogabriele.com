@@ -68,6 +68,7 @@ body {
 }
 
 html {
+  overflow-anchor: none;
   overflow-x: clip;
   position: relative;
   scroll-padding-top: 6.5rem;
@@ -558,8 +559,15 @@ body {
   mix-blend-mode: normal;
 }
 
+.system-mode-wipe-container {
+  contain: strict;
+  isolation: isolate;
+  overflow: hidden;
+}
+
 .system-mode-wipe {
-  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--accent) 76%, transparent) 38%, color-mix(in srgb, var(--accent-soft) 92%, transparent) 50%, color-mix(in srgb, var(--accent) 76%, transparent) 62%, transparent);
+  background: linear-gradient(to bottom, transparent 0%, transparent 38%, color-mix(in srgb, var(--accent) 76%, transparent) 44%, color-mix(in srgb, var(--accent-soft) 92%, transparent) 50%, color-mix(in srgb, var(--accent) 76%, transparent) 56%, transparent 62%, transparent 100%);
+  transform: translateZ(0);
   will-change: transform;
 }
 
@@ -838,7 +846,7 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 
 @media (prefers-reduced-motion: reduce) {
   .hero-wordmark-line > span { animation: none; }
-  .system-mode-wipe { display: none; }
+  .system-mode-wipe-container { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   [data-sys-reveal] { animation: none; transition: opacity 200ms ease; }

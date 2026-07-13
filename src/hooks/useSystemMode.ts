@@ -17,7 +17,23 @@ function isEditableTarget(target: EventTarget | null) {
 
 function usesAppleWebKit() {
   const userAgent = navigator.userAgent;
-  return /AppleWebKit/i.test(userAgent) && !/(Chrome|Chromium|Edg|OPR)/i.test(userAgent);
+  return /AppleWebKit/i.test(userAgent) && (isIOSLike() || !/(Chrome|Chromium|Edg|OPR)/i.test(userAgent));
+}
+
+function isIOSLike() {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function isDesktopSafari() {
+  const userAgent = navigator.userAgent;
+  const alternativeBrowser = /(Chrome|Chromium|CriOS|FxiOS|EdgiOS|EdgA|Edg|OPR|OPiOS)/i.test(userAgent);
+  return (
+    !isIOSLike() &&
+    /AppleWebKit/i.test(userAgent) &&
+    /Safari/i.test(userAgent) &&
+    /Apple/i.test(navigator.vendor) &&
+    !alternativeBrowser
+  );
 }
 
 export function useSystemMode() {
@@ -27,6 +43,7 @@ export function useSystemMode() {
   const [transitionId, setTransitionId] = useState(0);
   const activeRef = useRef(active);
   const [webkitSafeMode] = useState(usesAppleWebKit);
+  const [laserEnabled] = useState(() => !isDesktopSafari());
 
   useEffect(() => {
     if (!webkitSafeMode) return;
@@ -78,5 +95,5 @@ export function useSystemMode() {
     return () => window.removeEventListener("keydown", handler);
   }, [toggle]);
 
-  return { active, transitionId, toggle, webkitSafeMode };
+  return { active, transitionId, toggle, webkitSafeMode, laserEnabled };
 }

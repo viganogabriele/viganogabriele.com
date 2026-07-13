@@ -3,7 +3,7 @@ import { ease } from "../../lib/motion";
 
 const year = new Date().getFullYear();
 
-export function Preloader({ progress, reducedMotion }: { progress: number; reducedMotion: boolean | null }) {
+export function Preloader({ progress, reducedMotion }: { progress: number; reducedMotion: boolean }) {
   const transition = reducedMotion ? { duration: 0 } : { duration: 0.65, ease: ease.cinematic };
   return (
     <m.div
@@ -11,6 +11,8 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
       exit={reducedMotion ? { opacity: 0 } : { clipPath: "inset(0 50% 0 50%)" }}
       transition={transition}
       data-preloader
+      data-reduced-motion={reducedMotion}
+      aria-busy="true"
       className="fixed inset-0 z-[100] min-h-[100dvh] bg-background"
     >
       {/* Scan lines overlay */}
