@@ -142,14 +142,17 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
         </m.div>
       </div>
 
-      <a
+      <m.a
         href="#about"
         onClick={(event) => { event.preventDefault(); onNavigate("#about"); }}
         data-cursor="hover"
+        initial={reduced ? false : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.1, duration: 0.6, ease: ease.softSettle }}
         className="absolute bottom-3 left-5 flex min-h-11 items-center gap-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-white sm:bottom-6 sm:left-8 lg:left-10"
       >
         Scroll to inspect <ArrowUpRight className="h-3 w-3 rotate-90" />
-      </a>
+      </m.a>
     </section>
   );
 }

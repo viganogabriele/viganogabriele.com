@@ -42,10 +42,18 @@ export function TextScramble({ text, className }: { text: string; className?: st
   return (
     <span
       className={className}
-      onMouseEnter={() => canUsePointerEffects && scramble()}
+      style={{ position: "relative", overflow: "hidden" }}
       aria-label={text}
+      onMouseEnter={() => canUsePointerEffects && scramble()}
     >
-      {display}
+      {/* Invisible anchor — keeps parent dimensions stable during scramble */}
+      <span style={{ visibility: "hidden", userSelect: "none", pointerEvents: "none" }} aria-hidden="true">
+        {text}
+      </span>
+      {/* Scramble display — absolutely positioned, never affects document flow */}
+      <span style={{ position: "absolute", top: 0, left: 0, right: 0 }} aria-hidden="true">
+        {display}
+      </span>
     </span>
   );
 }

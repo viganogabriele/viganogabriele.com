@@ -6,6 +6,11 @@ import { ArtifactSVG } from "./ArtifactSVG";
 import { ease } from "../../lib/motion";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 
+const CONTENT_CHILD_VARIANTS = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
+};
+
 export function ProjectPanel({ project, reverse }: { project: Project; reverse: boolean }) {
   const { level, canUsePointerEffects } = useMotionProfile();
   const staticMotion = level === "static";
@@ -48,22 +53,47 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
       </m.div>
 
       <div className={`flex flex-col justify-between gap-10 pt-7 lg:pt-0 ${reverse ? "lg:order-1" : ""}`}>
-        <div className="relative z-10">
-          <div className="flex flex-col gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:tracking-[0.16em]">
+        <m.div
+          className="relative z-10"
+          initial={staticMotion ? false : "hidden"}
+          whileInView={staticMotion ? undefined : "show"}
+          viewport={{ once: true, margin: "-80px" }}
+          variants={staticMotion ? undefined : {
+            hidden: {},
+            show: { transition: { staggerChildren: 0.09, delayChildren: 0.2 } },
+          }}
+        >
+          <m.div
+            className="flex flex-col gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:tracking-[0.16em]"
+            variants={staticMotion ? undefined : CONTENT_CHILD_VARIANTS}
+          >
             <span className="flex min-w-0 items-center gap-2">
               {project.index} / {project.eyebrow}
             </span>
             <span className="flex shrink-0 items-center gap-2 text-blue-soft">
               {project.status}
             </span>
-          </div>
-          <h3 className="mt-8 whitespace-pre-line text-5xl font-medium leading-[0.82] tracking-[-0.075em] text-bone sm:text-6xl lg:text-8xl">
+          </m.div>
+          <m.h3
+            className="mt-8 whitespace-pre-line text-5xl font-medium leading-[0.82] tracking-[-0.075em] text-bone sm:text-6xl lg:text-8xl"
+            variants={staticMotion ? undefined : CONTENT_CHILD_VARIANTS}
+          >
             {project.title}
-          </h3>
-          <p className="mt-7 max-w-xl text-base leading-relaxed text-zinc-400">{project.description}</p>
-          <div className="mt-7 grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-5">{project.metrics.map((metric) => <div key={metric.label}><p className="text-2xl font-medium tracking-[-0.05em] text-accent">{metric.value}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-600">MEASURED / {metric.label}</p></div>)}</div>
+          </m.h3>
+          <m.p
+            className="mt-7 max-w-xl text-base leading-relaxed text-zinc-400"
+            variants={staticMotion ? undefined : CONTENT_CHILD_VARIANTS}
+          >
+            {project.description}
+          </m.p>
+          <m.div
+            className="mt-7 grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-5"
+            variants={staticMotion ? undefined : CONTENT_CHILD_VARIANTS}
+          >
+            {project.metrics.map((metric) => <div key={metric.label}><p className="text-2xl font-medium tracking-[-0.05em] text-accent">{metric.value}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-600">MEASURED / {metric.label}</p></div>)}
+          </m.div>
           <p data-sys-reveal className="mt-4 font-mono text-[9px] uppercase tracking-[0.13em] text-accent">SYS / {project.buildMeta}</p>
-        </div>
+        </m.div>
         <div className="relative z-10 grid gap-6 border-t border-white/[0.09] pt-6 text-sm md:grid-cols-2">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-600">Role</p>

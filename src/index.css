@@ -88,7 +88,7 @@ a {
 .skip-link {
   position: fixed;
   left: 1rem;
-  top: 1rem;
+  top: -200px;
   z-index: 10000;
   min-height: 44px;
   display: flex;
@@ -97,12 +97,11 @@ a {
   background: #ede9e2;
   color: #020406;
   font: 600 0.75rem/1 var(--font-sans);
-  transform: translateY(-180%);
-  transition: transform 180ms ease;
+  transition: top 180ms ease;
 }
 
 .skip-link:focus-visible {
-  transform: translateY(0);
+  top: max(1rem, env(safe-area-inset-top));
 }
 
 /* The native pointer is suppressed only while the portal cursor exists. */

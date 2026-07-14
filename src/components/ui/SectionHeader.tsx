@@ -1,5 +1,6 @@
 import { m } from "framer-motion";
 import { useMemo } from "react";
+import { ease } from "../../lib/motion";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 
@@ -71,7 +72,15 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
       </div>
 
       {subtitle && (
-        <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400 md:text-lg">{subtitle}</p>
+        <m.p
+          className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400 md:text-lg"
+          initial={disableMotion ? false : { opacity: 0, y: 12 }}
+          whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, delay: 0.4, ease: ease.softSettle }}
+        >
+          {subtitle}
+        </m.p>
       )}
     </ScrollReveal>
   );

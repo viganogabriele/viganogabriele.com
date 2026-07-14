@@ -90,17 +90,33 @@ export function Journey() {
               >
                 {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-accent/50 motion-reduce:animate-none" />}
               </span>
-              <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
-                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600 md:mb-0">{item.year}</p>
-                <div>
+              <m.div
+                className="grid gap-3 md:grid-cols-[9rem_1fr]"
+                initial={staticMotion ? false : "hidden"}
+                whileInView={staticMotion ? undefined : "show"}
+                viewport={{ once: true, margin: "-70px" }}
+                variants={staticMotion ? undefined : {
+                  hidden: {},
+                  show: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } },
+                }}
+              >
+                <m.p
+                  className="mb-1 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600 md:mb-0"
+                  variants={staticMotion ? undefined : { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } }}
+                >
+                  {item.year}
+                </m.p>
+                <m.div
+                  variants={staticMotion ? undefined : { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } }}
+                >
                   <div className="flex items-center gap-3">
                     <Icon className="h-4 w-4 text-accent/75" />
                     <h3 className="text-2xl tracking-[-0.045em] text-zinc-100">{item.title}</h3>
                   </div>
                   <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-accent">{item.subtitle}</p>
                   <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">{item.description}</p>
-                </div>
-              </div>
+                </m.div>
+              </m.div>
             </m.article>
           );
         })}
