@@ -210,6 +210,51 @@ test("SYS keeps the safe rendering path and enables the laser on iPhone", async 
   await expect(system).toHaveAttribute("aria-pressed", "true");
 });
 
+test("mobile SYS toggle keeps the hero copy geometry stable", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const readGeometry = () => page.evaluate(() => {
+    const tagline = document.querySelector<HTMLElement>('span[aria-label="I build products, teams and systems that hold up."]')?.getBoundingClientRect();
+    const stats = document.querySelector<HTMLElement>(".hero-stat-grid")?.getBoundingClientRect();
+    return {
+      taglineTop: tagline?.top ?? 0,
+      taglineHeight: tagline?.height ?? 0,
+      statsTop: stats?.top ?? 0,
+      statsHeight: stats?.height ?? 0,
+    };
+  });
+
+  const baseline = await readGeometry();
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  const samples = await page.evaluate(async () => {
+    const values: Array<Record<string, number>> = [];
+    const read = () => {
+      const tagline = document.querySelector<HTMLElement>('span[aria-label="I build products, teams and systems that hold up."]')?.getBoundingClientRect();
+      const stats = document.querySelector<HTMLElement>(".hero-stat-grid")?.getBoundingClientRect();
+      values.push({
+        taglineTop: tagline?.top ?? 0,
+        taglineHeight: tagline?.height ?? 0,
+        statsTop: stats?.top ?? 0,
+        statsHeight: stats?.height ?? 0,
+      });
+    };
+    read();
+    await new Promise<void>((resolve) => {
+      const interval = window.setInterval(read, 40);
+      window.setTimeout(() => { window.clearInterval(interval); resolve(); }, 640);
+    });
+    return values;
+  });
+
+  for (const sample of samples) {
+    for (const key of Object.keys(baseline) as Array<keyof typeof baseline>) {
+      expect(Math.abs(sample[key] - baseline[key]), `${key} moved during mobile SYS`).toBeLessThanOrEqual(1);
+    }
+  }
+});
+
 test("SYS disables only the laser on desktop Safari", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperties(navigator, {
@@ -315,9 +360,19 @@ test("preloader appears on every full home load and stays deterministic with cac
 
   await page.reload();
   await expect(preloader).toBeVisible();
-  await page.waitForTimeout(250);
-  await expect(preloader).toBeVisible();
-  await expect(preloader).toHaveCount(0);
+  await expect(preloader).toHaveCount(0, { timeout: 1000 });
+});
+
+test("skip link is revealed only for keyboard focus", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const skipLink = page.getByRole("link", { name: "Skip to content" });
+
+  expect(await skipLink.evaluate((node) => getComputedStyle(node).transform)).not.toBe("none");
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
+  await expect.poll(() => skipLink.evaluate((node) => node.matches(":focus-visible"))).toBe(true);
+  await expect.poll(() => skipLink.evaluate((node) => getComputedStyle(node).transform)).toBe("matrix(1, 0, 0, 1, 0, 0)");
 });
 
 test("preloader remains static with reduced motion and is absent on direct secondary routes", async ({ page }) => {

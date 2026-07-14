@@ -6,7 +6,7 @@ const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
 
 export function TextScramble({ text, className }: { text: string; className?: string }) {
   const [display, setDisplay] = useState(text);
-  const { level, canUsePointerEffects } = useMotionProfile();
+  const { level, canUsePointerEffects, isCompact } = useMotionProfile();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scramble = useCallback(() => {
     let frame = 0;
@@ -31,11 +31,14 @@ export function TextScramble({ text, className }: { text: string; className?: st
     const onSystemToggle = (event: CustomEvent<SystemToggleDetail>) => {
       // Reading the typed detail also keeps this listener compatible with
       // consumers that use SYS state to coordinate other visual responses.
-      if (typeof event.detail.active === "boolean" && level !== "static") scramble();
+      // On compact layouts, the temporary glyph widths can rewrap the hero
+      // tagline and move the content below it. Keep the toggle feedback
+      // layout-stable there while preserving the desktop response.
+      if (typeof event.detail.active === "boolean" && level !== "static" && !isCompact) scramble();
     };
     window.addEventListener("sys:toggle", onSystemToggle);
     return () => window.removeEventListener("sys:toggle", onSystemToggle);
-  }, [level, scramble]);
+  }, [isCompact, level, scramble]);
   return (
     <span
       className={className}

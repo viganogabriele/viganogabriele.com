@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const MINIMUM_VISIBLE_MS = 650;
+const MINIMUM_VISIBLE_MS = 300;
 const ASSET_TIMEOUT_MS = 3000;
 
 export function usePreloader(enabled: boolean, reducedMotion: boolean) {
@@ -26,7 +26,10 @@ export function usePreloader(enabled: boolean, reducedMotion: boolean) {
     const finish = async () => {
       const fonts = document.fonts?.ready ?? Promise.resolve();
       const hero = document.querySelector<HTMLImageElement>("[data-hero-portrait]");
-      const image = !hero ? Promise.resolve() : hero.complete ? hero.decode?.().catch(() => undefined) : new Promise<void>((resolve) => {
+      // `complete` means the browser has finished loading the image. Calling
+      // `decode()` again can remain pending in Firefox even for a cached AVIF,
+      // unnecessarily forcing the three-second safety timeout on reload.
+      const image = !hero || hero.complete ? Promise.resolve() : new Promise<void>((resolve) => {
         hero?.addEventListener("load", () => resolve(), { once: true });
         hero?.addEventListener("error", () => resolve(), { once: true });
       });

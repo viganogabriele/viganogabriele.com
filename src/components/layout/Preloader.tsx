@@ -4,7 +4,7 @@ import { ease } from "../../lib/motion";
 const year = new Date().getFullYear();
 
 export function Preloader({ progress, reducedMotion }: { progress: number; reducedMotion: boolean }) {
-  const transition = reducedMotion ? { duration: 0 } : { duration: 0.65, ease: ease.cinematic };
+  const transition = reducedMotion ? { duration: 0 } : { duration: 0.35, ease: ease.cinematic };
   return (
     <m.div
       initial={reducedMotion ? false : { opacity: 1 }}
@@ -34,7 +34,7 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
         <m.div
           initial={reducedMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={reducedMotion ? { duration: 0 } : { duration: 0.8, ease: ease.cinematic }}
+          transition={reducedMotion ? { duration: 0 } : { duration: 0.45, ease: ease.cinematic }}
           className="flex flex-col items-center text-center"
         >
           <div className="text-5xl font-medium uppercase tracking-tight text-white">GABRIELE</div>
@@ -48,7 +48,7 @@ export function Preloader({ progress, reducedMotion }: { progress: number; reduc
         <m.div
           initial={reducedMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={reducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.15, ease: ease.cinematic }}
+          transition={reducedMotion ? { duration: 0 } : { duration: 0.45, delay: 0.08, ease: ease.cinematic }}
           className="mt-16 w-[min(28rem,82vw)]"
         >
           {/* Loading label + counter */}
