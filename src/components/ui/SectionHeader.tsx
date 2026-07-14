@@ -25,20 +25,21 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
 
       <div className="relative mt-4 overflow-hidden pb-2">
         {disableMotion ? (
-          <h2 className="max-w-4xl whitespace-pre-line text-4xl font-medium tracking-[-0.06em] text-bone sm:text-5xl md:text-7xl">
-            {title}
-          </h2>
-        ) : (
+          // Reduced-motion: fade the whole title in on scroll (no per-word travel).
           <m.h2
-            initial="hidden"
-            whileInView="show"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
             viewport={{ once: true, margin: "-60px" }}
-            variants={{
-              hidden: {},
-              show: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } },
-            }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
             className="max-w-4xl whitespace-pre-line text-4xl font-medium tracking-[-0.06em] text-bone sm:text-5xl md:text-7xl"
           >
+            {title}
+          </m.h2>
+        ) : (
+          // Per-word reveal driven by explicit per-span initial/whileInView objects.
+          // This is the same pattern the work panels use — it triggers reliably on
+          // scroll across browsers, unlike parent-variant staggerChildren propagation.
+          <h2 className="max-w-4xl whitespace-pre-line text-4xl font-medium tracking-[-0.06em] text-bone sm:text-5xl md:text-7xl">
             {words.map((word, i) =>
               word === "\n" ? (
                 <br key={`br-${i}`} />
@@ -48,16 +49,16 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
                 <m.span
                   key={`w-${i}`}
                   className="inline-block"
-                  variants={{
-                    hidden: { opacity: 0, y: level === "lite" ? 16 : 24, filter: level === "lite" ? "none" : "blur(3px)" },
-                    show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
-                  }}
+                  initial={{ opacity: 0, y: level === "lite" ? 16 : 24, filter: level === "lite" ? "none" : "blur(3px)" }}
+                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  viewport={{ once: true, margin: "-60px" }}
+                  transition={{ duration: 0.7, delay: i * 0.045, ease: [0.16, 1, 0.3, 1] }}
                 >
                   {word}
                 </m.span>
               ),
             )}
-          </m.h2>
+          </h2>
         )}
 
         {/* Underline sweep */}

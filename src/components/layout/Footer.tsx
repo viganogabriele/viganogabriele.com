@@ -61,33 +61,36 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               End of transmission / start a conversation
             </m.p>
 
-            <m.h2
-              className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl"
-              initial={disableMotion ? false : "hidden"}
-              whileInView={disableMotion ? undefined : "show"}
-              viewport={{ once: true, margin: "-60px" }}
-              variants={{
-                hidden: {},
-                show: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } },
-              }}
-            >
-              {words.map((word, i) =>
-                word.trim().length === 0 ? (
-                  <span key={i}>{word}</span>
-                ) : (
-                  <m.span
-                    key={i}
-                    className="inline-block"
-                    variants={{
-                      hidden: { opacity: 0, y: level === "lite" ? 14 : 22, filter: level === "lite" ? "none" : "blur(3px)" },
-                      show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] } },
-                    }}
-                  >
-                    {word}
-                  </m.span>
-                )
-              )}
-            </m.h2>
+            {disableMotion ? (
+              <m.h2
+                className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              >
+                {HEADING}
+              </m.h2>
+            ) : (
+              <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl">
+                {words.map((word, i) =>
+                  word.trim().length === 0 ? (
+                    <span key={i}>{word}</span>
+                  ) : (
+                    <m.span
+                      key={i}
+                      className="inline-block"
+                      initial={{ opacity: 0, y: level === "lite" ? 14 : 22, filter: level === "lite" ? "none" : "blur(3px)" }}
+                      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      viewport={{ once: true, margin: "-60px" }}
+                      transition={{ duration: 0.65, delay: 0.1 + i * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      {word}
+                    </m.span>
+                  )
+                )}
+              </h2>
+            )}
 
             {/* Terminal-style connect button — toggles email visibility */}
             <button
