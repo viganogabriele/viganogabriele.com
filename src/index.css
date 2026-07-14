@@ -333,18 +333,78 @@ body {
 .project-panel[data-accent="bone"] { --project-accent: 237 241 255; }
 .project-panel:active { background-color: rgba(var(--project-accent), .025); }
 
+/* Cursor-tracking glow. Driven exclusively by --glow, which the panel's
+   pointer handlers raise to 1 while a mouse moves over it and drop to 0 on
+   leave — so it only ever appears following the cursor, never as a static
+   centred wash on hover. --px/--py default off-canvas as a safety net. */
 .project-panel::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: 0;
-  background: radial-gradient(28rem circle at var(--px, 50%) var(--py, 50%), color-mix(in srgb, var(--accent) 11%, transparent), transparent 54%);
+  background: radial-gradient(28rem circle at var(--px, -100%) var(--py, -100%), color-mix(in srgb, var(--accent) 11%, transparent), transparent 54%);
   transition: opacity 250ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .project-panel:hover::after { opacity: 1; }
+  .project-panel::after { opacity: var(--glow, 0); }
+}
+
+/* ── Card graphics: bring the schematic artifacts to life ──────────────────
+   Nodes breathe and connective strokes trace when the parent card is hovered,
+   echoing the instrument/telemetry language used across the site. Kept to
+   opacity + a hairline dash sweep so nothing shifts layout. */
+.artifact-svg circle,
+.artifact-svg path {
+  transition: opacity 500ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .project-panel:hover .artifact-svg circle,
+  .expertise-item:hover .artifact-svg circle {
+    animation: artifact-node 2.4s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .project-panel:hover .artifact-svg circle:nth-of-type(2n),
+  .expertise-item:hover .artifact-svg circle:nth-of-type(2n) { animation-delay: 0.4s; }
+  .project-panel:hover .artifact-svg circle:nth-of-type(3n),
+  .expertise-item:hover .artifact-svg circle:nth-of-type(3n) { animation-delay: 0.8s; }
+
+  .project-panel:hover .artifact-svg > g > path:first-of-type,
+  .expertise-item:hover .artifact-svg > g > path:first-of-type {
+    stroke-dasharray: 340;
+    animation: artifact-trace 2.6s cubic-bezier(.16, 1, .3, 1) infinite;
+  }
+}
+
+@keyframes artifact-node {
+  0%, 100% { opacity: .5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@keyframes artifact-trace {
+  0% { stroke-dashoffset: 340; opacity: .25; }
+  55% { opacity: .8; }
+  100% { stroke-dashoffset: 0; opacity: .25; }
+}
+
+/* Field-note rows: a hairline accent slides in from the left on hover. */
+.note-row > * { position: relative; }
+.note-row a::before {
+  content: "";
+  position: absolute;
+  left: -0.75rem;
+  top: 50%;
+  height: 0;
+  width: 2px;
+  background: var(--accent);
+  transform: translateY(-50%);
+  transition: height 300ms cubic-bezier(.16, 1, .3, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .note-row a:hover::before { height: 62%; }
 }
 
 @media (max-width: 639px) {
@@ -366,9 +426,12 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .hero-object-aura,
-  .hero-fallback-scan {
-    animation: none;
+  .hero-fallback-scan,
+  .artifact-svg circle,
+  .artifact-svg path {
+    animation: none !important;
   }
+  .note-row a::before { display: none; }
 }
 
 .tap-highlight-none {

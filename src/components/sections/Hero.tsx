@@ -133,7 +133,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
           initial={reduced ? false : { opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.34, duration: 1, ease: ease.cinematic }}
-          className="hero-visual-frame relative mx-auto w-full max-w-[34rem] aspect-[4/5] min-h-[19rem] overflow-hidden pt-1 sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem] lg:pt-0"
+          className="hero-visual-frame relative mx-auto w-full max-w-[34rem] aspect-[4/5] min-h-[19rem] overflow-hidden sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem]"
         >
           <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-accent/75">

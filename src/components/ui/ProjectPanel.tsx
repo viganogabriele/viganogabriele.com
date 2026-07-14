@@ -32,10 +32,14 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
       transition={{ duration: 0.8, ease: ease.cinematic }}
       data-accent={project.accent}
       onPointerMove={(event) => {
-        if (!canUsePointerEffects) return;
+        if (!canUsePointerEffects || event.pointerType !== "mouse") return;
         const rect = event.currentTarget.getBoundingClientRect();
         event.currentTarget.style.setProperty("--px", `${event.clientX - rect.left}px`);
         event.currentTarget.style.setProperty("--py", `${event.clientY - rect.top}px`);
+        event.currentTarget.style.setProperty("--glow", "1");
+      }}
+      onPointerLeave={(event) => {
+        event.currentTarget.style.setProperty("--glow", "0");
       }}
       className="project-panel group relative grid overflow-hidden border-x border-white/[0.06] px-5 py-8 sm:px-8 sm:py-10 lg:grid-cols-2 lg:gap-16 lg:px-12 lg:py-14"
     >

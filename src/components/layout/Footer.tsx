@@ -123,17 +123,16 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
 
             <AnimatePresence>
               {emailOpen && (
-                <m.a
-                  key="mail-link"
-                  href={`mailto:${EMAIL}`}
+                <m.p
+                  key="signoff"
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.2 }}
-                  className="ml-1 font-mono text-[10px] uppercase tracking-[0.12em] text-accent underline underline-offset-4"
+                  transition={{ duration: 0.25, delay: 0.05 }}
+                  className="ml-1 mt-2 font-mono text-[10px] tracking-[0.12em] text-accent/80"
                 >
-                  open mail client
-                </m.a>
+                  <span className="text-blue">//</span> hope you liked it.
+                </m.p>
               )}
             </AnimatePresence>
 
