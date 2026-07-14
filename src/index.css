@@ -172,6 +172,17 @@ body {
   to { translate: 0 0; }
 }
 
+/* Bottom border on the frame itself guarantees visibility on mobile Safari
+   where the button's inset border can be clipped by overflow:hidden at the edge */
+.hero-visual-frame {
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  transition: border-bottom-color 0.6s ease;
+}
+
+[data-system-mode="on"] .hero-visual-frame {
+  border-bottom-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
 .hero-object-shell {
   position: relative;
   height: 100%;
@@ -562,6 +573,7 @@ body {
   contain: strict;
   isolation: isolate;
   overflow: hidden;
+  clip-path: inset(0); /* prevents GPU-promoted child from escaping on iOS Safari */
 }
 
 .system-mode-wipe {

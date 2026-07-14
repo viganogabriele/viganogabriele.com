@@ -94,7 +94,13 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
           </m.div>
           <p data-sys-reveal className="mt-4 font-mono text-[9px] uppercase tracking-[0.13em] text-accent">SYS / {project.buildMeta}</p>
         </m.div>
-        <div className="relative z-10 grid gap-6 border-t border-white/[0.09] pt-6 text-sm md:grid-cols-2">
+        <m.div
+          className="relative z-10 grid gap-6 border-t border-white/[0.09] pt-6 text-sm md:grid-cols-2"
+          initial={staticMotion ? false : { opacity: 0, y: 10 }}
+          whileInView={staticMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5, delay: 0.15, ease: ease.softSettle }}
+        >
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-600">Role</p>
             <p className="mt-2 leading-relaxed text-zinc-300">{project.role}</p>
@@ -108,8 +114,14 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
               {project.proof}
             </p>
           </div>
-        </div>
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-5 border-t border-white/[0.09] pt-5">
+        </m.div>
+        <m.div
+          className="relative z-10 flex flex-wrap items-center justify-between gap-5 border-t border-white/[0.09] pt-5"
+          initial={staticMotion ? false : { opacity: 0, y: 8 }}
+          whileInView={staticMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.4, delay: 0.22, ease: ease.softSettle }}
+        >
           <div className="flex flex-wrap gap-x-3 gap-y-2 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">
             {project.stack.map((item) => <span key={item}>/{item}</span>)}
           </div>
@@ -126,7 +138,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
           ) : (
             <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-600">Awaiting signal</span>
           )}
-        </div>
+        </m.div>
       </div>
     </m.article>
   );

@@ -57,5 +57,93 @@ export function Expertise() {
     };
   }, []);
 
-  return <section ref={sectionRef} id="expertise" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10"><div className="lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16"><div className="lg:sticky lg:top-28 lg:h-fit"><SectionHeader index="02 / CAPABILITIES" title="What I bring to the table." subtitle="A practice across product, quality, people, operations, and practical AI workflows." /><p data-sys-reveal className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-accent">02.{String(activeIndex + 1).padStart(2, "0")} / active capability trace</p></div><div className="expertise-rail relative">{activities.map((activity, index) => { const Icon = activity.icon; return <m.article data-index={index} data-active={activeIndex === index} key={activity.title} initial={staticMotion ? false : { opacity: 0, y: 20 }} whileInView={staticMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true, margin: "-12% 0px" }} transition={{ duration: dur.reveal, delay: index * 0.05, ease: ease.cinematic }} className={`expertise-item group grid gap-5 py-8 md:grid-cols-[auto_1fr_11rem] md:gap-7 md:py-10 ${activeIndex === index ? "is-focused" : ""}`}><span aria-hidden className="expertise-dot absolute" /><div className="flex gap-3"><span className="font-mono text-[10px] text-zinc-600">{activity.index}</span><Icon className="h-4 w-4 text-accent/75" /></div><div><p className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500">{activity.role}</p><h3 className="mt-2 text-2xl tracking-[-0.05em] text-bone md:text-3xl">{activity.title}</h3><p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-400">{activity.description}</p><div className="mt-5 flex flex-wrap gap-x-3 gap-y-2 font-mono text-[9px] uppercase tracking-[0.1em] text-zinc-600">{activity.tags.map((tag) => <span key={tag}>/{tag}</span>)}</div></div><ArtifactSVG type={activity.artifact} className="h-24 w-full self-center text-accent/45 transition-colors duration-500 group-hover:text-accent/90 md:h-28" /></m.article>; })}</div></div></section>;
+  return (
+    <section ref={sectionRef} id="expertise" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
+      <div className="lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
+        <div className="lg:sticky lg:top-28 lg:h-fit">
+          <SectionHeader
+            index="02 / CAPABILITIES"
+            title="What I bring to the table."
+            subtitle="A practice across product, quality, people, operations, and practical AI workflows."
+          />
+          <p data-sys-reveal className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-accent">
+            02.{String(activeIndex + 1).padStart(2, "0")} / active capability trace
+          </p>
+        </div>
+        <div className="expertise-rail relative">
+          {activities.map((activity, index) => {
+            const Icon = activity.icon;
+            return (
+              <m.article
+                data-index={index}
+                data-active={activeIndex === index}
+                key={activity.title}
+                initial={staticMotion ? false : { opacity: 0, y: 20 }}
+                whileInView={staticMotion ? undefined : { opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-12% 0px" }}
+                transition={{ duration: dur.reveal, delay: index * 0.05, ease: ease.cinematic }}
+                className={`expertise-item group grid gap-5 py-8 md:grid-cols-[auto_1fr_11rem] md:gap-7 md:py-10 ${activeIndex === index ? "is-focused" : ""}`}
+              >
+                <span aria-hidden className="expertise-dot absolute" />
+                <div className="flex gap-3">
+                  <span className="font-mono text-[10px] text-zinc-600">{activity.index}</span>
+                  <Icon className="h-4 w-4 text-accent/75" />
+                </div>
+                <m.div
+                  initial={staticMotion ? false : "hidden"}
+                  whileInView={staticMotion ? undefined : "show"}
+                  viewport={{ once: true, margin: "-12% 0px" }}
+                  variants={staticMotion ? undefined : {
+                    hidden: {},
+                    show: { transition: { staggerChildren: 0.08, delayChildren: 0.12 } },
+                  }}
+                >
+                  <m.p
+                    className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500"
+                    variants={staticMotion ? undefined : {
+                      hidden: { opacity: 0, y: 8 },
+                      show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+                    }}
+                  >
+                    {activity.role}
+                  </m.p>
+                  <m.h3
+                    className="mt-2 text-2xl tracking-[-0.05em] text-bone md:text-3xl"
+                    variants={staticMotion ? undefined : {
+                      hidden: { opacity: 0, y: 10 },
+                      show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+                    }}
+                  >
+                    {activity.title}
+                  </m.h3>
+                  <m.p
+                    className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-400"
+                    variants={staticMotion ? undefined : {
+                      hidden: { opacity: 0, y: 8 },
+                      show: { opacity: 1, y: 0, transition: { duration: 0.45 } },
+                    }}
+                  >
+                    {activity.description}
+                  </m.p>
+                  <m.div
+                    className="mt-5 flex flex-wrap gap-x-3 gap-y-2 font-mono text-[9px] uppercase tracking-[0.1em] text-zinc-600"
+                    variants={staticMotion ? undefined : {
+                      hidden: { opacity: 0 },
+                      show: { opacity: 1, transition: { duration: 0.4 } },
+                    }}
+                  >
+                    {activity.tags.map((tag) => <span key={tag}>/{tag}</span>)}
+                  </m.div>
+                </m.div>
+                <ArtifactSVG
+                  type={activity.artifact}
+                  className="h-24 w-full self-center text-accent/45 transition-colors duration-500 group-hover:text-accent/90 md:h-28"
+                />
+              </m.article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
 }

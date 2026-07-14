@@ -1,11 +1,13 @@
 import { AnimatePresence, m } from "framer-motion";
 import { ArrowUpRight, Check, Copy, Mail } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 
 const EMAIL = "info@viganogabriele.com";
+
+const HEADING = "Let's build something that holds up.";
 
 const GitHubIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -23,9 +25,15 @@ const LinkedInIcon = ({ className }: { className?: string }) => (
 export function Footer({ onNavigate }: { onNavigate: (target: string) => void }) {
   const [copied, setCopied] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
-  const [terminalActive, setTerminalActive] = useState(false);
-  const [terminalOutput, setTerminalOutput] = useState("");
+  const [emailOpen, setEmailOpen] = useState(false);
   const { level } = useMotionProfile();
+  const disableMotion = level === "static";
+
+  const words = useMemo(() => HEADING.split(/(\s+)/), []);
+
+  useEffect(() => {
+    if (emailOpen) return;
+  }, [emailOpen]);
 
   const copy = async () => {
     try {
@@ -38,37 +46,96 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
     }
   };
 
-  useEffect(() => {
-    if (!terminalActive) return;
-    const timer = window.setTimeout(() => setTerminalOutput(`connected / ${EMAIL}`), 400);
-    return () => window.clearTimeout(timer);
-  }, [terminalActive]);
-
   return (
     <ScrollReveal>
       <footer className="mt-36 border-t border-white/[0.08] pb-7 pt-14 md:mt-48 md:pt-20">
         <div className="grid gap-10 md:grid-cols-[1.5fr_1fr]">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+            <m.p
+              className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500"
+              initial={disableMotion ? false : { opacity: 0, y: 10 }}
+              whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            >
               End of transmission / start a conversation
-            </p>
-            <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl">
-              Let’s build something that holds up.
-            </h2>
+            </m.p>
 
-            {/* Terminal-style prompt */}
-            <button type="button" onClick={() => { setTerminalActive(true); setTerminalOutput(""); }} className="mt-9 flex min-h-11 items-center text-left font-mono text-xs text-zinc-500 sm:text-sm" aria-label="Run connect command">
+            <m.h2
+              className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl"
+              initial={disableMotion ? false : "hidden"}
+              whileInView={disableMotion ? undefined : "show"}
+              viewport={{ once: true, margin: "-60px" }}
+              variants={{
+                hidden: {},
+                show: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } },
+              }}
+            >
+              {words.map((word, i) =>
+                word.trim().length === 0 ? (
+                  <span key={i}>{word}</span>
+                ) : (
+                  <m.span
+                    key={i}
+                    className="inline-block"
+                    variants={{
+                      hidden: { opacity: 0, y: level === "lite" ? 14 : 22, filter: level === "lite" ? "none" : "blur(3px)" },
+                      show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] } },
+                    }}
+                  >
+                    {word}
+                  </m.span>
+                )
+              )}
+            </m.h2>
+
+            {/* Terminal-style connect button — toggles email visibility */}
+            <button
+              type="button"
+              onClick={() => setEmailOpen(prev => !prev)}
+              className="mt-9 flex min-h-11 items-center text-left font-mono text-xs text-zinc-500 sm:text-sm"
+              aria-label={emailOpen ? "Close connect command" : "Run connect command"}
+              aria-expanded={emailOpen}
+            >
               <span className="mr-2 text-blue">$</span>
               <span>connect --to</span>
               <span className="ml-1.5 text-bone">gabriele</span>
               <m.span
                 className="ml-1.5 inline-block h-3.5 w-1.5 bg-blue align-middle"
-                animate={level === "full" ? { opacity: [1, 0, 1] } : undefined}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                animate={level === "full" && !emailOpen ? { opacity: [1, 0, 1] } : { opacity: 1 }}
+                transition={{ duration: 1, repeat: emailOpen ? 0 : Infinity, ease: "linear" }}
               />
-              {terminalOutput && <span className="ml-3 text-accent">{terminalOutput}</span>}
+              <AnimatePresence>
+                {emailOpen && (
+                  <m.span
+                    key="email-output"
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.25 }}
+                    className="ml-3 text-accent"
+                  >
+                    connected / {EMAIL}
+                  </m.span>
+                )}
+              </AnimatePresence>
             </button>
-            {terminalOutput && <a href={`mailto:${EMAIL}`} className="ml-1 font-mono text-[10px] uppercase tracking-[0.12em] text-accent underline underline-offset-4">open mail client</a>}
+
+            <AnimatePresence>
+              {emailOpen && (
+                <m.a
+                  key="mail-link"
+                  href={`mailto:${EMAIL}`}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  className="ml-1 font-mono text-[10px] uppercase tracking-[0.12em] text-accent underline underline-offset-4"
+                >
+                  open mail client
+                </m.a>
+              )}
+            </AnimatePresence>
 
             {/* Multi-channel action row */}
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -121,7 +188,6 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               </button>
 
               <span className="sr-only" aria-live="polite">{copyMessage}</span>
-
             </div>
           </div>
 
