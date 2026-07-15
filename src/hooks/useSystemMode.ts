@@ -44,6 +44,7 @@ export function useSystemMode() {
   const activeRef = useRef(active);
   const [webkitSafeMode] = useState(usesAppleWebKit);
   const [laserEnabled] = useState(() => !isDesktopSafari());
+  const hasActivatedRef = useRef(false);
 
   useEffect(() => {
     if (!webkitSafeMode) return;
@@ -54,6 +55,7 @@ export function useSystemMode() {
   useEffect(() => {
     activeRef.current = active;
     if (active) {
+      hasActivatedRef.current = true;
       document.documentElement.setAttribute("data-system-mode", "on");
       return;
     }
@@ -62,7 +64,8 @@ export function useSystemMode() {
     // runs (dur.mode = 0.7s). We use an intermediate "off" attribute value so CSS
     // keeps --accent violet but other system-mode styles revert immediately.
     // Without this the wipe beam renders in the already-reset blue — invisible.
-    if (laserEnabled) {
+    // Guard: only enter the "off" state after a real activation (not on initial mount).
+    if (laserEnabled && hasActivatedRef.current) {
       document.documentElement.setAttribute("data-system-mode", "off");
       const timer = setTimeout(() => {
         if (!activeRef.current) {
