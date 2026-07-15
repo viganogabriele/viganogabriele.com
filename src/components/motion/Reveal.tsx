@@ -58,7 +58,8 @@ export function Reveal({
   style?: CSSProperties;
 }) {
   const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inView = useInView(ref, { once: true, margin: margin as any });
   const shown: Record<string, number | string> = {};
   for (const key of Object.keys(from)) shown[key] = REST[key] ?? 0;
   const Comp = TAGS[as];
@@ -66,10 +67,11 @@ export function Reveal({
     <Comp
       ref={ref as never}
       className={className}
-      style={style}
-      initial={from}
-      animate={inView ? shown : from}
-      transition={{ duration, delay, ease }}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      style={style as any}
+      initial={from as never}
+      animate={(inView ? shown : from) as never}
+      transition={{ duration, delay, ease: ease as never }}
     >
       {children}
     </Comp>
