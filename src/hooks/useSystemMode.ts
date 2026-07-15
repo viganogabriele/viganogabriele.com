@@ -45,6 +45,7 @@ export function useSystemMode() {
   const [webkitSafeMode] = useState(usesAppleWebKit);
   const [laserEnabled] = useState(() => !isDesktopSafari());
   const hasActivatedRef = useRef(false);
+  const domIsVioletRef = useRef(false);
 
   useEffect(() => {
     if (!webkitSafeMode) return;
@@ -56,17 +57,34 @@ export function useSystemMode() {
     activeRef.current = active;
     if (active) {
       hasActivatedRef.current = true;
-      document.documentElement.setAttribute("data-system-mode", "on");
+      if (!laserEnabled) {
+        document.documentElement.setAttribute("data-system-mode", "on");
+        domIsVioletRef.current = true;
+        return;
+      }
+      // Hold off setting the attr so the activation wipe runs in the current
+      // blue accent, then snaps the page to violet once the beam has passed.
+      const timer = setTimeout(() => {
+        if (activeRef.current) {
+          document.documentElement.setAttribute("data-system-mode", "on");
+          domIsVioletRef.current = true;
+        }
+      }, 720);
+      return () => clearTimeout(timer);
+    }
+
+    // Deactivation — no laser or first mount: snap immediately.
+    if (!laserEnabled || !hasActivatedRef.current) {
+      document.documentElement.removeAttribute("data-system-mode");
+      domIsVioletRef.current = false;
       return;
     }
 
-    // On deactivation: keep the violet accent alive while the wipe-out animation
-    // runs (dur.mode = 0.7s). We use an intermediate "off" attribute value so CSS
-    // keeps --accent violet but other system-mode styles revert immediately.
-    // Without this the wipe beam renders in the already-reset blue — invisible.
-    // Guard: only enter the "off" state after a real activation (not on initial mount).
-    if (laserEnabled && hasActivatedRef.current) {
+    if (domIsVioletRef.current) {
+      // Page is actually violet: keep it violet while the wipe-out runs,
+      // then snap to blue once the beam has cleared.
       document.documentElement.setAttribute("data-system-mode", "off");
+      domIsVioletRef.current = false;
       const timer = setTimeout(() => {
         if (!activeRef.current) {
           document.documentElement.removeAttribute("data-system-mode");
@@ -75,6 +93,8 @@ export function useSystemMode() {
       return () => clearTimeout(timer);
     }
 
+    // Rapid deactivation before the activation timer fired — page was never
+    // violet, so there is nothing to keep or animate away.
     document.documentElement.removeAttribute("data-system-mode");
   }, [active, laserEnabled]);
 
