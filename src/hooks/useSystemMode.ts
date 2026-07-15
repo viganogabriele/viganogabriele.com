@@ -62,14 +62,18 @@ export function useSystemMode() {
         domIsVioletRef.current = true;
         return;
       }
-      // Hold off setting the attr so the activation wipe runs in the current
-      // blue accent, then snaps the page to violet once the beam has passed.
+      // Wait until the beam has swept past the bottom of the viewport
+      // before flipping the accent — the beam is a transparent gradient,
+      // not a solid cover, so the page is always visible through it.
+      // Changing --accent while the beam is on screen would visibly shift
+      // its colour mid-sweep. 620ms ≈ dur.mode * 0.9, after which the beam
+      // is past the viewport with a small buffer before the element unmounts.
       const timer = setTimeout(() => {
         if (activeRef.current) {
           document.documentElement.setAttribute("data-system-mode", "on");
           domIsVioletRef.current = true;
         }
-      }, 720);
+      }, 620);
       return () => clearTimeout(timer);
     }
 
@@ -81,15 +85,14 @@ export function useSystemMode() {
     }
 
     if (domIsVioletRef.current) {
-      // Page is actually violet: keep it violet while the wipe-out runs,
-      // then snap to blue once the beam has cleared.
+      // Page is actually violet: keep it violet until the beam has cleared.
       document.documentElement.setAttribute("data-system-mode", "off");
       domIsVioletRef.current = false;
       const timer = setTimeout(() => {
         if (!activeRef.current) {
           document.documentElement.removeAttribute("data-system-mode");
         }
-      }, 720);
+      }, 620);
       return () => clearTimeout(timer);
     }
 
