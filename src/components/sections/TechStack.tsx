@@ -1,8 +1,64 @@
-import { m, useReducedMotion } from "framer-motion";
+import { m, useInView, useReducedMotion } from "framer-motion";
+import { useRef } from "react";
 import { toolGroups } from "../../data/techStack";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { SectionHeader } from "../ui/SectionHeader";
+
+type ToolGroupType = typeof toolGroups[number];
+
+function ToolGroup({
+  group,
+  groupIndex,
+  disableMotion,
+}: {
+  group: ToolGroupType;
+  groupIndex: number;
+  disableMotion: boolean;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-40px" });
+
+  return (
+    <m.section
+      ref={ref as never}
+      initial={disableMotion ? false : { opacity: 0, y: 12 }}
+      animate={disableMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+      transition={{ duration: 0.42, delay: groupIndex * 0.06 }}
+      className="tool-group p-5 sm:p-6"
+    >
+      <m.p
+        className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent"
+        initial={disableMotion ? false : { opacity: 0, x: -10 }}
+        animate={disableMotion ? undefined : inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
+        transition={{ duration: 0.4, delay: groupIndex * 0.06 + 0.12 }}
+      >
+        {group.label}
+      </m.p>
+      <m.p
+        className="mt-3 max-w-sm text-sm leading-relaxed text-zinc-400"
+        initial={disableMotion ? false : { opacity: 0, y: 8 }}
+        animate={disableMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+        transition={{ duration: 0.4, delay: groupIndex * 0.06 + 0.18 }}
+      >
+        {group.description}
+      </m.p>
+      <ul className="mt-5 grid gap-2" aria-label={group.label}>
+        {group.tools.map((tool, toolIndex) => (
+          <m.li
+            key={tool}
+            className="tool-row flex min-h-10 items-center border-l border-accent/45 bg-white/[0.025] px-3 font-mono text-[10px] tracking-[0.08em] text-zinc-200"
+            initial={disableMotion ? false : { opacity: 0, x: -10 }}
+            animate={disableMotion ? undefined : inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
+            transition={{ duration: 0.3, delay: groupIndex * 0.06 + 0.22 + toolIndex * 0.045 }}
+          >
+            {tool}
+          </m.li>
+        ))}
+      </ul>
+    </m.section>
+  );
+}
 
 export function TechStack() {
   const { level } = useMotionProfile();
@@ -24,57 +80,12 @@ export function TechStack() {
           </div>
           <div className="grid divide-y divide-white/[0.08] md:grid-cols-2 md:divide-x md:divide-y-0">
             {toolGroups.map((group, groupIndex) => (
-              <m.section
+              <ToolGroup
                 key={group.label}
-                initial={disableMotion ? false : { opacity: 0, y: 12 }}
-                whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.42, delay: groupIndex * 0.06 }}
-                className="tool-group p-5 sm:p-6"
-              >
-                <m.p
-                  className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent"
-                  initial={disableMotion ? false : { opacity: 0, x: -10 }}
-                  whileInView={disableMotion ? undefined : { opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: groupIndex * 0.06 + 0.12 }}
-                >
-                  {group.label}
-                </m.p>
-                <m.p
-                  className="mt-3 max-w-sm text-sm leading-relaxed text-zinc-400"
-                  initial={disableMotion ? false : { opacity: 0, y: 8 }}
-                  whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: groupIndex * 0.06 + 0.18 }}
-                >
-                  {group.description}
-                </m.p>
-                <m.ul
-                  className="mt-5 grid gap-2"
-                  aria-label={group.label}
-                  initial={disableMotion ? false : "hidden"}
-                  whileInView={disableMotion ? undefined : "show"}
-                  viewport={{ once: true, margin: "-40px" }}
-                  variants={disableMotion ? undefined : {
-                    hidden: {},
-                    show: { transition: { staggerChildren: 0.045, delayChildren: groupIndex * 0.06 + 0.22 } },
-                  }}
-                >
-                  {group.tools.map((tool) => (
-                    <m.li
-                      key={tool}
-                      className="tool-row flex min-h-10 items-center border-l border-accent/45 bg-white/[0.025] px-3 font-mono text-[10px] tracking-[0.08em] text-zinc-200"
-                      variants={disableMotion ? undefined : {
-                        hidden: { opacity: 0, x: -10 },
-                        show: { opacity: 1, x: 0, transition: { duration: 0.3 } },
-                      }}
-                    >
-                      {tool}
-                    </m.li>
-                  ))}
-                </m.ul>
-              </m.section>
+                group={group}
+                groupIndex={groupIndex}
+                disableMotion={disableMotion}
+              />
             ))}
           </div>
         </div>

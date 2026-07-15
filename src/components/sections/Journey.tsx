@@ -1,18 +1,73 @@
-import { m, useScroll, useTransform } from "framer-motion";
+import { m, useInView, useScroll, useTransform } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { timelineItems } from "../../data/timeline";
 import { ease } from "../../lib/motion";
 import { SectionHeader } from "../ui/SectionHeader";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 
+type TimelineItem = typeof timelineItems[number];
+
+function JourneyItem({
+  item,
+  index,
+  staticMotion,
+  level,
+}: {
+  item: TimelineItem;
+  index: number;
+  staticMotion: boolean;
+  level: string;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-70px" });
+  const Icon = item.icon;
+
+  return (
+    <m.article
+      ref={ref as never}
+      initial={staticMotion ? false : { opacity: 0, x: -14 }}
+      animate={staticMotion ? undefined : inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -14 }}
+      transition={{ duration: 0.55, delay: index * 0.07, ease: ease.softSettle }}
+      className="relative pb-12 last:pb-0"
+    >
+      <span
+        data-journey-node
+        className={`absolute top-1 h-4 w-4 -translate-x-1/2 rounded-full border ${item.current ? "border-accent bg-accent/20 shadow-[0_0_0_5px_color-mix(in_srgb,var(--accent)_10%,transparent)]" : "border-zinc-600 bg-background"}`}
+        style={{ left: "calc(var(--journey-gutter) * -1)" }}
+      >
+        {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-accent/50 motion-reduce:animate-none" />}
+      </span>
+      <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
+        <m.p
+          className="mb-1 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600 md:mb-0"
+          initial={staticMotion ? false : { opacity: 0, y: 8 }}
+          animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+          transition={{ duration: 0.45, delay: index * 0.07 + 0.15, ease: ease.softSettle }}
+        >
+          {item.year}
+        </m.p>
+        <m.div
+          initial={staticMotion ? false : { opacity: 0, y: 8 }}
+          animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+          transition={{ duration: 0.45, delay: index * 0.07 + 0.22, ease: ease.softSettle }}
+        >
+          <div className="flex items-center gap-3">
+            <Icon className="h-4 w-4 text-accent/75" />
+            <h3 className="text-2xl tracking-[-0.045em] text-zinc-100">{item.title}</h3>
+          </div>
+          <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-accent">{item.subtitle}</p>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">{item.description}</p>
+        </m.div>
+      </div>
+    </m.article>
+  );
+}
+
 export function Journey() {
   const { level } = useMotionProfile();
   const staticMotion = level === "static";
   const railRef = useRef<HTMLDivElement>(null);
 
-  // Use window-level scroll for reliable mobile tracking (native scroll on mobile
-  // does not guarantee that target-based useScroll fires correctly when Lenis is
-  // present, even with syncTouch: false).
   const { scrollY } = useScroll();
   const [scrollRange, setScrollRange] = useState<[number, number]>([0, 1]);
 
@@ -23,8 +78,6 @@ export function Journey() {
       const pageTop = window.scrollY + rect.top;
       const pageBottom = window.scrollY + rect.bottom;
       const vh = window.innerHeight;
-      // Start filling when the rail's top is 95% down the viewport;
-      // finish when the rail's bottom is 15% from the top of the viewport.
       setScrollRange([pageTop - vh * 0.95, pageBottom - vh * 0.15]);
     };
     measure();
@@ -47,7 +100,7 @@ export function Journey() {
       <SectionHeader
         index="05 / SYSTEM TRACE"
         title="A path with branches."
-        subtitle="A few live threads: what I’m learning, leading, and building next."
+        subtitle="A few live threads: what I'm learning, leading, and building next."
       />
       <div
         ref={railRef}
@@ -55,7 +108,6 @@ export function Journey() {
         className="journey-rail relative ml-4 pl-[var(--journey-gutter)] [--journey-gutter:2rem] md:ml-[15%] md:[--journey-gutter:3rem]"
       >
         <span data-journey-axis aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-px -translate-x-1/2 bg-white/[0.1]" />
-        {/* Scroll-driven fill on the timeline rail */}
         {!staticMotion && (
           <>
             <m.span
@@ -72,54 +124,15 @@ export function Journey() {
           </>
         )}
 
-        {timelineItems.map((item, index) => {
-          const Icon = item.icon;
-          return (
-            <m.article
-              key={item.title}
-              initial={staticMotion ? false : { opacity: 0, x: -14 }}
-              whileInView={staticMotion ? undefined : { opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-70px" }}
-              transition={{ duration: 0.55, delay: index * 0.07, ease: ease.softSettle }}
-              className="relative pb-12 last:pb-0"
-            >
-              <span
-                data-journey-node
-                className={`absolute top-1 h-4 w-4 -translate-x-1/2 rounded-full border ${item.current ? "border-accent bg-accent/20 shadow-[0_0_0_5px_color-mix(in_srgb,var(--accent)_10%,transparent)]" : "border-zinc-600 bg-background"}`}
-                style={{ left: "calc(var(--journey-gutter) * -1)" }}
-              >
-                {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-accent/50 motion-reduce:animate-none" />}
-              </span>
-              <m.div
-                className="grid gap-3 md:grid-cols-[9rem_1fr]"
-                initial={staticMotion ? false : "hidden"}
-                whileInView={staticMotion ? undefined : "show"}
-                viewport={{ once: true, margin: "-70px" }}
-                variants={staticMotion ? undefined : {
-                  hidden: {},
-                  show: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } },
-                }}
-              >
-                <m.p
-                  className="mb-1 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600 md:mb-0"
-                  variants={staticMotion ? undefined : { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } }}
-                >
-                  {item.year}
-                </m.p>
-                <m.div
-                  variants={staticMotion ? undefined : { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } }}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="h-4 w-4 text-accent/75" />
-                    <h3 className="text-2xl tracking-[-0.045em] text-zinc-100">{item.title}</h3>
-                  </div>
-                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-accent">{item.subtitle}</p>
-                  <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">{item.description}</p>
-                </m.div>
-              </m.div>
-            </m.article>
-          );
-        })}
+        {timelineItems.map((item, index) => (
+          <JourneyItem
+            key={item.title}
+            item={item}
+            index={index}
+            staticMotion={staticMotion}
+            level={level}
+          />
+        ))}
       </div>
     </section>
   );

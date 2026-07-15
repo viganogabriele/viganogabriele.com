@@ -1,6 +1,6 @@
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, m, useInView } from "framer-motion";
 import { ArrowUpRight, Check, Copy, Mail } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -28,6 +28,8 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
   const [emailOpen, setEmailOpen] = useState(false);
   const { level } = useMotionProfile();
   const disableMotion = level === "static";
+  const headingRef = useRef<HTMLDivElement>(null);
+  const headingInView = useInView(headingRef, { once: true, margin: "-60px" });
 
   const words = useMemo(() => HEADING.split(/(\s+)/), []);
 
@@ -49,13 +51,12 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
   return (
     <ScrollReveal>
       <footer className="mt-36 border-t border-white/[0.08] pb-7 pt-14 md:mt-48 md:pt-20">
-        <div className="grid gap-10 md:grid-cols-[1.5fr_1fr]">
+        <div ref={headingRef} className="grid gap-10 md:grid-cols-[1.5fr_1fr]">
           <div>
             <m.p
               className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500"
               initial={disableMotion ? false : { opacity: 0, y: 10 }}
-              whileInView={disableMotion ? undefined : { opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
+              animate={disableMotion ? undefined : headingInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
               End of transmission / start a conversation
@@ -65,8 +66,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               <m.h2
                 className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl"
                 initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true, margin: "-60px" }}
+                animate={headingInView ? { opacity: 1 } : { opacity: 0 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
               >
                 {HEADING}
@@ -81,8 +81,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                       key={i}
                       className="inline-block"
                       initial={{ opacity: 0, y: level === "lite" ? 14 : 22, filter: level === "lite" ? "none" : "blur(3px)" }}
-                      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                      viewport={{ once: true, margin: "-60px" }}
+                      animate={headingInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: level === "lite" ? 14 : 22, filter: level === "lite" ? "none" : "blur(3px)" }}
                       transition={{ duration: 0.65, delay: 0.1 + i * 0.04, ease: [0.16, 1, 0.3, 1] }}
                     >
                       {word}
@@ -92,7 +91,6 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               </h2>
             )}
 
-            {/* Terminal-style connect button — toggles email visibility */}
             <button
               type="button"
               onClick={() => setEmailOpen(prev => !prev)}
@@ -139,7 +137,6 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               )}
             </AnimatePresence>
 
-            {/* Multi-channel action row */}
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Magnetic>
                 <a

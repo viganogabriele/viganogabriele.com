@@ -1,30 +1,39 @@
-import { m } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import type { ReactNode } from "react";
+import { useRef } from "react";
 import { dur, ease } from "../../lib/motion";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 
 export function FadeIn({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
   const { level } = useMotionProfile();
-  // Reduced-motion: gentle opacity-only reveal (no translation).
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-56px" });
+
+  // Reduced-motion: opacity-only reveal.
   if (level === "static") {
+    const hidden = { opacity: 0 };
+    const shown = { opacity: 1 };
     return (
       <m.div
+        ref={ref}
         className={className}
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, margin: "-40px" }}
+        initial={hidden}
+        animate={inView ? shown : hidden}
         transition={{ duration: 0.5, delay, ease: "easeOut" }}
       >
         {children}
       </m.div>
     );
   }
+
+  const hidden = { opacity: 0, y: level === "lite" ? 10 : 16 };
+  const shown = { opacity: 1, y: 0 };
   return (
     <m.div
+      ref={ref}
       className={className}
-      initial={{ opacity: 0, y: level === "lite" ? 10 : 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-56px" }}
+      initial={hidden}
+      animate={inView ? shown : hidden}
       transition={{ duration: dur.reveal, delay, ease: ease.softSettle }}
     >
       {children}

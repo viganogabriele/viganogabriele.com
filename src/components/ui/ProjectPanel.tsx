@@ -1,15 +1,12 @@
 import { ArrowUpRight } from "lucide-react";
-import { m, useScroll, useTransform } from "framer-motion";
+import { m, useInView, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import type { Project } from "../../data/projects";
 import { ArtifactSVG } from "./ArtifactSVG";
 import { ease } from "../../lib/motion";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 
-const CONTENT_CHILD_VARIANTS = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
-};
+const CONTENT_EASE = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 export function ProjectPanel({ project, reverse }: { project: Project; reverse: boolean }) {
   const { level, canUsePointerEffects } = useMotionProfile();
@@ -22,13 +19,13 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
   const artifactY = useTransform(scrollYProgress, [0, 1], [50, -50]);
   const artifactRotate = useTransform(scrollYProgress, [0, 1], [-3, 3]);
   const artifactScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.95, 1.05, 0.95]);
+  const inView = useInView(panelRef, { once: true, margin: "-90px" });
 
   return (
     <m.article
       ref={panelRef}
       initial={staticMotion ? false : { opacity: 0, y: 36 }}
-      whileInView={staticMotion ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-90px" }}
+      animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 36 }}
       transition={{ duration: 0.8, ease: ease.cinematic }}
       data-accent={project.accent}
       onPointerMove={(event) => {
@@ -57,19 +54,12 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
       </m.div>
 
       <div className={`flex flex-col justify-between gap-10 pt-7 lg:pt-0 ${reverse ? "lg:order-1" : ""}`}>
-        <m.div
-          className="relative z-10"
-          initial={staticMotion ? false : "hidden"}
-          whileInView={staticMotion ? undefined : "show"}
-          viewport={{ once: true, margin: "-80px" }}
-          variants={staticMotion ? undefined : {
-            hidden: {},
-            show: { transition: { staggerChildren: 0.09, delayChildren: 0.2 } },
-          }}
-        >
+        <div className="relative z-10">
           <m.div
             className="flex flex-col gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:tracking-[0.16em]"
-            variants={staticMotion ? undefined : CONTENT_CHILD_VARIANTS}
+            initial={staticMotion ? false : { opacity: 0, y: 12 }}
+            animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ duration: 0.5, delay: 0.05, ease: CONTENT_EASE }}
           >
             <span className="flex min-w-0 items-center gap-2">
               {project.index} / {project.eyebrow}
@@ -80,29 +70,39 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
           </m.div>
           <m.h3
             className="mt-8 whitespace-pre-line text-5xl font-medium leading-[0.82] tracking-[-0.075em] text-bone sm:text-6xl lg:text-8xl"
-            variants={staticMotion ? undefined : CONTENT_CHILD_VARIANTS}
+            initial={staticMotion ? false : { opacity: 0, y: 12 }}
+            animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ duration: 0.5, delay: 0.14, ease: CONTENT_EASE }}
           >
             {project.title}
           </m.h3>
           <m.p
             className="mt-7 max-w-xl text-base leading-relaxed text-zinc-400"
-            variants={staticMotion ? undefined : CONTENT_CHILD_VARIANTS}
+            initial={staticMotion ? false : { opacity: 0, y: 12 }}
+            animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ duration: 0.5, delay: 0.23, ease: CONTENT_EASE }}
           >
             {project.description}
           </m.p>
           <m.div
             className="mt-7 grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-5"
-            variants={staticMotion ? undefined : CONTENT_CHILD_VARIANTS}
+            initial={staticMotion ? false : { opacity: 0, y: 12 }}
+            animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+            transition={{ duration: 0.5, delay: 0.32, ease: CONTENT_EASE }}
           >
-            {project.metrics.map((metric) => <div key={metric.label}><p className="text-2xl font-medium tracking-[-0.05em] text-accent">{metric.value}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-600">MEASURED / {metric.label}</p></div>)}
+            {project.metrics.map((metric) => (
+              <div key={metric.label}>
+                <p className="text-2xl font-medium tracking-[-0.05em] text-accent">{metric.value}</p>
+                <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-600">MEASURED / {metric.label}</p>
+              </div>
+            ))}
           </m.div>
           <p data-sys-reveal className="mt-4 font-mono text-[9px] uppercase tracking-[0.13em] text-accent">SYS / {project.buildMeta}</p>
-        </m.div>
+        </div>
         <m.div
           className="relative z-10 grid gap-6 border-t border-white/[0.09] pt-6 text-sm md:grid-cols-2"
           initial={staticMotion ? false : { opacity: 0, y: 10 }}
-          whileInView={staticMotion ? undefined : { opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
+          animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
           transition={{ duration: 0.5, delay: 0.15, ease: ease.softSettle }}
         >
           <div>
@@ -122,8 +122,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
         <m.div
           className="relative z-10 flex flex-wrap items-center justify-between gap-5 border-t border-white/[0.09] pt-5"
           initial={staticMotion ? false : { opacity: 0, y: 8 }}
-          whileInView={staticMotion ? undefined : { opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
+          animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
           transition={{ duration: 0.4, delay: 0.22, ease: ease.softSettle }}
         >
           <div className="flex flex-wrap gap-x-3 gap-y-2 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">
