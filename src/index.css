@@ -50,7 +50,8 @@ html {
   --accent-soft: #b8d0ff;
 }
 
-html[data-system-mode="on"] {
+html[data-system-mode="on"],
+html[data-system-mode="off"] {
   --accent: #a68bff;
   --accent-soft: #d0c4ff;
 }
@@ -636,7 +637,11 @@ body {
   contain: strict;
   isolation: isolate;
   overflow: hidden;
-  clip-path: inset(0); /* prevents GPU-promoted child from escaping on iOS Safari */
+  /* clip-path:inset(0) removed — on iOS Safari it clips relative to the layout
+     viewport's initial containing block, which excludes safe-area insets (notch,
+     home indicator), leaving visible strips at the top and bottom of the screen.
+     contain:strict includes contain:paint which provides equivalent GPU-layer
+     containment for the will-change:transform child without the border artifacts. */
 }
 
 .system-mode-wipe {

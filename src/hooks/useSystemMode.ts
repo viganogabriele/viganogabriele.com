@@ -55,10 +55,25 @@ export function useSystemMode() {
     activeRef.current = active;
     if (active) {
       document.documentElement.setAttribute("data-system-mode", "on");
-    } else {
-      document.documentElement.removeAttribute("data-system-mode");
+      return;
     }
-  }, [active]);
+
+    // On deactivation: keep the violet accent alive while the wipe-out animation
+    // runs (dur.mode = 0.7s). We use an intermediate "off" attribute value so CSS
+    // keeps --accent violet but other system-mode styles revert immediately.
+    // Without this the wipe beam renders in the already-reset blue — invisible.
+    if (laserEnabled) {
+      document.documentElement.setAttribute("data-system-mode", "off");
+      const timer = setTimeout(() => {
+        if (!activeRef.current) {
+          document.documentElement.removeAttribute("data-system-mode");
+        }
+      }, 720);
+      return () => clearTimeout(timer);
+    }
+
+    document.documentElement.removeAttribute("data-system-mode");
+  }, [active, laserEnabled]);
 
   const toggle = useCallback(() => {
     const next = !activeRef.current;
