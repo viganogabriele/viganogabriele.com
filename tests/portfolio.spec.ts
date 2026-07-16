@@ -54,6 +54,36 @@ test("projects contain the three real case studies", async ({ page }) => {
   await expect(page.getByText("Next Build", { exact: false })).toHaveCount(0);
 });
 
+test("skills carousel keeps a single readable active card and supports controls", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const carousel = page.locator(".circular-carousel");
+  await carousel.scrollIntoViewIfNeeded();
+  await expect(carousel.locator("[data-carousel-card]")).toHaveCount(4);
+  await expect(carousel.locator('[data-carousel-card][data-active="true"]')).toHaveCount(1);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  await page.getByRole("button", { name: "Show next skill group" }).click();
+  await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
+  await carousel.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(carousel.getByRole("button", { name: /Bring Product & collaboration to the front/ })).toHaveAttribute("data-active", "true");
+});
+
+test("skills carousel retains manual navigation with reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const carousel = page.locator(".circular-carousel");
+  await carousel.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(800);
+  await expect(carousel.getByRole("button", { name: /Bring Frontend & web to the front/ })).toHaveAttribute("data-active", "true");
+  await page.getByRole("button", { name: "Show next skill group" }).click();
+  await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
+});
+
 test("adaptive hero exposes its interaction and a visual fallback", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

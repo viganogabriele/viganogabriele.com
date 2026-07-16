@@ -1,0 +1,276 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+export interface CircularCarouselProps<T> {
+  items: readonly T[];
+  renderCard: (item: T, index: number, active: boolean) => React.ReactNode;
+  getItemLabel: (item: T, index: number) => string;
+  ariaLabel: string;
+  autoRotateSpeed?: number;
+  dragSensitivity?: number;
+  momentumStrength?: number;
+  pauseDuration?: number;
+  snap?: boolean;
+  reducedMotion?: boolean;
+  className?: string;
+}
+
+const normalizeAngle = (angle: number) => ((angle + 180) % 360 + 360) % 360 - 180;
+
+/**
+ * A deliberately DOM-driven 3D ring. React only tracks the active card for
+ * accessible text; transforms are written in rAF to keep drag and idle motion
+ * out of the render path.
+ */
+export function CircularCarousel<T>({
+  items,
+  renderCard,
+  getItemLabel,
+  ariaLabel,
+  autoRotateSpeed = 5,
+  dragSensitivity = 0.34,
+  momentumStrength = 1.15,
+  pauseDuration = 3000,
+  snap = true,
+  reducedMotion = false,
+  className = "",
+}: CircularCarouselProps<T>) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLElement | null)[]>([]);
+  const rotation = useRef(0);
+  const activeRef = useRef(0);
+  const frameRef = useRef<number | null>(null);
+  const lastFrame = useRef<number | null>(null);
+  const velocity = useRef(0);
+  const pauseUntil = useRef(0);
+  const dragging = useRef(false);
+  const moved = useRef(false);
+  const pointer = useRef<{ id: number; x: number; y: number; time: number; horizontal: boolean } | null>(null);
+  const hovering = useRef(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [tickerRevision, setTickerRevision] = useState(0);
+
+  const updateCards = useCallback(() => {
+    const count = items.length;
+    if (!count) return;
+    const root = rootRef.current;
+    const width = root?.clientWidth ?? 0;
+    const compact = width < 640;
+    const radius = Math.min(compact ? 154 : 290, Math.max(compact ? 130 : 210, width * (compact ? 0.48 : 0.34)));
+    const depth = compact ? 92 : 148;
+    const step = 360 / count;
+    let nearest = 0;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    cardRefs.current.forEach((card, index) => {
+      if (!card) return;
+      const angle = normalizeAngle(rotation.current + index * step);
+      const radians = angle * Math.PI / 180;
+      const frontness = (Math.cos(radians) + 1) / 2;
+      const distance = Math.abs(angle);
+      const x = Math.sin(radians) * radius;
+      const z = Math.cos(radians) * depth - depth * 0.24;
+      const scale = 0.7 + frontness * 0.3;
+      const opacity = 0.18 + frontness * 0.82;
+      const rotateY = -Math.sin(radians) * (compact ? 27 : 34);
+      const isActive = distance < nearestDistance;
+      if (isActive) { nearest = index; nearestDistance = distance; }
+      card.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${rotateY.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
+      card.style.opacity = opacity.toFixed(3);
+      card.style.zIndex = String(Math.round(frontness * 100));
+      card.style.filter = frontness < 0.28 ? "blur(0.7px)" : "none";
+      card.style.pointerEvents = frontness < 0.1 ? "none" : "auto";
+    });
+
+    cardRefs.current.forEach((card, index) => {
+      if (!card) return;
+      const active = index === nearest;
+      card.dataset.active = String(active);
+      card.setAttribute("aria-current", active ? "true" : "false");
+    });
+    if (activeRef.current !== nearest) {
+      activeRef.current = nearest;
+      setActiveIndex(nearest);
+    }
+  }, [items.length]);
+
+  const stopAnimation = useCallback(() => {
+    if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
+    frameRef.current = null;
+    lastFrame.current = null;
+  }, []);
+
+  const animateTo = useCallback((target: number, duration = reducedMotion ? 180 : 540) => {
+    stopAnimation();
+    const start = rotation.current;
+    const startedAt = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - (1 - progress) ** 4;
+      rotation.current = start + (target - start) * eased;
+      updateCards();
+      if (progress < 1) frameRef.current = window.requestAnimationFrame(tick);
+      else { frameRef.current = null; velocity.current = 0; setTickerRevision((revision) => revision + 1); }
+    };
+    frameRef.current = window.requestAnimationFrame(tick);
+  }, [reducedMotion, stopAnimation, updateCards]);
+
+  const settle = useCallback(() => {
+    if (!snap || !items.length) return;
+    const step = 360 / items.length;
+    const target = Math.round(rotation.current / step) * step;
+    animateTo(target);
+  }, [animateTo, items.length, snap]);
+
+  const pause = useCallback(() => { pauseUntil.current = performance.now() + pauseDuration; }, [pauseDuration]);
+
+  useEffect(() => {
+    updateCards();
+    const observer = new ResizeObserver(updateCards);
+    if (rootRef.current) observer.observe(rootRef.current);
+    return () => observer.disconnect();
+  }, [updateCards]);
+
+  useEffect(() => {
+    if (reducedMotion || !items.length) return;
+    const tick = (now: number) => {
+      const previous = lastFrame.current ?? now;
+      const elapsed = Math.min(40, now - previous);
+      lastFrame.current = now;
+      if (!dragging.current) {
+        if (Math.abs(velocity.current) > 0.003) {
+          rotation.current += velocity.current * elapsed;
+          velocity.current *= Math.exp(-elapsed / 260);
+          if (Math.abs(velocity.current) <= 0.003) { velocity.current = 0; settle(); }
+        } else if (!hovering.current && now >= pauseUntil.current) {
+          rotation.current -= autoRotateSpeed * elapsed / 1000;
+        }
+        updateCards();
+      }
+      frameRef.current = window.requestAnimationFrame(tick);
+    };
+    frameRef.current = window.requestAnimationFrame(tick);
+    return stopAnimation;
+  }, [autoRotateSpeed, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
+
+  const select = useCallback((index: number) => {
+    if (!items.length) return;
+    pause();
+    velocity.current = 0;
+    const step = 360 / items.length;
+    animateTo(rotation.current - normalizeAngle(rotation.current + index * step));
+  }, [animateTo, items.length, pause]);
+
+  const navigate = useCallback((direction: 1 | -1) => {
+    const next = (activeRef.current + direction + items.length) % items.length;
+    select(next);
+  }, [items.length, select]);
+
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    stopAnimation();
+    pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: performance.now(), horizontal: event.pointerType !== "touch" };
+    dragging.current = true;
+    moved.current = false;
+    velocity.current = 0;
+    pause();
+  };
+
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const point = pointer.current;
+    if (!point || point.id !== event.pointerId) return;
+    const dx = event.clientX - point.x;
+    const dy = event.clientY - point.y;
+    if (!point.horizontal) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      if (Math.abs(dx) <= Math.abs(dy)) { dragging.current = false; return; }
+      point.horizontal = true;
+    }
+    const now = performance.now();
+    const delta = dx * dragSensitivity;
+    rotation.current += delta;
+    velocity.current = (delta / Math.max(8, now - point.time)) * momentumStrength;
+    point.x = event.clientX;
+    point.y = event.clientY;
+    point.time = now;
+    moved.current ||= Math.abs(dx) > 2;
+    if (moved.current && !event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.setPointerCapture(event.pointerId);
+    updateCards();
+  };
+
+  const endPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (pointer.current?.id !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    pointer.current = null;
+    dragging.current = false;
+    pause();
+    if (reducedMotion || !moved.current) { velocity.current = 0; settle(); }
+    else {
+      lastFrame.current = null;
+      frameRef.current = window.requestAnimationFrame((now) => {
+        lastFrame.current = now;
+        const run = (next: number) => {
+          const elapsed = Math.min(40, next - (lastFrame.current ?? next));
+          lastFrame.current = next;
+          rotation.current += velocity.current * elapsed;
+          velocity.current *= Math.exp(-elapsed / 260);
+          updateCards();
+          if (Math.abs(velocity.current) > 0.003) frameRef.current = window.requestAnimationFrame(run);
+          else { velocity.current = 0; settle(); }
+        };
+        frameRef.current = window.requestAnimationFrame(run);
+      });
+    }
+  };
+
+  if (!items.length) return null;
+  const activeLabel = getItemLabel(items[activeIndex], activeIndex);
+
+  return (
+    <div
+      ref={rootRef}
+      className={`circular-carousel ${className}`}
+      role="region"
+      aria-roledescription="3D carousel"
+      aria-label={ariaLabel}
+      tabIndex={0}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endPointer}
+      onPointerCancel={endPointer}
+      onPointerEnter={() => { hovering.current = true; pause(); }}
+      onPointerLeave={() => { hovering.current = false; if (!dragging.current) pause(); }}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowLeft") { event.preventDefault(); navigate(-1); }
+        if (event.key === "ArrowRight") { event.preventDefault(); navigate(1); }
+      }}
+    >
+      <span className="sr-only" aria-live="polite">Active card: {activeLabel}.</span>
+      <div className="circular-carousel__stage">
+        {items.map((item, index) => (
+          <article
+            key={getItemLabel(item, index)}
+            ref={(element) => { cardRefs.current[index] = element; }}
+            className="circular-carousel__card"
+            data-carousel-card
+            data-active={index === 0 ? "true" : "false"}
+            role="button"
+            tabIndex={0}
+            aria-label={`Bring ${getItemLabel(item, index)} to the front`}
+            onClick={() => { if (!moved.current) select(index); }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(index); }
+            }}
+          >
+            {renderCard(item, index, activeIndex === index)}
+          </article>
+        ))}
+      </div>
+      <div className="circular-carousel__controls" aria-label="Carousel controls">
+        <button type="button" className="circular-carousel__control" onClick={() => navigate(-1)} aria-label="Show previous skill group"><ChevronLeft aria-hidden="true" /></button>
+        <span className="font-mono text-[9px] tracking-[0.15em] text-zinc-500" aria-hidden="true">{String(activeIndex + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
+        <button type="button" className="circular-carousel__control" onClick={() => navigate(1)} aria-label="Show next skill group"><ChevronRight aria-hidden="true" /></button>
+      </div>
+    </div>
+  );
+}

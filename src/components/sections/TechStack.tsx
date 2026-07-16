@@ -1,69 +1,37 @@
-import { m, useInView, useReducedMotion } from "framer-motion";
-import { useRef } from "react";
+import { Bot, Code2, PanelsTopLeft, Server } from "lucide-react";
 import { toolGroups } from "../../data/techStack";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ScrollReveal } from "../motion/ScrollReveal";
+import { CircularCarousel } from "../ui/CircularCarousel";
 import { SectionHeader } from "../ui/SectionHeader";
 
 type ToolGroupType = typeof toolGroups[number];
 
-function ToolGroup({
-  group,
-  groupIndex,
-  disableMotion,
-}: {
-  group: ToolGroupType;
-  groupIndex: number;
-  disableMotion: boolean;
-}) {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
+const groupIcons = [Code2, Server, PanelsTopLeft, Bot];
 
+function ToolGroupCard({ group, index, active }: { group: ToolGroupType; index: number; active: boolean }) {
+  const Icon = groupIcons[index] ?? Code2;
   return (
-    <m.section
-      ref={ref as never}
-      initial={disableMotion ? false : { opacity: 0, y: 12 }}
-      animate={disableMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-      transition={{ duration: 0.42, delay: groupIndex * 0.06 }}
-      className="tool-group p-5 sm:p-6"
-    >
-      <m.p
-        className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent"
-        initial={disableMotion ? false : { opacity: 0, x: -10 }}
-        animate={disableMotion ? undefined : inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
-        transition={{ duration: 0.4, delay: groupIndex * 0.06 + 0.12 }}
-      >
-        {group.label}
-      </m.p>
-      <m.p
-        className="mt-3 max-w-sm text-sm leading-relaxed text-zinc-400"
-        initial={disableMotion ? false : { opacity: 0, y: 8 }}
-        animate={disableMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-        transition={{ duration: 0.4, delay: groupIndex * 0.06 + 0.18 }}
-      >
-        {group.description}
-      </m.p>
-      <ul className="mt-5 grid gap-2" aria-label={group.label}>
-        {group.tools.map((tool, toolIndex) => (
-          <m.li
-            key={tool}
-            className="tool-row flex min-h-10 items-center border-l border-accent/45 bg-white/[0.025] px-3 font-mono text-[10px] tracking-[0.08em] text-zinc-200"
-            initial={disableMotion ? false : { opacity: 0, x: -10 }}
-            animate={disableMotion ? undefined : inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
-            transition={{ duration: 0.3, delay: groupIndex * 0.06 + 0.22 + toolIndex * 0.045 }}
-          >
-            {tool}
-          </m.li>
+    <div className="tool-group static-skill h-full p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent">0{index + 1} / skills</p>
+          <h3 className="mt-3 text-xl tracking-[-0.045em] text-bone sm:text-2xl">{group.label}</h3>
+        </div>
+        <Icon aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-accent/80" />
+      </div>
+      <p className="mt-4 max-w-sm text-sm leading-relaxed text-zinc-400">{group.description}</p>
+      <ul className={`mt-5 grid gap-2 ${active ? "" : "circular-carousel__secondary"}`} aria-label={group.label}>
+        {group.tools.map((tool) => (
+          <li key={tool} className="tool-row flex min-h-10 items-center border-l border-accent/45 bg-white/[0.025] px-3 font-mono text-[10px] tracking-[0.08em] text-zinc-200">{tool}</li>
         ))}
       </ul>
-    </m.section>
+    </div>
   );
 }
 
 export function TechStack() {
-  const { level } = useMotionProfile();
-  const reduced = useReducedMotion();
-  const disableMotion = Boolean(reduced || level === "static");
+  const { prefersReducedMotion, level } = useMotionProfile();
 
   return (
     <section id="stack" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
@@ -78,16 +46,14 @@ export function TechStack() {
             <span>Bench / toolkit</span>
             <span className="text-accent">Practical systems</span>
           </div>
-          <div className="grid divide-y divide-white/[0.08] md:grid-cols-2 md:divide-x md:divide-y-0">
-            {toolGroups.map((group, groupIndex) => (
-              <ToolGroup
-                key={group.label}
-                group={group}
-                groupIndex={groupIndex}
-                disableMotion={disableMotion}
-              />
-            ))}
-          </div>
+          <CircularCarousel
+            items={toolGroups}
+            ariaLabel="Skill groups"
+            getItemLabel={(group) => group.label}
+            renderCard={(group, index, active) => <ToolGroupCard group={group} index={index} active={active} />}
+            reducedMotion={prefersReducedMotion || level === "static"}
+            className="tool-carousel"
+          />
         </div>
       </ScrollReveal>
     </section>

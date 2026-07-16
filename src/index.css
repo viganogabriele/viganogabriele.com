@@ -669,6 +669,120 @@ body {
   background-size: 40px 40px;
 }
 
+/* ─── 3D circular carousel ─────────────────────────────────────────────────── */
+.circular-carousel {
+  position: relative;
+  overflow: clip;
+  padding: 1.25rem 0 0.9rem;
+  outline: none;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.circular-carousel__stage {
+  position: relative;
+  height: 26rem;
+  perspective: 980px;
+  perspective-origin: 50% 46%;
+  transform-style: preserve-3d;
+}
+
+.circular-carousel__stage::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  bottom: 2.1rem;
+  width: min(58%, 30rem);
+  height: 2.5rem;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--accent) 18%, transparent), transparent 68%);
+  filter: blur(10px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.circular-carousel__card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(25rem, calc(100% - 2.5rem));
+  min-height: 19.25rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 96%, var(--accent) 4%), rgba(8, 11, 22, 0.94)),
+    var(--color-surface);
+  box-shadow: 0 1.25rem 3.75rem rgba(0, 0, 0, 0.38);
+  transform-style: preserve-3d;
+  transform-origin: center center;
+  will-change: transform, opacity, filter;
+  cursor: grab;
+}
+
+.circular-carousel__card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid transparent;
+  pointer-events: none;
+  transition: border-color 250ms ease, box-shadow 250ms ease;
+}
+
+.circular-carousel__card[data-active="true"] {
+  border-color: color-mix(in srgb, var(--accent) 54%, rgba(255, 255, 255, 0.16));
+  box-shadow: 0 1.8rem 4.5rem rgba(0, 0, 0, 0.5), 0 0 2.25rem color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.circular-carousel__card[data-active="true"]::before {
+  border-color: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.circular-carousel__card:active { cursor: grabbing; }
+
+.circular-carousel__secondary {
+  opacity: 0.72;
+}
+
+.circular-carousel__controls {
+  position: relative;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.circular-carousel__control {
+  display: inline-flex;
+  width: 2.55rem;
+  height: 2.55rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 11, 22, 0.7);
+  color: var(--color-bone);
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.circular-carousel__control svg { width: 1rem; height: 1rem; }
+.circular-carousel__control:hover { border-color: color-mix(in srgb, var(--accent) 58%, transparent); background: color-mix(in srgb, var(--accent) 12%, var(--color-surface)); color: var(--accent-soft); }
+
+@media (max-width: 639px) {
+  .circular-carousel { padding-top: 0.85rem; }
+  .circular-carousel__stage { height: 23.5rem; perspective: 720px; }
+  .circular-carousel__card { width: min(22.5rem, calc(100% - 1.5rem)); min-height: 18.4rem; }
+  .circular-carousel__card .tool-group { padding: 1.15rem; }
+  .circular-carousel__card .tool-row { min-height: 2.3rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circular-carousel__card,
+  .circular-carousel__card::before,
+  .circular-carousel__control { transition-duration: 100ms; }
+}
+
 [data-system-mode="on"] .project-panel-grid {
   opacity: 0.38;
 }
