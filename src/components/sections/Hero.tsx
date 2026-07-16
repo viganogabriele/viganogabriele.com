@@ -3,6 +3,7 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ease } from "../../lib/motion";
+import { CountUp } from "../motion/CountUp";
 import { Magnetic } from "../motion/Magnetic";
 import { TextScramble } from "../motion/TextScramble";
 import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
@@ -41,15 +42,19 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
             initial={reduced ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.16, duration: 0.6, ease: ease.cinematic }}
-            className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-accent/75"
+            className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-accent/75"
           >
-            <m.span
-              className="inline-block h-1.5 w-1.5 rounded-full bg-accent"
-              animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }}
-              transition={{ duration: 1.6, repeat: Infinity }}
-            />
-            Computer Engineering Student · Milan
-            <span data-sys-reveal className="ml-2 text-accent/80" style={{ ["--sys-op" as never]: 0.9 }}>
+            {/* Dot + label grouped so the dot always aligns with its own text line. */}
+            <span className="inline-flex items-center gap-2 whitespace-nowrap">
+              <m.span
+                className="inline-block h-1.5 w-1.5 flex-none rounded-full bg-accent"
+                animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }}
+                transition={{ duration: 1.6, repeat: Infinity }}
+              />
+              <span>Computer Engineering Student · Milan</span>
+            </span>
+            {/* Coordinate wraps to its own line on narrow screens without affecting the dot. */}
+            <span data-sys-reveal className="text-accent/80" style={{ ["--sys-op" as never]: 0.9 }}>
               45.4642 N · 9.1900 E
             </span>
           </m.p>
@@ -106,7 +111,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
                   className="hero-stat-cell flex min-w-0 flex-col justify-between py-4"
                 >
                   <dt className="text-[9px] leading-[1.35]">{s.label}</dt>
-                  <dd className="mt-3 text-lg font-normal leading-none tracking-[-0.04em] text-accent">{s.value}</dd>
+                  <dd className="mt-3 text-lg font-normal leading-none tracking-[-0.04em] text-accent"><CountUp value={s.value} /></dd>
                 </m.div>
               ))}
             </m.dl>

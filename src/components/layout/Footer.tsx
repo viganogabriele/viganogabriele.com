@@ -1,6 +1,6 @@
 import { AnimatePresence, m, useInView } from "framer-motion";
 import { ArrowUpRight, Check, Copy, Mail } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -32,10 +32,6 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
   const headingInView = useInView(headingRef, { once: true, margin: "-60px" });
 
   const words = useMemo(() => HEADING.split(/(\s+)/), []);
-
-  useEffect(() => {
-    if (emailOpen) return;
-  }, [emailOpen]);
 
   const copy = async () => {
     try {
@@ -91,12 +87,14 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               </h2>
             )}
 
+            {/* Command line — always on one line, never wraps mid-token. */}
             <button
               type="button"
               onClick={() => setEmailOpen(prev => !prev)}
-              className="mt-9 flex min-h-11 items-center text-left font-mono text-xs text-zinc-500 sm:text-sm"
+              className="mt-9 inline-flex min-h-11 items-center whitespace-nowrap text-left font-mono text-xs text-zinc-500 sm:text-sm"
               aria-label={emailOpen ? "Close connect command" : "Run connect command"}
               aria-expanded={emailOpen}
+              aria-controls="connect-output"
             >
               <span className="mr-2 text-blue">$</span>
               <span>connect --to</span>
@@ -106,36 +104,29 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                 animate={level === "full" && !emailOpen ? { opacity: [1, 0, 1] } : { opacity: 1 }}
                 transition={{ duration: 1, repeat: emailOpen ? 0 : Infinity, ease: "linear" }}
               />
+            </button>
+
+            {/* Output line — height is always reserved so toggling never shifts content below. */}
+            <div
+              id="connect-output"
+              aria-live="polite"
+              className="mt-1.5 min-h-[1.5rem] font-mono text-xs text-zinc-500 sm:text-sm"
+            >
               <AnimatePresence>
                 {emailOpen && (
                   <m.span
                     key="email-output"
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                     transition={{ duration: 0.25 }}
-                    className="ml-3 text-accent"
+                    className="text-accent"
                   >
                     connected / {EMAIL}
                   </m.span>
                 )}
               </AnimatePresence>
-            </button>
-
-            <AnimatePresence>
-              {emailOpen && (
-                <m.p
-                  key="signoff"
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.25, delay: 0.05 }}
-                  className="ml-1 mt-2 font-mono text-[10px] tracking-[0.12em] text-accent/80"
-                >
-                  <span className="text-blue">//</span> hope you liked it.
-                </m.p>
-              )}
-            </AnimatePresence>
+            </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Magnetic>

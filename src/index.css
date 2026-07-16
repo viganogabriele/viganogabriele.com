@@ -761,6 +761,26 @@ body {
   background-position: 11px 11px;
 }
 
+.nav-sys-btn {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* OFF state hover — gated to true fine-pointer devices to prevent sticky highlight on touch/hybrid. */
+@media (hover: hover) and (pointer: fine) {
+  .nav-sys-btn[aria-pressed="false"]:hover {
+    border-color: color-mix(in srgb, var(--color-blue) 60%, transparent);
+    color: var(--color-blue-soft);
+  }
+}
+
+/* Press feedback on all pointer types. */
+.nav-sys-btn:active {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
 [data-system-mode="on"] .nav-sys-btn {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important;
   color: color-mix(in srgb, var(--accent) 90%, transparent) !important;
@@ -834,11 +854,14 @@ body {
 .font-mono.uppercase {
   transition: color 220ms ease, text-shadow 220ms ease;
 }
-a:hover .font-mono.uppercase,
-button:hover .font-mono.uppercase,
-[data-cursor="hover"]:hover .font-mono.uppercase {
-  color: #dbd6ce;
-  text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
+/* Gated to fine-pointer so tapping on touch/hybrid devices doesn't leave these stuck highlighted. */
+@media (hover: hover) and (pointer: fine) {
+  a:hover .font-mono.uppercase,
+  button:hover .font-mono.uppercase,
+  [data-cursor="hover"]:hover .font-mono.uppercase {
+    color: #dbd6ce;
+    text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
 }
 
 /* ─── SYS-mode reveals — hidden info that shows only when SYS is on ──────────── */
