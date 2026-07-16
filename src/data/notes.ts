@@ -72,3 +72,9 @@ export const notes: NoteItem[] = [
 ];
 
 export const noteBySlug = new Map(notes.map((note) => [note.slug, note]));
+
+export const legacySlugRedirects: Record<string, string> = {
+  "homelab-security-first": "vpn-off-by-default",
+  "portfolio-vibe-coding-to-production": "the-prompt-was-never-the-hard-part",
+  "event-operations-from-zero": "noticing-what-the-association-wasnt-using",
+};

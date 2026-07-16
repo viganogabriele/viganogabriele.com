@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../components/layout/AppShell";
 import { noteJsonLd, noteMetadata } from "../data/site";
-import { noteBySlug } from "../data/notes";
+import { legacySlugRedirects, noteBySlug } from "../data/notes";
 import { JsonLd, PageMeta } from "../lib/seo";
 import { NotFoundPage } from "./NotFoundPage";
 import { ScrollBar } from "../components/motion/ScrollBar";
@@ -19,6 +19,12 @@ export function NotePage() {
   useEffect(() => {
     if (navigationState) registerNoteReturn(navigationState);
   }, [navigationState]);
+
+  useEffect(() => {
+    if (!note && slug in legacySlugRedirects) {
+      navigate(`/notes/${legacySlugRedirects[slug]}`, { replace: true });
+    }
+  }, [note, slug, navigate]);
 
   if (!note) return <NotFoundPage />;
   const closeNote = () => {
