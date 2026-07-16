@@ -1146,8 +1146,9 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
 /* ─── System HUD — live diagnostic terminal panel ────────────────────────────── */
 .sys-hud {
   position: fixed;
-  bottom: 1.75rem;
-  right: 1.25rem;
+  /* Leave the lower-right SYS corner marker unobstructed. */
+  bottom: 4.5rem;
+  right: 1.5rem;
   z-index: 46;
   font-family: var(--font-mono);
   font-size: 8px;
