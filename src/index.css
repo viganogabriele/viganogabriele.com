@@ -688,21 +688,6 @@ body {
   transform-style: preserve-3d;
 }
 
-.circular-carousel__stage::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  left: 50%;
-  bottom: 2.1rem;
-  width: min(58%, 30rem);
-  height: 2.5rem;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, color-mix(in srgb, var(--accent) 18%, transparent), transparent 68%);
-  filter: blur(10px);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
 .circular-carousel__card {
   position: absolute;
   top: 50%;
@@ -717,6 +702,8 @@ body {
   box-shadow: 0 1.25rem 3.75rem rgba(0, 0, 0, 0.38);
   transform-style: preserve-3d;
   transform-origin: center center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   will-change: transform, opacity, filter;
   cursor: grab;
 }
@@ -771,10 +758,10 @@ body {
 
 @media (max-width: 639px) {
   .circular-carousel { padding-top: 0.85rem; }
-  .circular-carousel__stage { height: 23.5rem; perspective: 720px; }
-  .circular-carousel__card { width: min(22.5rem, calc(100% - 1.5rem)); min-height: 18.4rem; }
-  .circular-carousel__card .tool-group { padding: 1.15rem; }
-  .circular-carousel__card .tool-row { min-height: 2.3rem; }
+  .circular-carousel__stage { height: 21.75rem; perspective: 760px; }
+  .circular-carousel__card { width: min(19.5rem, calc(100% - 4rem)); min-height: 17rem; }
+  .circular-carousel__card .tool-group { padding: 1rem; }
+  .circular-carousel__card .tool-row { min-height: 2.15rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

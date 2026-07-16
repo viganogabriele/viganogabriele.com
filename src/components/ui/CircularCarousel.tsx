@@ -56,8 +56,8 @@ export function CircularCarousel<T>({
     const root = rootRef.current;
     const width = root?.clientWidth ?? 0;
     const compact = width < 640;
-    const radius = Math.min(compact ? 154 : 290, Math.max(compact ? 130 : 210, width * (compact ? 0.48 : 0.34)));
-    const depth = compact ? 92 : 148;
+    const radius = Math.min(compact ? 180 : 290, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.34)));
+    const depth = compact ? 76 : 122;
     const step = 360 / count;
     let nearest = 0;
     let nearestDistance = Number.POSITIVE_INFINITY;
@@ -69,16 +69,19 @@ export function CircularCarousel<T>({
       const frontness = (Math.cos(radians) + 1) / 2;
       const distance = Math.abs(angle);
       const x = Math.sin(radians) * radius;
-      const z = Math.cos(radians) * depth - depth * 0.24;
-      const scale = 0.7 + frontness * 0.3;
+      // Keep the front card on the text-rendering plane. It still reads as the
+      // closest card because every other card moves back into negative Z, but
+      // avoids the soft rasterisation some browsers apply to positive-Z text.
+      const z = (frontness - 1) * depth;
+      const scale = 0.78 + frontness * 0.22;
       const opacity = 0.18 + frontness * 0.82;
-      const rotateY = -Math.sin(radians) * (compact ? 27 : 34);
+      const rotateY = -Math.sin(radians) * (compact ? 20 : 27);
       const isActive = distance < nearestDistance;
       if (isActive) { nearest = index; nearestDistance = distance; }
       card.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${rotateY.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
       card.style.opacity = opacity.toFixed(3);
       card.style.zIndex = String(Math.round(frontness * 100));
-      card.style.filter = frontness < 0.28 ? "blur(0.7px)" : "none";
+      card.style.filter = "none";
       card.style.pointerEvents = frontness < 0.1 ? "none" : "auto";
     });
 
