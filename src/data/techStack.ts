@@ -23,6 +23,6 @@ export const toolGroups: ToolGroup[] = [
   {
     label: "AI-assisted workflows",
     description: "Coding agents, orchestration, automation, and verification in practice.",
-    tools: ["Codex", "Claude Code", "OpenClaw (self-hosted)", "Agent workflows", "Model & tool integrations"],
+    tools: ["Codex", "Claude Code", "OpenClaw (self-hosted)", "Agent workflows"],
   },
 ];

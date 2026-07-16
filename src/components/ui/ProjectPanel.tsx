@@ -93,7 +93,7 @@ export function ProjectPanel({ project, reverse }: { project: Project; reverse: 
           >
             {project.metrics.map((metric) => (
               <div key={metric.label}>
-                <p className="text-2xl font-medium tracking-[-0.05em] text-accent"><CountUp value={metric.value} /></p>
+                <p className="text-2xl font-medium tracking-[-0.05em] text-accent"><CountUp value={metric.value} trigger={inView} delay={0.32} /></p>
                 <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-600">MEASURED / {metric.label}</p>
               </div>
             ))}

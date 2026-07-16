@@ -87,45 +87,47 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               </h2>
             )}
 
-            {/* Command line — always on one line, never wraps mid-token. */}
-            <button
-              type="button"
-              onClick={() => setEmailOpen(prev => !prev)}
-              className="mt-9 inline-flex min-h-11 items-center whitespace-nowrap text-left font-mono text-xs text-zinc-500 sm:text-sm"
-              aria-label={emailOpen ? "Close connect command" : "Run connect command"}
-              aria-expanded={emailOpen}
-              aria-controls="connect-output"
-            >
-              <span className="mr-2 text-blue">$</span>
-              <span>connect --to</span>
-              <span className="ml-1.5 text-bone">gabriele</span>
-              <m.span
-                className="ml-1.5 inline-block h-3.5 w-1.5 bg-blue align-middle"
-                animate={level === "full" && !emailOpen ? { opacity: [1, 0, 1] } : { opacity: 1 }}
-                transition={{ duration: 1, repeat: emailOpen ? 0 : Infinity, ease: "linear" }}
-              />
-            </button>
+            {/* Command row: button + output on the same line on desktop, output wraps below on mobile. */}
+            <div className="mt-9 flex flex-wrap items-center">
+              <button
+                type="button"
+                onClick={() => setEmailOpen(prev => !prev)}
+                className="inline-flex min-h-11 items-center whitespace-nowrap text-left font-mono text-xs text-zinc-500 sm:text-sm"
+                aria-label={emailOpen ? "Close connect command" : "Run connect command"}
+                aria-expanded={emailOpen}
+                aria-controls="connect-output"
+              >
+                <span className="mr-2 text-blue">$</span>
+                <span>connect --to</span>
+                <span className="ml-1.5 text-bone">gabriele</span>
+                <m.span
+                  className="ml-1.5 inline-block h-3.5 w-1.5 bg-blue align-middle"
+                  animate={level === "full" && !emailOpen ? { opacity: [1, 0, 1] } : { opacity: 1 }}
+                  transition={{ duration: 1, repeat: emailOpen ? 0 : Infinity, ease: "linear" }}
+                />
+              </button>
 
-            {/* Output line — height is always reserved so toggling never shifts content below. */}
-            <div
-              id="connect-output"
-              aria-live="polite"
-              className="mt-1.5 min-h-[1.5rem] font-mono text-xs text-zinc-500 sm:text-sm"
-            >
-              <AnimatePresence>
-                {emailOpen && (
-                  <m.span
-                    key="email-output"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="text-accent"
-                  >
-                    connected / {EMAIL}
-                  </m.span>
-                )}
-              </AnimatePresence>
+              {/* Output: always reserves its height on mobile (no shift); on desktop sits inline. */}
+              <div
+                id="connect-output"
+                aria-live="polite"
+                className="min-h-[1.5rem] w-full font-mono text-xs text-zinc-500 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                <AnimatePresence>
+                  {emailOpen && (
+                    <m.span
+                      key="email-output"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="text-accent"
+                    >
+                      connected / {EMAIL}
+                    </m.span>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">

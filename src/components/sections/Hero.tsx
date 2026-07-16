@@ -3,7 +3,6 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ease } from "../../lib/motion";
-import { CountUp } from "../motion/CountUp";
 import { Magnetic } from "../motion/Magnetic";
 import { TextScramble } from "../motion/TextScramble";
 import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
@@ -111,7 +110,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
                   className="hero-stat-cell flex min-w-0 flex-col justify-between py-4"
                 >
                   <dt className="text-[9px] leading-[1.35]">{s.label}</dt>
-                  <dd className="mt-3 text-lg font-normal leading-none tracking-[-0.04em] text-accent"><CountUp value={s.value} /></dd>
+                  <dd className="mt-3 text-lg font-normal leading-none tracking-[-0.04em] text-accent">{s.value}</dd>
                 </m.div>
               ))}
             </m.dl>

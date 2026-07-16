@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { animate, m, useInView, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
+import { animate, useInView, useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { cn } from "../../lib/cn";
 import { ease } from "../../lib/motion";
@@ -39,45 +39,78 @@ export function CountUp({
   value,
   className,
   duration = 1.4,
+  /** Pass the parent's inView boolean so the count starts in sync with the parent reveal. */
+  trigger,
+  /** Delay in seconds before the count starts (match parent stagger delay). */
+  delay = 0,
 }: {
   value: string;
   className?: string;
   duration?: number;
+  trigger?: boolean;
+  delay?: number;
 }) {
   const parsed = parseCountValue(value);
   const reduced = useReducedMotion();
   const { level } = useMotionProfile();
   const allowMotion = !reduced && level !== "static" && parsed !== null;
 
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
-  const count = useMotionValue(0);
-  const display = useTransform(count, (v) =>
-    parsed
-      ? parsed.prefix + formatNumber(v, parsed.decimals, parsed.grouped) + parsed.suffix
-      : value,
-  );
-  const started = useRef(false);
+  // Own in-view detection used only when the caller doesn't pass a trigger.
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const ownInView = useInView(containerRef, { once: true, margin: "-40px" });
+  const active = trigger !== undefined ? trigger : ownInView;
+
+  const animatedRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    if (!allowMotion || !parsed || !inView || started.current) return;
-    started.current = true;
-    const controls = animate(count, parsed.target, { duration, ease: ease.cinematic });
-    return () => controls.stop();
-  }, [allowMotion, parsed, inView, count, duration]);
+    if (!allowMotion || !parsed || !active) return;
+
+    const el = animatedRef.current;
+    if (!el) return;
+
+    let animControls: { stop: () => void } | null = null;
+
+    const start = () => {
+      animControls = animate(0, parsed.target, {
+        duration,
+        ease: ease.cinematic,
+        onUpdate: (v) => {
+          el.textContent =
+            parsed.prefix +
+            formatNumber(v, parsed.decimals, parsed.grouped) +
+            parsed.suffix;
+        },
+        onComplete: () => {
+          // Guarantee the exact final string (no floating-point rounding artefact).
+          el.textContent = value;
+        },
+      });
+    };
+
+    if (delay > 0) {
+      const timer = window.setTimeout(start, delay * 1000);
+      return () => {
+        clearTimeout(timer);
+        animControls?.stop();
+      };
+    }
+
+    start();
+    return () => animControls?.stop();
+  }, [allowMotion, parsed, active, duration, delay, value]);
 
   if (!parsed || !allowMotion) {
     return <span className={cn("tabular-nums", className)}>{value}</span>;
   }
 
   return (
-    <span ref={ref} className={cn("relative inline-block tabular-nums", className)}>
-      {/* Invisible twin reserves final width so the counter never reflows. */}
+    <span ref={containerRef} className={cn("relative inline-block tabular-nums", className)}>
+      {/* Invisible twin reserves the final width from frame 0 (incl. comma at 1,000). */}
       <span aria-hidden="true" style={{ visibility: "hidden" }}>{value}</span>
-      {/* Animated overlay — out of flow, contributes no width. */}
-      <m.span aria-hidden="true" className="absolute inset-0">
-        {display as unknown as React.ReactNode}
-      </m.span>
+      {/* Animated overlay — absolutely positioned, contributes no layout width. */}
+      <span ref={animatedRef} aria-hidden="true" className="absolute inset-0">
+        {parsed.prefix}0{parsed.suffix}
+      </span>
       <span className="sr-only">{value}</span>
     </span>
   );
