@@ -683,7 +683,7 @@ body {
 .circular-carousel__stage {
   position: relative;
   height: 26rem;
-  perspective: 980px;
+  perspective: 1180px;
   perspective-origin: 50% 46%;
   transform-style: preserve-3d;
 }
@@ -758,7 +758,7 @@ body {
 
 @media (max-width: 639px) {
   .circular-carousel { padding-top: 0.85rem; }
-  .circular-carousel__stage { height: 21.75rem; perspective: 760px; }
+  .circular-carousel__stage { height: 24rem; perspective: 760px; }
   .circular-carousel__card { width: min(19.5rem, calc(100% - 4rem)); min-height: 17rem; }
   .circular-carousel__card .tool-group { padding: 1rem; }
   .circular-carousel__card .tool-row { min-height: 2.15rem; }
