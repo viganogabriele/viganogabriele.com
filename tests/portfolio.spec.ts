@@ -579,3 +579,94 @@ test("interactive controls meet the minimum touch target", async ({ page }) => {
   }).filter((target) => target.width < 44 || target.height < 44));
   expect(undersized).toEqual([]);
 });
+
+test("count-up stats animate to their final values after scroll-in", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  await page.locator(".proof-grid").scrollIntoViewIfNeeded();
+  // Animation duration is 1.4s; allow 600ms stagger + buffer
+  await page.waitForTimeout(2200);
+
+  // sr-only spans hold the exact final string for each animated count
+  const srValues = await page.locator(".proof-grid .sr-only").allTextContents();
+  expect(srValues).toEqual(["30+", "5", "1,000+"]);
+
+  // Non-numeric "Education" is rendered as plain text — no sr-only wrapper
+  await expect(page.locator(".proof-grid").getByText("Education")).toBeVisible();
+});
+
+test("count-up does not replay when scrolled away and back", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  // First scroll-in: wait for animation to complete
+  await page.locator(".proof-grid").scrollIntoViewIfNeeded();
+  await page.waitForTimeout(2200);
+  const after = await page.locator(".proof-grid .sr-only").allTextContents();
+  expect(after).toEqual(["30+", "5", "1,000+"]);
+
+  // Scroll away and back
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "auto" }));
+  await page.waitForTimeout(150);
+  await page.locator(".proof-grid").scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300); // No replay — values should still be final immediately
+
+  const recheck = await page.locator(".proof-grid .sr-only").allTextContents();
+  expect(recheck).toEqual(["30+", "5", "1,000+"]);
+});
+
+test("count-up renders final values immediately with reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  await page.locator(".proof-grid").scrollIntoViewIfNeeded();
+  // With reduced motion, CountUp renders a plain span — no animation, no sr-only
+  await expect(page.locator(".proof-grid").getByText("30+")).toBeVisible();
+  await expect(page.locator(".proof-grid").getByText("1,000+")).toBeVisible();
+  await expect(page.locator(".proof-grid").getByText("Education")).toBeVisible();
+  expect(await page.locator(".proof-grid .sr-only").count()).toBe(0);
+});
+
+test("SYS button releases focus after touch pointer-up", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  // Focus the button (keyboard-style), then dispatch a touch pointerup
+  const system = page.getByRole("button", { name: "Toggle system mode" });
+  await system.focus();
+  await expect(system).toBeFocused();
+
+  // The onPointerUp handler calls blur() for pointerType !== "mouse"
+  const blurred = await page.evaluate(() => {
+    const btn = document.querySelector<HTMLElement>('button[aria-label="Toggle system mode"]');
+    if (!btn) return false;
+    btn.dispatchEvent(new PointerEvent("pointerup", { pointerType: "touch", bubbles: true, cancelable: true }));
+    return document.activeElement !== btn;
+  });
+  expect(blurred).toBe(true);
+});
+
+test("SYS button does not release focus after mouse pointer-up", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const system = page.getByRole("button", { name: "Toggle system mode" });
+  await system.focus();
+  await expect(system).toBeFocused();
+
+  // Mouse pointer-up must leave focus intact for keyboard users
+  const stillFocused = await page.evaluate(() => {
+    const btn = document.querySelector<HTMLElement>('button[aria-label="Toggle system mode"]');
+    if (!btn) return false;
+    btn.dispatchEvent(new PointerEvent("pointerup", { pointerType: "mouse", bubbles: true, cancelable: true }));
+    return document.activeElement === btn;
+  });
+  expect(stillFocused).toBe(true);
+});

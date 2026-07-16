@@ -56,7 +56,7 @@ function readProfile(): MotionProfile {
   const cores = nav.hardwareConcurrency ?? 4;
   const capableHardware = memory >= 4 && cores >= 4;
   const canUseWebGL = !prefersReducedMotion && !saveData && !isTelegram && capableHardware && supportsWebGL();
-  const level: MotionLevel = prefersReducedMotion || saveData ? "static" : canUseWebGL ? "full" : "lite";
+  const level: MotionLevel = prefersReducedMotion ? "static" : canUseWebGL ? "full" : "lite";
 
   return {
     level,

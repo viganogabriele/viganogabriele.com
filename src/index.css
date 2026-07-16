@@ -1237,3 +1237,27 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   z-index: 2147483645;
   opacity: 0;
 }
+
+/* ─── content-visibility: auto — defer rendering of below-fold sections ──────── */
+/* Skips layout/paint/composite for off-screen sections, recovering initial-render
+   budget on long-scroll pages. contain-intrinsic-size: auto 800px provides a
+   plausible placeholder height so the scroll bar stays stable; the `auto` keyword
+   remembers the real size after the first paint. #expertise is excluded because
+   it contains a `position: sticky` panel that must interact with the scroll
+   container freely. */
+#about, #projects, #stack, #journey, #notes, #certifications {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
+/* ─── View Transitions API — note ↔ home navigation ─────────────────────────── */
+/* Suppress the whole-page root cross-fade so framer-motion's existing page-fade
+   keeps running uninterrupted. Named view-transition elements (note titles) still
+   animate with the browser-default morph between list and article. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) { animation-duration: 0.01s; }
+}
