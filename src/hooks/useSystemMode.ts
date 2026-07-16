@@ -57,24 +57,12 @@ export function useSystemMode() {
     activeRef.current = active;
     if (active) {
       hasActivatedRef.current = true;
-      if (!laserEnabled) {
-        document.documentElement.setAttribute("data-system-mode", "on");
-        domIsVioletRef.current = true;
-        return;
-      }
-      // Wait until the beam has swept past the bottom of the viewport
-      // before flipping the accent — the beam is a transparent gradient,
-      // not a solid cover, so the page is always visible through it.
-      // Changing --accent while the beam is on screen would visibly shift
-      // its colour mid-sweep. 620ms ≈ dur.mode * 0.9, after which the beam
-      // is past the viewport with a small buffer before the element unmounts.
-      const timer = setTimeout(() => {
-        if (activeRef.current) {
-          document.documentElement.setAttribute("data-system-mode", "on");
-          domIsVioletRef.current = true;
-        }
-      }, 620);
-      return () => clearTimeout(timer);
+      // Enter SYS in the same frame as the laser. Delaying this flip left the
+      // overlay and HUD blue while the rest of the transition had already
+      // started, creating a visible second phase after the sweep.
+      document.documentElement.setAttribute("data-system-mode", "on");
+      domIsVioletRef.current = true;
+      return;
     }
 
     // Deactivation — no laser or first mount: snap immediately.
@@ -104,6 +92,19 @@ export function useSystemMode() {
   const toggle = useCallback(() => {
     const next = !activeRef.current;
     activeRef.current = next;
+
+    // Apply the accent synchronously with the interaction, before React's
+    // post-render effects, so the laser and all SYS UI share one transition.
+    if (next) {
+      hasActivatedRef.current = true;
+      domIsVioletRef.current = true;
+      document.documentElement.setAttribute("data-system-mode", "on");
+    } else {
+      // The SYS overlay leaves immediately, so restore the shared accent in
+      // the same frame rather than leaving counters violet after it is gone.
+      domIsVioletRef.current = false;
+      document.documentElement.removeAttribute("data-system-mode");
+    }
     setTransitionId((id) => id + 1);
 
     // Vibration is an optional enhancement. Safari does not implement it and
