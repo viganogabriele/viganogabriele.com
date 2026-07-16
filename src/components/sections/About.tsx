@@ -1,5 +1,6 @@
 import { m, useInView } from "framer-motion";
 import { useRef } from "react";
+import { CountUp } from "../motion/CountUp";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { SectionHeader } from "../ui/SectionHeader";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -51,7 +52,7 @@ export function About() {
               transition={{ delay: index * 0.06, duration: 0.5, ease: ease.cinematic }}
               className="proof-stat flex min-h-36 flex-col border-b border-white/[0.07] px-4 py-6 odd:border-r [&:nth-last-child(-n+2)]:border-b-0 lg:border-b-0 lg:[&:not(:last-child)]:border-r"
             >
-              <p className="text-3xl font-medium leading-none tracking-[-0.06em] text-accent sm:text-4xl">{item.value}</p>
+              <p className="text-3xl font-medium leading-none tracking-[-0.06em] text-accent sm:text-4xl"><CountUp value={item.value} trigger={statsInView} delay={index * 0.06} /></p>
               {item.link ? (
                 <a href={item.link} target="_blank" rel="noreferrer" data-cursor="hover" className="mt-auto inline-flex min-h-11 items-end py-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-accent/80 hover:text-accent">{item.label}</a>
               ) : (

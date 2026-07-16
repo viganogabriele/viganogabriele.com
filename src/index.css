@@ -50,7 +50,8 @@ html {
   --accent-soft: #b8d0ff;
 }
 
-html[data-system-mode="on"] {
+html[data-system-mode="on"],
+html[data-system-mode="off"] {
   --accent: #a68bff;
   --accent-soft: #d0c4ff;
 }
@@ -636,7 +637,11 @@ body {
   contain: strict;
   isolation: isolate;
   overflow: hidden;
-  clip-path: inset(0); /* prevents GPU-promoted child from escaping on iOS Safari */
+  /* clip-path:inset(0) removed — on iOS Safari it clips relative to the layout
+     viewport's initial containing block, which excludes safe-area insets (notch,
+     home indicator), leaving visible strips at the top and bottom of the screen.
+     contain:strict includes contain:paint which provides equivalent GPU-layer
+     containment for the will-change:transform child without the border artifacts. */
 }
 
 .system-mode-wipe {
@@ -756,6 +761,26 @@ body {
   background-position: 11px 11px;
 }
 
+.nav-sys-btn {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* OFF state hover — gated to true fine-pointer devices to prevent sticky highlight on touch/hybrid. */
+@media (hover: hover) and (pointer: fine) {
+  .nav-sys-btn[aria-pressed="false"]:hover {
+    border-color: color-mix(in srgb, var(--color-blue) 60%, transparent);
+    color: var(--color-blue-soft);
+  }
+}
+
+/* Press feedback on all pointer types. */
+.nav-sys-btn:active {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
 [data-system-mode="on"] .nav-sys-btn {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important;
   color: color-mix(in srgb, var(--accent) 90%, transparent) !important;
@@ -829,11 +854,14 @@ body {
 .font-mono.uppercase {
   transition: color 220ms ease, text-shadow 220ms ease;
 }
-a:hover .font-mono.uppercase,
-button:hover .font-mono.uppercase,
-[data-cursor="hover"]:hover .font-mono.uppercase {
-  color: #dbd6ce;
-  text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
+/* Gated to fine-pointer so tapping on touch/hybrid devices doesn't leave these stuck highlighted. */
+@media (hover: hover) and (pointer: fine) {
+  a:hover .font-mono.uppercase,
+  button:hover .font-mono.uppercase,
+  [data-cursor="hover"]:hover .font-mono.uppercase {
+    color: #dbd6ce;
+    text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
 }
 
 /* ─── SYS-mode reveals — hidden info that shows only when SYS is on ──────────── */
@@ -1208,4 +1236,28 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   pointer-events: none;
   z-index: 2147483645;
   opacity: 0;
+}
+
+/* ─── content-visibility: auto — defer rendering of below-fold sections ──────── */
+/* Skips layout/paint/composite for off-screen sections, recovering initial-render
+   budget on long-scroll pages. contain-intrinsic-size: auto 800px provides a
+   plausible placeholder height so the scroll bar stays stable; the `auto` keyword
+   remembers the real size after the first paint. #expertise is excluded because
+   it contains a `position: sticky` panel that must interact with the scroll
+   container freely. */
+#about, #projects, #stack, #journey, #notes, #certifications {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
+/* ─── View Transitions API — note ↔ home navigation ─────────────────────────── */
+/* Suppress the whole-page root cross-fade so framer-motion's existing page-fade
+   keeps running uninterrupted. Named view-transition elements (note titles) still
+   animate with the browser-default morph between list and article. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) { animation-duration: 0.01s; }
 }
