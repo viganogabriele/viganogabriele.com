@@ -48,9 +48,13 @@ test("mobile navigation is keyboard-safe and anchors work", async ({ page }) => 
 
 test("projects contain the three real case studies", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("PoliNetwork", { exact: false }).first()).toBeVisible();
-  await expect(page.getByText("Interactive Portfolio", { exact: false }).first()).toBeAttached();
-  await expect(page.getByText("Study Quest", { exact: false }).first()).toBeAttached();
+  const projectsCarousel = page.getByRole("region", { name: "Selected projects" });
+  await expect(projectsCarousel.getByRole("tab")).toHaveCount(3);
+  await expect(projectsCarousel.getByText("PoliNetwork", { exact: false }).first()).toBeVisible();
+  await projectsCarousel.getByRole("button", { name: "Show next project" }).click();
+  await expect(projectsCarousel.getByRole("tabpanel")).toContainText("Interactive Portfolio");
+  await projectsCarousel.getByRole("tab", { name: /03 \/ Study Quest/ }).click();
+  await expect(projectsCarousel.getByRole("tabpanel")).toContainText("Study Quest");
   await expect(page.getByText("Next Build", { exact: false })).toHaveCount(0);
 });
 
