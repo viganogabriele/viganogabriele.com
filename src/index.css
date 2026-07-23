@@ -126,7 +126,7 @@ body {
 
 /* Adaptive hero object */
 .hero-wordmark {
-  font-size: clamp(3.55rem, 15vw, 8.25rem);
+  font-size: clamp(3.55rem, 13vw, 7rem);
 }
 
 .hero-wordmark-line {
