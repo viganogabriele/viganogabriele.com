@@ -39,7 +39,7 @@ function ProjectDetail({ project }: { project: ProjectItem }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.38 }}
-      className="project-detail mt-8 border-y border-white/[0.09] py-7 sm:py-9 lg:flex lg:min-h-[29rem] lg:flex-col"
+      className="project-detail mt-8 border-y border-white/[0.09] py-7 sm:py-9"
     >
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
         <div>
@@ -61,7 +61,7 @@ function ProjectDetail({ project }: { project: ProjectItem }) {
           </div>
         </div>
       </div>
-      <div className="mt-7 grid gap-5 border-t border-white/[0.08] pt-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end lg:mt-auto">
+      <div className="mt-7 grid gap-5 border-t border-white/[0.08] pt-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div>
           <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">Technology</p>
           <div className="mt-2 flex flex-wrap gap-2 font-mono text-[10px] tracking-[0.08em] text-zinc-200">
