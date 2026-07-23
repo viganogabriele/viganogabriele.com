@@ -16,7 +16,6 @@ function ProjectCard({ project, active }: { project: ProjectItem; active: boolea
         <span className="text-accent">{active ? "selected" : project.status}</span>
       </div>
       <h3 className="mt-5 whitespace-pre-line text-2xl font-medium leading-[0.86] tracking-[-0.06em] text-bone sm:text-3xl">{project.title}</h3>
-      <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-zinc-400">{project.description}</p>
       <div className="mt-4 flex border-t border-white/[0.08] pt-3">
         {project.metrics.map((metric, index) => (
           <div key={metric.label} className={`min-w-0 flex-1 ${index ? "border-l border-white/[0.08] pl-3" : "pr-3"}`}>
@@ -24,6 +23,9 @@ function ProjectCard({ project, active }: { project: ProjectItem; active: boolea
             <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.1em] text-zinc-600">{metric.label}</p>
           </div>
         ))}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-2 gap-y-1 font-mono text-[8px] uppercase tracking-[0.09em] text-zinc-400">
+        {project.stack.map((item) => <span key={item}>/{item}</span>)}
       </div>
     </div>
   );
@@ -60,10 +62,13 @@ function ProjectDetail({ project }: { project: ProjectItem }) {
         </div>
       </div>
       <div className="mt-7 flex flex-wrap items-center justify-between gap-5 border-t border-white/[0.08] pt-5">
-        <div className="flex flex-wrap gap-x-3 gap-y-2 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">
-          {project.stack.map((item) => <span key={item}>/{item}</span>)}
+        <div>
+          <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">Technology</p>
+          <div className="mt-2 flex flex-wrap gap-2 font-mono text-[10px] tracking-[0.08em] text-zinc-200">
+            {project.stack.map((item) => <span key={item} className="border border-accent/30 bg-accent/[0.06] px-2 py-1">{item}</span>)}
+          </div>
         </div>
-        {project.link && <a href={project.link} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:text-white">Open on GitHub <ArrowUpRight className="h-3.5 w-3.5" /></a>}
+        {project.link && <a href={project.link} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:border-accent hover:bg-accent/[0.08] hover:text-white">Open on GitHub <ArrowUpRight className="h-3.5 w-3.5" /></a>}
       </div>
     </m.article>
   );
@@ -76,8 +81,8 @@ export function Projects() {
 
   return (
     <section id="projects" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
-      <SectionHeader index="03 / SELECTED WORK" title="Proof, not just presentation." subtitle="Select a project to compare the work, then find the important context below." />
-      <div className="mt-10 border border-white/[0.1] bg-surface/80">
+      <SectionHeader index="03 / SELECTED WORK" title="Proof, not just presentation." />
+      <div className="mt-7 border border-white/[0.1] bg-surface/80">
         <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-500">
           <span>Browse / selected work</span>
           <span className="text-accent">Select a card</span>
@@ -92,6 +97,7 @@ export function Projects() {
           dragSensitivity={0.34}
           momentumStrength={1.15}
           pauseDuration={3000}
+          pauseOnHover={false}
           previousControlLabel="Show previous project"
           nextControlLabel="Show next project"
           onActiveIndexChange={setActiveIndex}

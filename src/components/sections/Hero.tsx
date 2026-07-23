@@ -1,6 +1,5 @@
 import { m, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, FileText, Mail } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { profile } from "../../data/profile";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ease } from "../../lib/motion";
@@ -10,22 +9,6 @@ import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; onToggleSystem: () => void }) {
   const reduced = useReducedMotion();
   const { level } = useMotionProfile();
-  const scrollMotion = !reduced && level === "full";
-  const wordmarkRef = useRef<HTMLHeadingElement>(null);
-  const [weight, setWeight] = useState(520);
-  useEffect(() => {
-    if (reduced || !scrollMotion) return;
-    let frame = 0;
-    const move = (event: PointerEvent) => {
-      if (!wordmarkRef.current) return;
-      const rect = wordmarkRef.current.getBoundingClientRect();
-      const next = Math.round(300 + Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * 400);
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => setWeight(next));
-    };
-    window.addEventListener("pointermove", move, { passive: true });
-    return () => { window.removeEventListener("pointermove", move); cancelAnimationFrame(frame); };
-  }, [reduced, scrollMotion]);
   return (
     <section id="top" className="hero-grid relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/[0.07] pb-8 pt-24 sm:pt-28 lg:pt-32">
       <div className="hero-scanlines absolute inset-0 opacity-80" />
@@ -36,7 +19,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             initial={reduced ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.16, duration: 0.6, ease: ease.cinematic }}
-            className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-accent/75"
+            className="inline-flex items-center gap-2 font-mono text-sm uppercase tracking-[0.18em] text-accent/75"
           >
             <m.span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} />
             Milan, Italy
@@ -46,8 +29,6 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             initial={reduced ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.23, duration: 0.9, ease: ease.cinematic }}
-            ref={wordmarkRef}
-            style={{ fontVariationSettings: `'wght' ${weight}` }}
             className="hero-wordmark mt-4 max-w-4xl font-medium leading-[0.8] tracking-[-0.09em] text-bone"
           >
             <span className="hero-wordmark-line block"><span>GABRIELE</span></span>
@@ -60,7 +41,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             transition={{ delay: 0.45, duration: 0.6, ease: ease.softSettle }}
             className="mt-7"
           >
-            <p className="max-w-xl text-base leading-relaxed tracking-[-0.015em] text-zinc-400 sm:text-lg">Ambitious about building products, teams and systems that hold up.</p>
+            <p className="max-w-xl text-sm leading-relaxed tracking-[-0.01em] text-zinc-500 sm:text-base">Ambitious about building products, teams and systems that hold up.</p>
 
             {/* A recruiter-friendly profile snapshot, kept inside the cinematic hero. */}
             <m.dl

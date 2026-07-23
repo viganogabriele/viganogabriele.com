@@ -16,6 +16,7 @@ export interface CircularCarouselProps<T> {
   previousControlLabel?: string;
   nextControlLabel?: string;
   onActiveIndexChange?: (index: number) => void;
+  pauseOnHover?: boolean;
 }
 
 const normalizeAngle = (angle: number) => ((angle + 180) % 360 + 360) % 360 - 180;
@@ -40,6 +41,7 @@ export function CircularCarousel<T>({
   previousControlLabel = "Show previous skill group",
   nextControlLabel = "Show next skill group",
   onActiveIndexChange,
+  pauseOnHover = true,
 }: CircularCarouselProps<T>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
@@ -248,8 +250,8 @@ export function CircularCarousel<T>({
       onPointerMove={onPointerMove}
       onPointerUp={endPointer}
       onPointerCancel={endPointer}
-      onPointerEnter={() => { hovering.current = true; pause(); }}
-      onPointerLeave={() => { hovering.current = false; if (!dragging.current) pause(); }}
+      onPointerEnter={() => { hovering.current = pauseOnHover; if (pauseOnHover) pause(); }}
+      onPointerLeave={() => { hovering.current = false; if (pauseOnHover && !dragging.current) pause(); }}
       onKeyDown={(event) => {
         if (event.key === "ArrowLeft") { event.preventDefault(); navigate(-1); }
         if (event.key === "ArrowRight") { event.preventDefault(); navigate(1); }
