@@ -9,6 +9,18 @@ import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; onToggleSystem: () => void }) {
   const reduced = useReducedMotion();
   const { level } = useMotionProfile();
+  const ctaButton = (
+    <a
+      href={`mailto:${profile.email}`}
+      data-cursor="hover"
+      className="group relative inline-flex min-h-11 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
+    >
+      <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+      <Mail className="relative h-4 w-4" />
+      <span className="relative">Get in touch</span>
+      <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+    </a>
+  );
   return (
     <section id="top" className="hero-grid relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/[0.07] pb-8 pt-24 sm:pt-28 lg:pt-32">
       <div className="hero-scanlines absolute inset-0 opacity-80" />
@@ -45,8 +57,8 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
 
             {/* A recruiter-friendly profile snapshot, kept inside the cinematic hero. */}
             <m.dl
-              initial="hidden"
-              animate="show"
+              initial={reduced ? false : "hidden"}
+              animate={reduced ? undefined : "show"}
               variants={{
                 hidden: {},
                 show: { transition: { staggerChildren: 0.1, delayChildren: 0.55 } },
@@ -60,6 +72,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
               ].map((s) => (
                 <m.div
                   key={s.label}
+                  initial={reduced ? false : undefined}
                   variants={{
                     hidden: { opacity: 0, y: 10 },
                     show: { opacity: 1, y: 0 },
@@ -73,18 +86,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             </m.dl>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Magnetic>
-                <a
-                  href={`mailto:${profile.email}`}
-                  data-cursor="hover"
-                  className="group relative inline-flex min-h-11 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
-                >
-                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                  <Mail className="relative h-4 w-4" />
-                  <span className="relative">Get in touch</span>
-                  <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </a>
-              </Magnetic>
+              {reduced || level === "static" ? ctaButton : <Magnetic>{ctaButton}</Magnetic>}
               <a href={profile.cvPath} download data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-5 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white"><FileText className="h-4 w-4" /> Download CV</a>
             </div>
           </m.div>

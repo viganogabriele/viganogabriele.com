@@ -32,11 +32,13 @@ function ProjectCard({ project, active }: { project: ProjectItem; active: boolea
 }
 
 function ProjectDetail({ project }: { project: ProjectItem }) {
+  const { prefersReducedMotion, level } = useMotionProfile();
+  const reduceMotion = prefersReducedMotion || level === "static";
   return (
     <m.article
       key={project.title}
       data-project-detail
-      initial={{ opacity: 0, y: 12 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.38 }}
       className="project-detail mt-8 border-y border-white/[0.09] py-7 sm:py-9"
