@@ -16,8 +16,8 @@ function ProjectCard({ project, active }: { project: ProjectItem; active: boolea
         <span className="text-accent">{active ? "selected" : project.status}</span>
       </div>
       <h3 className="mt-5 whitespace-pre-line text-2xl font-medium leading-[0.86] tracking-[-0.06em] text-bone sm:text-3xl">{project.title}</h3>
-      <div className="mt-4 flex flex-wrap gap-x-2 gap-y-1 border-t border-white/[0.08] pt-3 font-mono text-[8px] uppercase tracking-[0.09em] text-zinc-400">
-        {project.stack.map((item) => <span key={item}>/{item}</span>)}
+      <div className="mt-4 flex flex-wrap gap-1.5 border-t border-white/[0.08] pt-3 font-mono text-[8px] tracking-[0.08em] text-zinc-200">
+        {project.stack.map((item) => <span key={item} className="border border-accent/30 bg-accent/[0.06] px-1.5 py-0.5">{item}</span>)}
       </div>
     </div>
   );
