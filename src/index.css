@@ -944,12 +944,34 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
+.note-row a {
+  padding-left: .75rem;
+  padding-right: .75rem;
+  transition: background-color 280ms ease, color 280ms ease;
+}
+
+.note-row a:hover,
+.note-row a:focus-visible {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
 /* ─── Cert strip row ─────────────────────────────────────────────────────────── */
 .cert-row {
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 .cert-row:first-child {
   border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.cert-row a {
+  border-left: 1px solid transparent;
+  transition: border-color 280ms ease, background-color 280ms ease, color 280ms ease;
+}
+
+.cert-row a:hover,
+.cert-row a:focus-visible {
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
 /* ─── System-mode grid overlay ───────────────────────────────────────────────── */

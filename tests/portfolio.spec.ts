@@ -59,6 +59,12 @@ test("projects contain the three real case studies", async ({ page }) => {
   await expect(page.getByText("Next Build", { exact: false })).toHaveCount(0);
 });
 
+test("notes and certifications expose their destinations without relying on hover", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("Read note").first()).toBeVisible();
+  await expect(page.getByText("View credential").first()).toBeVisible();
+});
+
 test("skills carousel keeps a single readable active card and supports controls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

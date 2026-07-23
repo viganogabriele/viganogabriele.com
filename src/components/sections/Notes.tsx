@@ -43,7 +43,10 @@ export function Notes() {
                   <p>{note.date} / {note.readingTime}</p>
                   <p className="mt-2 hidden text-zinc-500 md:block">{note.tags.join(" · ")}</p>
                 </div>
-                <ArrowUpRight className="h-4 w-4 text-zinc-600 transition-all group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-accent" />
+                <span className="inline-flex min-h-11 items-center justify-end gap-2 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-500 transition-colors group-hover:text-accent">
+                  <span>Read note</span>
+                  <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
+                </span>
               </Link>
             </FadeIn>
           );
