@@ -24,13 +24,13 @@ export const projects: Project[] = [
     eyebrow: "Student community / product system",
     title: "PoliNetwork\nEcosystem",
     description:
-      "A connected web and operations ecosystem for a fast-moving student community.",
+      "The platform and operating model behind a fast-growing student community — turning a loosely organized volunteer network into one coherent product, process, and events engine.",
     role: "Board Member & Treasurer · Product & Operations Lead",
     contribution:
-      "Information architecture, UX direction, and coordination across design, engineering, and operations.",
+      "Set the information architecture and UX direction for the platform, then built the operating model behind it — recruiting and structuring the design, engineering, and events teams that run it.",
     outcome:
-      "A coherent platform direction supporting a 45,000+ student community and events with up to 1,000+ attendees.",
-    proof: "30+ volunteers recruited across 5 teams.",
+      "One coherent platform and process now carries the community from routine updates to 1,000+ person events, run by a distributed team instead of a single person.",
+    proof: "30+ volunteers recruited and organized into 5 functioning teams.",
     stack: ["Product", "UX", "Figma", "Operations"],
     status: "In progress · ongoing",
     link: "https://github.com/PoliNetworkOrg",
@@ -44,14 +44,14 @@ export const projects: Project[] = [
     eyebrow: "Personal laboratory / interaction design",
     title: "Interactive\nPortfolio",
     description:
-      "A portfolio treated as a product: designed, built, stress-tested, and continuously refined in public.",
+      "This site: a portfolio treated as a product — designed, engineered, stress-tested, and refined in public rather than assembled from a template.",
     role: "Solo — design, build, iterate",
     contribution:
-      "React 19, Vite, Framer Motion, and Matter.js shaped into a hardened cinematic build.",
+      "Built every layer myself: a physics-feeling 3D carousel, a motion profile that scales animation to each device's GPU and the user's reduced-motion preference, and a custom cursor and system-mode overlay with no UI library underneath.",
     outcome:
-      "Interactive without trading away accessibility, reduced-motion paths, or a smooth mobile experience.",
-    proof: "Lint + production build clean; guarded for touch and Telegram webviews.",
-    stack: ["React 19", "Framer Motion", "Vite", "Matter.js"],
+      "Stays fast and accessible under real constraints — reduced-motion and low-power paths, a clean production build, and no compromises on touch devices or in-app browsers like Telegram.",
+    proof: "Lint and production build pass clean; verified on touch devices and in Telegram's in-app browser.",
+    stack: ["React 19", "TypeScript", "Framer Motion", "Vite"],
     status: "Continuously evolving",
     link: "https://github.com/viganogabriele/viganogabriele.com",
     artifact: "portfolio",
@@ -64,11 +64,11 @@ export const projects: Project[] = [
     eyebrow: "24-hour hackathon / AI learning",
     title: "Study\nQuest",
     description:
-      "An AI-powered study planner combining spaced repetition, planning, and gamification.",
+      "An AI-assisted study planner built in a single 24-hour hackathon — spaced repetition, planning, and gamification wrapped in a working React Native app.",
     role: "Team Lead & Full-stack Developer",
-    contribution: "Coordinated a four-person team and shipped the React Native experience in a 24-hour hackathon.",
-    outcome: "A working study-planning concept built around useful AI guidance and repeatable learning habits.",
-    proof: "Designed and shipped by a team of 4 in 24 hours.",
+    contribution: "Led a four-person team through the full 24 hours — split the workload, kept scope realistic, and shipped the React Native app end to end.",
+    outcome: "A working, demoable study-planning app pairing useful AI guidance with habits designed to actually stick.",
+    proof: "Scoped, built, and demoed by a 4-person team in 24 hours.",
     stack: ["React Native", "Expo", "Gemini API", "Zustand"],
     status: "Hackathon build",
     link: "https://github.com/viganogabriele/gdg2026",

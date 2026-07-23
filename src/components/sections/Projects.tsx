@@ -43,7 +43,7 @@ function ProjectDetail({ project }: { project: ProjectItem }) {
     >
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
         <div>
-          <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-accent">Selected project / {project.index}</p>
+          <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-accent">{project.index} / {project.eyebrow}</p>
           <h3 className="mt-3 whitespace-pre-line text-4xl font-medium leading-[0.85] tracking-[-0.065em] text-bone sm:text-5xl">{project.title}</h3>
           <p className="mt-5 text-base leading-relaxed text-zinc-300 sm:min-h-[4.5rem]">{project.description}</p>
         </div>
