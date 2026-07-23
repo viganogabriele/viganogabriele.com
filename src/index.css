@@ -992,7 +992,8 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
   position: relative;
   padding-left: calc(var(--expertise-gutter, 2rem) + 1px);
   border-left: 1px solid transparent;
-  transition: border-color 350ms ease, background-color 350ms ease;
+  transform: translateX(0);
+  transition: border-color 650ms cubic-bezier(.16, 1, .3, 1), background-color 650ms cubic-bezier(.16, 1, .3, 1), color 500ms ease, opacity 650ms cubic-bezier(.16, 1, .3, 1), transform 650ms cubic-bezier(.16, 1, .3, 1);
 }
 
 .expertise-rail {
@@ -1026,8 +1027,14 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 .expertise-item:hover,
 .expertise-item.is-focused {
   border-left-color: var(--accent);
-  background-color: color-mix(in srgb, var(--accent) 3%, transparent);
+  background-color: color-mix(in srgb, var(--accent) 5%, transparent);
+  opacity: 1;
+  transform: translateX(.45rem);
 }
+
+.expertise-item:not(.is-focused) { opacity: .72; }
+
+.expertise-item:hover { opacity: 1; }
 
 .expertise-item.is-focused .expertise-dot {
   border-color: var(--accent);
