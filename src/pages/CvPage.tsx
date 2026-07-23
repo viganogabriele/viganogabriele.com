@@ -1,10 +1,10 @@
 import { m, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, Download, ExternalLink, FileText, Power } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Footer } from "../components/layout/Footer";
 import { AppShell } from "../components/layout/AppShell";
 import { SystemModeOverlay } from "../components/layout/SystemModeOverlay";
 import { SystemHUD } from "../components/motion/SystemHUD";
-import { projects } from "../data/projects";
 import { profile } from "../data/profile";
 import { cvMetadata } from "../data/site";
 import { useMotionProfile } from "../hooks/useMotionProfile";
@@ -22,7 +22,6 @@ export function CvPage() {
   const reduced = useReducedMotion();
   const { level } = useMotionProfile();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
-  const featuredProjects = projects.filter((project) => project.link).slice(0, 2);
   const entrance = reduced || level === "static" ? false : { opacity: 0, y: 16 };
 
   return (
@@ -78,16 +77,14 @@ export function CvPage() {
           </div>
           <div className="mt-7 grid gap-px border border-white/[0.09] bg-white/[0.09] md:grid-cols-3">
             {exploreLinks.map(({ label, href, detail, icon: Icon, external }) => (
-              <a key={label} href={href} {...(external ? { target: "_blank", rel: "noreferrer" } : {})} data-cursor="hover" className="group flex min-h-32 flex-col justify-between bg-background p-5 transition-colors hover:bg-surface">
-                <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-500">{detail}</span>
-                <span className="flex items-center justify-between gap-3 text-lg font-medium text-bone">{label}<Icon className="h-4 w-4 text-accent transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></span>
+              <a key={label} href={href} {...(external ? { target: "_blank", rel: "noreferrer" } : {})} data-cursor="hover" className="group flex min-h-14 items-center justify-between gap-4 bg-background px-4 py-3 transition-colors hover:bg-surface sm:px-5">
+                <span className="min-w-0"><span className="block text-base font-medium text-bone">{label}</span><span className="mt-0.5 block font-mono text-[8px] uppercase tracking-[0.13em] text-zinc-500">{detail}</span></span>
+                <Icon className="h-4 w-4 shrink-0 text-accent transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </a>
             ))}
           </div>
-          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 font-mono text-[10px] uppercase tracking-[0.13em] text-zinc-500">
-            {featuredProjects.map((project) => <a key={project.title} href={project.link} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 transition-colors hover:text-white">{project.title.replace("\n", " ")} <ArrowUpRight className="h-3.5 w-3.5 text-accent" /></a>)}
-          </div>
         </section>
+        <Footer onNavigate={() => window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })} />
       </main>
     </AppShell>
   );
