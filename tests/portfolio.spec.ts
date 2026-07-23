@@ -110,10 +110,11 @@ test("hero portrait stays crisp while scrolling and the surname keeps its accent
 
 test("hero makes Gabriele's current profile and contact path immediately available", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByLabel("Professional profile")).toContainText("Board Member & Treasurer · PoliNetwork");
-  await expect(page.getByLabel("Professional profile")).toContainText("Computer Engineering · Politecnico di Milano");
-  await expect(page.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "mailto:info@viganogabriele.com");
-  await expect(page.getByRole("link", { name: "See selected work" })).toHaveAttribute("href", "#projects");
+  const hero = page.locator("#top");
+  await expect(hero.getByLabel("Professional profile")).toContainText("PoliNetwork student association");
+  await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering student · Politecnico di Milano");
+  await expect(hero.getByRole("link", { name: "Request CV" })).toHaveAttribute("href", "mailto:info@viganogabriele.com?subject=CV%20request");
+  await expect(hero.getByRole("link", { name: "LinkedIn" })).toHaveCount(0);
 });
 
 test("home identity metadata and favicon are exact", async ({ page }) => {

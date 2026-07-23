@@ -1,5 +1,5 @@
 import { m, useReducedMotion } from "framer-motion";
-import { ArrowDownRight, ArrowUpRight, Mail } from "lucide-react";
+import { ArrowUpRight, FileText, Mail } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { profile } from "../../data/profile";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -27,10 +27,6 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
     window.addEventListener("pointermove", move, { passive: true });
     return () => { window.removeEventListener("pointermove", move); cancelAnimationFrame(frame); };
   }, [reduced, scrollMotion]);
-  const go = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    onNavigate("#projects");
-  };
   return (
     <section id="top" className="hero-grid relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/[0.07] pb-10 pt-24 sm:pt-28">
       <div className="hero-scanlines absolute inset-0 opacity-80" />
@@ -50,7 +46,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
                 animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }}
                 transition={{ duration: 1.6, repeat: Infinity }}
               />
-              <span>Computer Engineering student · Politecnico di Milano</span>
+              <span>{profile.location}</span>
             </span>
           </m.p>
 
@@ -74,7 +70,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
             className="mt-10"
           >
             <p className="flex max-w-3xl items-start text-[clamp(1.55rem,7vw,3rem)] font-medium leading-[0.98] tracking-[-0.05em] text-bone">
-              <TextScramble text="I build products, teams and systems that hold up." />
+              <TextScramble text="Computer Engineering student. Board Member & Treasurer at PoliNetwork, a student association." />
               <m.span
                 className="ml-2 inline-block h-8 w-1 bg-accent"
                 animate={reduced || level !== "full" ? undefined : { opacity: [1, 0, 1] }}
@@ -95,8 +91,8 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
             >
               {[
                 { label: "Current role", value: profile.currentRole },
-                { label: "Education", value: profile.education },
-                { label: "Based in", value: profile.location },
+                { label: "Studying", value: profile.education },
+                { label: "Focus", value: "Product, operations & teams" },
               ].map((s) => (
                 <m.div
                   key={s.label}
@@ -115,18 +111,17 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Magnetic>
                 <a
-                  href={`mailto:${profile.email}`}
+                  href={`mailto:${profile.email}?subject=CV%20request`}
                   data-cursor="hover"
                   className="group relative inline-flex items-center gap-3 overflow-hidden bg-bone px-5 py-3.5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
                 >
                   <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                  <Mail className="relative h-4 w-4" />
-                  <span className="relative">Get in touch</span>
+                  <FileText className="relative h-4 w-4" />
+                  <span className="relative">Request CV</span>
                   <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </a>
               </Magnetic>
-              <a href="#projects" onClick={go} data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white">See selected work <ArrowDownRight className="h-4 w-4" /></a>
-              <a href={profile.linkedIn} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 px-2 py-3 text-sm text-zinc-400 transition-colors hover:text-white">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
+              <a href={`mailto:${profile.email}`} data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white"><Mail className="h-4 w-4" /> Get in touch</a>
             </div>
           </m.div>
         </div>
@@ -135,7 +130,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
           initial={reduced ? false : { opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.34, duration: 1, ease: ease.cinematic }}
-          className="hero-visual-frame relative mx-auto w-full max-w-[34rem] aspect-[4/5] min-h-[19rem] overflow-hidden sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem]"
+          className="hero-visual-frame relative mx-auto hidden w-full max-w-[34rem] aspect-[4/5] min-h-[19rem] overflow-hidden sm:aspect-[5/6] sm:min-h-[22rem] lg:block lg:aspect-[4/5] lg:min-h-[34rem]"
         >
           <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-accent/75">
