@@ -100,7 +100,6 @@ export function Projects() {
           dragSensitivity={0.34}
           momentumStrength={1.15}
           pauseDuration={3000}
-          pauseOnHover={false}
           previousControlLabel="Show previous project"
           nextControlLabel="Show next project"
           onActiveIndexChange={setActiveIndex}

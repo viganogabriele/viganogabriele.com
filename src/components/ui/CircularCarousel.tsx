@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 
 export interface CircularCarouselProps<T> {
   items: readonly T[];
@@ -59,6 +59,7 @@ export function CircularCarousel<T>({
   const hovering = useRef(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [tickerRevision, setTickerRevision] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
 
   const updateCards = useCallback(() => {
     const count = items.length;
@@ -156,7 +157,7 @@ export function CircularCarousel<T>({
           rotation.current += velocity.current * elapsed;
           velocity.current *= Math.exp(-elapsed / 260);
           if (Math.abs(velocity.current) <= 0.003) { velocity.current = 0; settle(); }
-        } else if (!hovering.current && now >= pauseUntil.current) {
+        } else if (autoPlay && !hovering.current && now >= pauseUntil.current) {
           rotation.current -= autoRotateSpeed * elapsed / 1000;
         }
         updateCards();
@@ -165,7 +166,7 @@ export function CircularCarousel<T>({
     };
     frameRef.current = window.requestAnimationFrame(tick);
     return stopAnimation;
-  }, [autoRotateSpeed, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
+  }, [autoPlay, autoRotateSpeed, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
 
   const select = useCallback((index: number) => {
     if (!items.length) return;
@@ -284,6 +285,16 @@ export function CircularCarousel<T>({
         <button type="button" className="circular-carousel__control" onClick={() => navigate(-1)} aria-label={previousControlLabel}><ChevronLeft aria-hidden="true" /></button>
         <span className="font-mono text-[9px] tracking-[0.15em] text-zinc-500" aria-hidden="true">{String(activeIndex + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
         <button type="button" className="circular-carousel__control" onClick={() => navigate(1)} aria-label={nextControlLabel}><ChevronRight aria-hidden="true" /></button>
+        {!reducedMotion && (
+          <button
+            type="button"
+            className="circular-carousel__control"
+            onClick={() => setAutoPlay((value) => !value)}
+            aria-label={autoPlay ? "Pause automatic rotation" : "Resume automatic rotation"}
+          >
+            {autoPlay ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
+          </button>
+        )}
       </div>
     </div>
   );
