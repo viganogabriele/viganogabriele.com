@@ -44,18 +44,13 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
             transition={{ delay: 0.16, duration: 0.6, ease: ease.cinematic }}
             className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-accent/75"
           >
-            {/* Dot + label grouped so the dot always aligns with its own text line. */}
             <span className="inline-flex items-center gap-2 whitespace-nowrap">
               <m.span
                 className="inline-block h-1.5 w-1.5 flex-none rounded-full bg-accent"
                 animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }}
                 transition={{ duration: 1.6, repeat: Infinity }}
               />
-              <span>Computer Engineering student · Milan</span>
-            </span>
-            {/* Coordinate wraps to its own line on narrow screens without affecting the dot. */}
-            <span data-sys-reveal className="text-accent/80" style={{ ["--sys-op" as never]: 0.9 }}>
-              45.4642 N · 9.1900 E
+              <span>Computer Engineering student · Politecnico di Milano</span>
             </span>
           </m.p>
 
@@ -144,7 +139,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
         >
           <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-accent/75">
-            HERO / X-00 Y-00
+            Portrait / profile
           </span>
         </m.div>
       </div>
@@ -158,7 +153,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
         transition={{ delay: 1.1, duration: 0.6, ease: ease.softSettle }}
         className="absolute bottom-3 left-5 flex min-h-11 items-center gap-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-white sm:bottom-6 sm:left-8 lg:left-10"
       >
-        Scroll to inspect <ArrowUpRight className="h-3 w-3 rotate-90" />
+        Explore profile <ArrowUpRight className="h-3 w-3 rotate-90" />
       </m.a>
     </section>
   );
