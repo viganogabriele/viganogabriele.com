@@ -24,12 +24,17 @@ const exploreLinks = [
 
 function CvDocumentViewer() {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [failed, setFailed] = useState(false);
   const pageWidth = Math.round(Math.min(Math.max(viewportWidth - 32, 280), 860) * zoom);
+  const clampZoom = (value: number) => Math.min(2.5, Math.max(0.75, Number(value.toFixed(2))));
+
+  const resetPinch = () => { pinchRef.current = null; };
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -48,18 +53,44 @@ function CvDocumentViewer() {
         <span>Integrated PDF viewer</span>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] bg-background/45 px-3 py-2 sm:px-4" aria-label="PDF viewer controls">
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={() => setPageNumber((current) => Math.max(1, current - 1))} disabled={pageNumber <= 1} data-cursor="hover" className="inline-flex h-10 w-10 items-center justify-center border border-white/[0.1] text-zinc-300 transition-colors hover:border-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>
-          <span className="min-w-20 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-400" aria-live="polite">Page {pageNumber} {pageCount ? `of ${pageCount}` : ""}</span>
-          <button type="button" onClick={() => setPageNumber((current) => Math.min(pageCount, current + 1))} disabled={!pageCount || pageNumber >= pageCount} data-cursor="hover" className="inline-flex h-10 w-10 items-center justify-center border border-white/[0.1] text-zinc-300 transition-colors hover:border-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Next page"><ChevronRight className="h-4 w-4" /></button>
+        <div className="inline-flex items-center rounded-full border border-white/[0.1] bg-surface/60 p-1">
+          <button type="button" onClick={() => setPageNumber((current) => Math.max(1, current - 1))} disabled={pageNumber <= 1} data-cursor="hover" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>
+          <span className="min-w-18 px-1 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-400" aria-live="polite">{pageNumber} {pageCount ? `/ ${pageCount}` : ""}</span>
+          <button type="button" onClick={() => setPageNumber((current) => Math.min(pageCount, current + 1))} disabled={!pageCount || pageNumber >= pageCount} data-cursor="hover" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Next page"><ChevronRight className="h-4 w-4" /></button>
         </div>
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={() => setZoom((current) => Math.max(0.8, Number((current - 0.1).toFixed(1))))} disabled={zoom <= 0.8} data-cursor="hover" className="inline-flex h-10 w-10 items-center justify-center border border-white/[0.1] text-zinc-300 transition-colors hover:border-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
+        <div className="inline-flex items-center rounded-full border border-white/[0.1] bg-surface/60 p-1">
+          <button type="button" onClick={() => setZoom((current) => clampZoom(current - 0.25))} disabled={zoom <= 0.75} data-cursor="hover" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
           <span className="min-w-12 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-400" aria-live="polite">{Math.round(zoom * 100)}%</span>
-          <button type="button" onClick={() => setZoom((current) => Math.min(1.4, Number((current + 0.1).toFixed(1))))} disabled={zoom >= 1.4} data-cursor="hover" className="inline-flex h-10 w-10 items-center justify-center border border-white/[0.1] text-zinc-300 transition-colors hover:border-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
+          <button type="button" onClick={() => setZoom((current) => clampZoom(current + 0.25))} disabled={zoom >= 2.5} data-cursor="hover" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
         </div>
       </div>
-      <div ref={viewportRef} className="h-[68svh] min-h-[34rem] overflow-auto bg-[#151a2b] p-4 sm:h-[min(78svh,62rem)] sm:p-6">
+      <div
+        ref={viewportRef}
+        className="h-[68svh] min-h-[34rem] overflow-auto bg-[#151a2b] p-4 touch-pan-y sm:h-[min(78svh,62rem)] sm:p-6"
+        onPointerDown={(event) => {
+          if (event.pointerType !== "touch") return;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+          if (pointersRef.current.size === 2) {
+            const [first, second] = [...pointersRef.current.values()];
+            pinchRef.current = { distance: Math.hypot(first.x - second.x, first.y - second.y), zoom };
+          }
+        }}
+        onPointerMove={(event) => {
+          if (event.pointerType !== "touch" || !pointersRef.current.has(event.pointerId)) return;
+          pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+          if (!pinchRef.current || pointersRef.current.size !== 2) return;
+          const [first, second] = [...pointersRef.current.values()];
+          setZoom(clampZoom(pinchRef.current.zoom * (Math.hypot(first.x - second.x, first.y - second.y) / pinchRef.current.distance)));
+        }}
+        onPointerUp={(event) => { pointersRef.current.delete(event.pointerId); resetPinch(); }}
+        onPointerCancel={(event) => { pointersRef.current.delete(event.pointerId); resetPinch(); }}
+        onWheel={(event) => {
+          if (!event.ctrlKey) return;
+          event.preventDefault();
+          setZoom((current) => clampZoom(current + (event.deltaY < 0 ? 0.1 : -0.1)));
+        }}
+      >
         {failed ? (
           <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
         ) : (
