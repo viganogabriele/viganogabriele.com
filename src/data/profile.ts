@@ -1,6 +1,6 @@
 export const profile = {
   email: "info@viganogabriele.com",
-  cvPath: "/cv/gabriele-vigano-cv.pdf",
+  cvPath: "/cv/Vigano_Gabriele_CV.pdf",
   linkedIn: "https://linkedin.com/in/viganogabriele",
   location: "Milan, Italy",
   education: "Computer Engineering student at Politecnico di Milano",

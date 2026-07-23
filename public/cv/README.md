@@ -2,6 +2,6 @@
 
 Place the current PDF in this folder with this exact filename:
 
-`gabriele-vigano-cv.pdf`
+`Vigano_Gabriele_CV.pdf`
 
-The hero's **Download CV** link serves it at `/cv/gabriele-vigano-cv.pdf`.
+The dedicated CV page embeds and serves it at `/cv/Vigano_Gabriele_CV.pdf`.

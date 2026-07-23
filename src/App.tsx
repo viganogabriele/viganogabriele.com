@@ -10,6 +10,7 @@ import { usePreloader } from "./hooks/usePreloader";
 import { Preloader } from "./components/layout/Preloader";
 
 const NotePage = lazy(() => import("./pages/NotePage").then((module) => ({ default: module.NotePage })));
+const CvPage = lazy(() => import("./pages/CvPage").then((module) => ({ default: module.CvPage })));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
 const HOME_PATHS = new Set(["/", "/index.html", "/viganogabriele.com", "/viganogabriele.com/", "/viganogabriele.com/index.html"]);
 
@@ -137,5 +138,5 @@ function AnimatedRoutes({ positions }: { positions: Map<string, ScrollSnapshot> 
   const location = useLocation();
   const navigationType = useNavigationType();
   const { prefersReducedMotion } = useMotionProfile();
-  return <RouteErrorBoundary resetKey={location.key}><AnimatePresence mode="wait" initial={false}><m.div className="relative" key={location.key} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }} transition={{ duration: prefersReducedMotion ? 0 : 0.24 }}><RouteScrollCommit location={location} navigationType={navigationType} positions={positions} /><Suspense fallback={<RouteLoadingFallback />}><Routes location={location}><Route path="/" element={<HomePage />} /><Route path="/index.html" element={<HomePage />} /><Route path="/viganogabriele.com" element={<HomePage />} /><Route path="/viganogabriele.com/" element={<HomePage />} /><Route path="/viganogabriele.com/index.html" element={<HomePage />} /><Route path="/notes/:slug" element={<NotePage />} /><Route path="*" element={<NotFoundPage />} /></Routes></Suspense></m.div></AnimatePresence></RouteErrorBoundary>;
+  return <RouteErrorBoundary resetKey={location.key}><AnimatePresence mode="wait" initial={false}><m.div className="relative" key={location.key} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }} transition={{ duration: prefersReducedMotion ? 0 : 0.24 }}><RouteScrollCommit location={location} navigationType={navigationType} positions={positions} /><Suspense fallback={<RouteLoadingFallback />}><Routes location={location}><Route path="/" element={<HomePage />} /><Route path="/index.html" element={<HomePage />} /><Route path="/viganogabriele.com" element={<HomePage />} /><Route path="/viganogabriele.com/" element={<HomePage />} /><Route path="/viganogabriele.com/index.html" element={<HomePage />} /><Route path="/cv" element={<CvPage />} /><Route path="/cv/" element={<CvPage />} /><Route path="/notes/:slug" element={<NotePage />} /><Route path="*" element={<NotFoundPage />} /></Routes></Suspense></m.div></AnimatePresence></RouteErrorBoundary>;
 }
