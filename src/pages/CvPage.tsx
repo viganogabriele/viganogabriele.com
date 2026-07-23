@@ -77,9 +77,9 @@ export function CvPage() {
           </div>
           <div className="mt-7 grid gap-px border border-white/[0.09] bg-white/[0.09] md:grid-cols-3">
             {exploreLinks.map(({ label, href, detail, icon: Icon, external }) => (
-              <a key={label} href={href} {...(external ? { target: "_blank", rel: "noreferrer" } : {})} data-cursor="hover" className="group flex min-h-14 items-center justify-between gap-4 bg-background px-4 py-3 transition-colors hover:bg-surface sm:px-5">
-                <span className="min-w-0"><span className="block text-base font-medium text-bone">{label}</span><span className="mt-0.5 block font-mono text-[8px] uppercase tracking-[0.13em] text-zinc-500">{detail}</span></span>
-                <Icon className="h-4 w-4 shrink-0 text-accent transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <a key={label} href={href} {...(external ? { target: "_blank", rel: "noreferrer" } : {})} data-cursor="hover" className="group flex min-h-32 flex-col justify-between bg-background px-5 pb-5 pt-3 transition-colors hover:bg-surface">
+                <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-500">{detail}</span>
+                <span className="flex w-full items-center justify-between gap-3 text-lg font-medium text-bone">{label}<Icon className="h-4 w-4 text-accent transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></span>
               </a>
             ))}
           </div>
