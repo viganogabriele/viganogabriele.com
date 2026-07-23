@@ -126,7 +126,7 @@ test("hero makes Gabriele's current profile and contact path immediately availab
   await expect(hero.getByRole("link", { name: "LinkedIn" })).toHaveCount(0);
 });
 
-test("CV page keeps the document primary and exposes native viewer actions", async ({ page }) => {
+test("CV page keeps the document primary and gives mobile users a full-screen document path", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/cv");
   await expect(page).toHaveTitle("CV | Gabriele Viganò");
@@ -135,10 +135,10 @@ test("CV page keeps the document primary and exposes native viewer actions", asy
   await expect(page.getByRole("link", { name: "Download CV" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
   await expect(page.getByRole("link", { name: "Download CV" })).toHaveAttribute("download", "Vigano_Gabriele_CV.pdf");
   await expect(page.getByRole("link", { name: "Open in new tab" })).toHaveAttribute("target", "_blank");
-  await expect(page.getByText("Integrated PDF viewer")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Zoom in" })).toBeEnabled();
+  await expect(page.getByText("Tap document for full screen")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open CV full screen" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
   await expect(page.locator("canvas").first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Explore further." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Explore further." })).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });
