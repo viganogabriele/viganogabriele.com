@@ -31,18 +31,18 @@ test("home has no horizontal overflow across target viewports", async ({ page })
   }
 });
 
-test("mobile navigation is keyboard-safe and anchors work", async ({ page }) => {
+test("mobile navigation is keyboard-safe and anchors projects", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const menu = page.getByRole("button", { name: "Toggle navigation" });
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByRole("link", { name: "Work", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Projects", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(menu).toHaveAttribute("aria-expanded", "false");
   await menu.click();
-  await page.getByRole("link", { name: "Work", exact: true }).click();
+  await page.getByRole("link", { name: "Projects", exact: true }).click();
   await expect(page.locator("#projects")).toBeInViewport();
 });
 
