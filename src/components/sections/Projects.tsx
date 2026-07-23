@@ -3,7 +3,6 @@ import { ArrowUpRight } from "lucide-react";
 import { useState } from "react";
 import { projects } from "../../data/projects";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
-import { ArtifactSVG } from "../ui/ArtifactSVG";
 import { CircularCarousel } from "../ui/CircularCarousel";
 import { SectionHeader } from "../ui/SectionHeader";
 
@@ -16,8 +15,7 @@ function ProjectCard({ project, active }: { project: ProjectItem; active: boolea
         <span>{project.index} / work</span>
         <span className="text-accent">{active ? "selected" : project.status}</span>
       </div>
-      <ArtifactSVG type={project.artifact} className="mt-4 h-20 w-full text-accent/70" />
-      <h3 className="mt-4 whitespace-pre-line text-2xl font-medium leading-[0.86] tracking-[-0.06em] text-bone sm:text-3xl">{project.title}</h3>
+      <h3 className="mt-5 whitespace-pre-line text-2xl font-medium leading-[0.86] tracking-[-0.06em] text-bone sm:text-3xl">{project.title}</h3>
       <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-zinc-400">{project.description}</p>
       <div className="mt-4 flex border-t border-white/[0.08] pt-3">
         {project.metrics.map((metric, index) => (
@@ -90,6 +88,10 @@ export function Projects() {
           getItemLabel={(project) => `${project.title.replace("\n", " ")} project`}
           renderCard={(project, _index, active) => <ProjectCard project={project} active={active} />}
           reducedMotion={prefersReducedMotion || level === "static"}
+          autoRotateSpeed={5}
+          dragSensitivity={0.34}
+          momentumStrength={1.15}
+          pauseDuration={3000}
           previousControlLabel="Show previous project"
           nextControlLabel="Show next project"
           onActiveIndexChange={setActiveIndex}
