@@ -951,6 +951,11 @@ body {
   transform: translateX(.3rem);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .note-row a { transition: background-color 200ms ease, color 200ms ease; }
+  .note-row a:hover, .note-row a:focus-visible { transform: none; }
+}
+
 /* ─── Cert strip row ─────────────────────────────────────────────────────────── */
 .cert-row {
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -968,6 +973,10 @@ body {
 .cert-row a:focus-visible {
   border-left-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cert-row a { transition-duration: 100ms; }
 }
 
 /* ─── System-mode grid overlay ───────────────────────────────────────────────── */
@@ -1083,6 +1092,11 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 
 @media (min-width: 768px) {
   .expertise-rail { --expertise-gutter: 2.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expertise-item { transition: border-color 200ms ease, background-color 200ms ease, color 200ms ease, opacity 200ms ease; }
+  .expertise-item, .expertise-item.is-focused { transform: none; }
 }
 
 @media (max-width: 399px) {
