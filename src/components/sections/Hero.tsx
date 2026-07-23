@@ -22,7 +22,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             className="inline-flex items-center gap-2 font-mono text-sm uppercase tracking-[0.18em] text-accent/75"
           >
             <m.span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} />
-            Milan, Italy
+            {profile.location}
           </m.p>
           <m.h1
             aria-label="GABRIELE VIGANÒ"
