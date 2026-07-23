@@ -118,8 +118,8 @@ test("hero portrait stays crisp while scrolling and the surname keeps its accent
 test("hero makes Gabriele's current profile and contact path immediately available", async ({ page }) => {
   await page.goto("/");
   const hero = page.locator("#top");
-  await expect(hero.getByLabel("Professional profile")).toContainText("PoliNetwork student association");
-  await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering student · Politecnico di Milano");
+  await expect(hero.getByLabel("Professional profile")).toContainText("Board Member & Treasurer at PoliNetwork");
+  await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering student at Politecnico di Milano");
   await expect(hero.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "mailto:info@viganogabriele.com");
   await expect(hero.getByRole("link", { name: "Download CV" })).toHaveAttribute("href", "/cv/gabriele-vigano-cv.pdf");
   await expect(hero.getByRole("link", { name: "LinkedIn" })).toHaveCount(0);

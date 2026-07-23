@@ -126,7 +126,7 @@ body {
 
 /* Adaptive hero object */
 .hero-wordmark {
-  font-size: clamp(3.55rem, 17vw, 9.25rem);
+  font-size: clamp(3.55rem, 15vw, 8.25rem);
 }
 
 .hero-wordmark-line {
@@ -1063,8 +1063,6 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
   transition: background-color 250ms ease, border-color 250ms ease, box-shadow 250ms ease;
 }
 
-.expertise-item:has(:focus-visible),
-.expertise-item:hover,
 .expertise-item.is-focused {
   border-left-color: var(--accent);
   background-color: color-mix(in srgb, var(--accent) 5%, transparent);
@@ -1074,7 +1072,12 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
 
 .expertise-item:not(.is-focused) { opacity: .72; }
 
-.expertise-item:hover { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .expertise-item:not(.is-focused):hover {
+    background-color: color-mix(in srgb, var(--accent) 2%, transparent);
+    opacity: .9;
+  }
+}
 
 .expertise-item.is-focused .expertise-dot {
   border-color: var(--accent);

@@ -3,6 +3,6 @@ export const profile = {
   cvPath: "/cv/gabriele-vigano-cv.pdf",
   linkedIn: "https://linkedin.com/in/viganogabriele",
   location: "Milan, Italy",
-  education: "Computer Engineering student · Politecnico di Milano",
-  currentRole: "Board Member & Treasurer · PoliNetwork student association",
+  education: "Computer Engineering student at Politecnico di Milano",
+  currentRole: "Board Member & Treasurer at PoliNetwork",
 } as const;

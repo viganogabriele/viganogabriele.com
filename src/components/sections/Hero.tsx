@@ -28,7 +28,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
     return () => { window.removeEventListener("pointermove", move); cancelAnimationFrame(frame); };
   }, [reduced, scrollMotion]);
   return (
-    <section id="top" className="hero-grid relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/[0.07] pb-10 pt-24 sm:pt-28">
+    <section id="top" className="hero-grid relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/[0.07] pb-10 pt-24 sm:pt-28 lg:pt-36">
       <div className="hero-scanlines absolute inset-0 opacity-80" />
       <div className="pointer-events-none absolute inset-x-0 top-[18%] h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
 
@@ -41,7 +41,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             transition={{ delay: 0.23, duration: 0.9, ease: ease.cinematic }}
             ref={wordmarkRef}
             style={{ fontVariationSettings: `'wght' ${weight}` }}
-            className="hero-wordmark max-w-4xl font-medium leading-[0.76] tracking-[-0.09em] text-bone"
+            className="hero-wordmark max-w-4xl font-medium leading-[0.8] tracking-[-0.09em] text-bone"
           >
             <span className="hero-wordmark-line block"><span>GABRIELE</span></span>
             <span className="hero-wordmark-line hero-wordmark-line-accent block pl-[0.06em] text-zinc-300" aria-hidden="true"><span>VIGAN<span className="hero-wordmark-o-grave">O</span></span></span>
@@ -53,7 +53,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             transition={{ delay: 0.45, duration: 0.6, ease: ease.softSettle }}
             className="mt-10"
           >
-            <p className="flex max-w-3xl items-start text-[clamp(1.55rem,7vw,3rem)] font-medium leading-[0.98] tracking-[-0.05em] text-bone">
+            <p className="flex max-w-3xl items-start text-[clamp(1.45rem,5.5vw,2.5rem)] font-medium leading-[1.02] tracking-[-0.05em] text-bone">
               <TextScramble text="Ambitious about building products, teams and systems that hold up." />
               <m.span
                 className="ml-2 inline-block h-8 w-1 bg-accent"
@@ -71,12 +71,11 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
                 show: { transition: { staggerChildren: 0.1, delayChildren: 0.55 } },
               }}
               aria-label="Professional profile"
-              className="hero-stat-grid mt-7 grid max-w-2xl grid-cols-1 border-y border-white/[0.09] font-mono uppercase tracking-[0.13em] text-zinc-500 sm:grid-cols-3"
+              className="hero-stat-grid mt-7 grid max-w-xl grid-cols-1 border-y border-white/[0.09] font-mono uppercase tracking-[0.13em] text-zinc-500 sm:grid-cols-2"
             >
               {[
                 { label: "Current role", value: profile.currentRole },
                 { label: "Studying", value: profile.education },
-                { label: "Focus", value: "Product, operations & teams" },
               ].map((s) => (
                 <m.div
                   key={s.label}
