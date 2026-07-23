@@ -39,13 +39,13 @@ function ProjectDetail({ project }: { project: ProjectItem }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.38 }}
-      className="mt-8 border-y border-white/[0.09] py-7 sm:py-9"
+      className="project-detail mt-8 border-y border-white/[0.09] py-7 sm:py-9 lg:flex lg:min-h-[29rem] lg:flex-col"
     >
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
         <div>
           <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-accent">Selected project / {project.index}</p>
           <h3 className="mt-3 whitespace-pre-line text-4xl font-medium leading-[0.85] tracking-[-0.065em] text-bone sm:text-5xl">{project.title}</h3>
-          <p className="mt-5 text-base leading-relaxed text-zinc-300">{project.description}</p>
+          <p className="mt-5 text-base leading-relaxed text-zinc-300 sm:min-h-[4.5rem]">{project.description}</p>
         </div>
         <div className="grid gap-6 text-sm leading-relaxed sm:grid-cols-2">
           <div>
@@ -61,7 +61,7 @@ function ProjectDetail({ project }: { project: ProjectItem }) {
           </div>
         </div>
       </div>
-      <div className="mt-7 flex flex-wrap items-center justify-between gap-5 border-t border-white/[0.08] pt-5">
+      <div className="mt-7 grid gap-5 border-t border-white/[0.08] pt-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end lg:mt-auto">
         <div>
           <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">Technology</p>
           <div className="mt-2 flex flex-wrap gap-2 font-mono text-[10px] tracking-[0.08em] text-zinc-200">

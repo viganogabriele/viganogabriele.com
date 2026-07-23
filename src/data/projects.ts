@@ -71,6 +71,7 @@ export const projects: Project[] = [
     proof: "Designed and shipped by a team of 4 in 24 hours.",
     stack: ["React Native", "Expo", "Gemini API", "Zustand"],
     status: "Hackathon build",
+    link: "https://github.com/viganogabriele/gdg2026",
     artifact: "studyquest",
     metrics: [{ value: "24H", label: "build time" }, { value: "4", label: "team members" }],
     accent: "bone",
