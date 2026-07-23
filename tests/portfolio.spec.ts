@@ -104,6 +104,14 @@ test("hero portrait stays crisp while scrolling and the surname keeps its accent
   await expect(page.locator(".hero-visual-frame")).toHaveCSS("opacity", "1");
 });
 
+test("hero makes Gabriele's current profile and contact path immediately available", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByLabel("Professional profile")).toContainText("Board Member & Treasurer · PoliNetwork");
+  await expect(page.getByLabel("Professional profile")).toContainText("Computer Engineering · Politecnico di Milano");
+  await expect(page.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "mailto:info@viganogabriele.com");
+  await expect(page.getByRole("link", { name: "See selected work" })).toHaveAttribute("href", "#projects");
+});
+
 test("home identity metadata and favicon are exact", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle("Gabriele Viganò");

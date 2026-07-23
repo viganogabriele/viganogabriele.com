@@ -1,6 +1,7 @@
 import { m, useReducedMotion } from "framer-motion";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Mail } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { profile } from "../../data/profile";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ease } from "../../lib/motion";
 import { Magnetic } from "../motion/Magnetic";
@@ -50,7 +51,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
                 animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }}
                 transition={{ duration: 1.6, repeat: Infinity }}
               />
-              <span>Computer Engineering Student · Milan</span>
+              <span>Computer Engineering student · Milan</span>
             </span>
             {/* Coordinate wraps to its own line on narrow screens without affecting the dot. */}
             <span data-sys-reveal className="text-accent/80" style={{ ["--sys-op" as never]: 0.9 }}>
@@ -86,7 +87,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
               />
             </p>
 
-            {/* stat row with stagger */}
+            {/* A recruiter-friendly profile snapshot, kept inside the cinematic hero. */}
             <m.dl
               initial="hidden"
               animate="show"
@@ -94,12 +95,13 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
                 hidden: {},
                 show: { transition: { staggerChildren: 0.1, delayChildren: 0.55 } },
               }}
-              className="hero-stat-grid mt-7 grid max-w-xl grid-cols-3 border-y border-white/[0.09] font-mono uppercase tracking-[0.13em] text-zinc-500"
+              aria-label="Professional profile"
+              className="hero-stat-grid mt-7 grid max-w-2xl grid-cols-1 border-y border-white/[0.09] font-mono uppercase tracking-[0.13em] text-zinc-500 sm:grid-cols-3"
             >
               {[
-                { label: "Volunteers recruited", value: "30+" },
-                { label: "Event attendees", value: "1,000+" },
-                { label: "Students served", value: "45K+" },
+                { label: "Current role", value: profile.currentRole },
+                { label: "Education", value: profile.education },
+                { label: "Based in", value: profile.location },
               ].map((s) => (
                 <m.div
                   key={s.label}
@@ -107,10 +109,10 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
                     hidden: { opacity: 0, y: 10 },
                     show: { opacity: 1, y: 0 },
                   }}
-                  className="hero-stat-cell flex min-w-0 flex-col justify-between py-4"
+                  className="hero-stat-cell flex min-w-0 flex-col justify-between border-b border-white/[0.07] py-4 last:border-b-0 sm:border-b-0 sm:px-4 sm:first:pl-0 sm:[&:not(:last-child)]:border-r"
                 >
                   <dt className="text-[9px] leading-[1.35]">{s.label}</dt>
-                  <dd className="mt-3 text-lg font-normal leading-none tracking-[-0.04em] text-accent">{s.value}</dd>
+                  <dd className="mt-2 text-xs font-normal leading-snug tracking-[0.01em] text-zinc-200">{s.value}</dd>
                 </m.div>
               ))}
             </m.dl>
@@ -118,17 +120,18 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Magnetic>
                 <a
-                  href="#projects"
-                  onClick={go}
+                  href={`mailto:${profile.email}`}
                   data-cursor="hover"
                   className="group relative inline-flex items-center gap-3 overflow-hidden bg-bone px-5 py-3.5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
                 >
                   <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                  <span className="relative">See the work</span>
-                  <ArrowDownRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:translate-y-0.5" />
+                  <Mail className="relative h-4 w-4" />
+                  <span className="relative">Get in touch</span>
+                  <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </a>
               </Magnetic>
-              <a href="https://linkedin.com/in/viganogabriele" target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
+              <a href="#projects" onClick={go} data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white">See selected work <ArrowDownRight className="h-4 w-4" /></a>
+              <a href={profile.linkedIn} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 px-2 py-3 text-sm text-zinc-400 transition-colors hover:text-white">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
             </div>
           </m.div>
         </div>
