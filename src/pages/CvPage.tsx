@@ -1,5 +1,7 @@
 import { m, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Download, ExternalLink, FileText, Power } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, Download, ExternalLink, FileText, Minus, Plus, Power } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
 import { Link } from "react-router-dom";
 import { Footer } from "../components/layout/Footer";
 import { AppShell } from "../components/layout/AppShell";
@@ -12,11 +14,65 @@ import { useSystemMode } from "../hooks/useSystemMode";
 import { ease } from "../lib/motion";
 import { PageMeta } from "../lib/seo";
 
+pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+
 const exploreLinks = [
   { label: "Selected projects", href: "/#projects", detail: "Work and outcomes", icon: ArrowUpRight },
   { label: "GitHub", href: "https://github.com/viganogabriele", detail: "Repositories and experiments", icon: ArrowUpRight, external: true },
   { label: "LinkedIn", href: profile.linkedIn, detail: "Professional profile", icon: ArrowUpRight, external: true },
 ];
+
+function CvDocumentViewer() {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [pageCount, setPageCount] = useState(0);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [zoom, setZoom] = useState(1);
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const pageWidth = Math.round(Math.min(Math.max(viewportWidth - 32, 280), 860) * zoom);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const updateWidth = () => setViewportWidth(viewport.clientWidth);
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className="overflow-hidden border border-white/[0.11] bg-surface/80 shadow-2xl shadow-black/20">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500 sm:px-5">
+        <span className="inline-flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-accent" /> Vigano_Gabriele_CV.pdf</span>
+        <span>Integrated PDF viewer</span>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] bg-background/45 px-3 py-2 sm:px-4" aria-label="PDF viewer controls">
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => setPageNumber((current) => Math.max(1, current - 1))} disabled={pageNumber <= 1} data-cursor="hover" className="inline-flex h-10 w-10 items-center justify-center border border-white/[0.1] text-zinc-300 transition-colors hover:border-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>
+          <span className="min-w-20 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-400" aria-live="polite">Page {pageNumber} {pageCount ? `of ${pageCount}` : ""}</span>
+          <button type="button" onClick={() => setPageNumber((current) => Math.min(pageCount, current + 1))} disabled={!pageCount || pageNumber >= pageCount} data-cursor="hover" className="inline-flex h-10 w-10 items-center justify-center border border-white/[0.1] text-zinc-300 transition-colors hover:border-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Next page"><ChevronRight className="h-4 w-4" /></button>
+        </div>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => setZoom((current) => Math.max(0.8, Number((current - 0.1).toFixed(1))))} disabled={zoom <= 0.8} data-cursor="hover" className="inline-flex h-10 w-10 items-center justify-center border border-white/[0.1] text-zinc-300 transition-colors hover:border-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
+          <span className="min-w-12 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-400" aria-live="polite">{Math.round(zoom * 100)}%</span>
+          <button type="button" onClick={() => setZoom((current) => Math.min(1.4, Number((current + 0.1).toFixed(1))))} disabled={zoom >= 1.4} data-cursor="hover" className="inline-flex h-10 w-10 items-center justify-center border border-white/[0.1] text-zinc-300 transition-colors hover:border-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
+        </div>
+      </div>
+      <div ref={viewportRef} className="h-[68svh] min-h-[34rem] overflow-auto bg-[#151a2b] p-4 sm:h-[min(78svh,62rem)] sm:p-6">
+        {failed ? (
+          <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
+        ) : (
+          <div className="flex min-h-full min-w-fit items-start justify-center">
+            <Document file={profile.cvPath} onLoadSuccess={({ numPages }) => { setPageCount(numPages); setPageNumber(1); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Loading document…</span>}>
+              {viewportWidth > 0 && <Page pageNumber={pageNumber} width={pageWidth} renderAnnotationLayer={false} renderTextLayer={false} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Rendering page…</span>} />}
+            </Document>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function CvPage() {
   const reduced = useReducedMotion();
@@ -56,15 +112,7 @@ export function CvPage() {
         </m.section>
 
         <m.section initial={entrance} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.6, delay: reduced ? 0 : 0.1, ease: ease.cinematic }} className="mt-7" aria-label="CV document viewer">
-          <div className="overflow-hidden border border-white/[0.11] bg-surface/80 shadow-2xl shadow-black/20">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500 sm:px-5">
-              <span className="inline-flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-accent" /> Vigano_Gabriele_CV.pdf</span>
-              <span>Native PDF viewer</span>
-            </div>
-            <iframe title="Gabriele Viganò CV" src={profile.cvPath} className="block h-[68svh] min-h-[34rem] w-full border-0 bg-white sm:h-[min(78svh,62rem)]" loading="eager">
-              <p className="p-6 text-zinc-300">Your browser cannot display PDFs inline. <a href={profile.cvPath} className="text-accent underline underline-offset-4">Download the CV</a>.</p>
-            </iframe>
-          </div>
+          <CvDocumentViewer />
         </m.section>
 
         <section className="mt-14 border-t border-white/[0.09] pt-7 sm:mt-20 sm:pt-9" aria-labelledby="explore-title">

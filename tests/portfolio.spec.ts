@@ -135,7 +135,9 @@ test("CV page keeps the document primary and exposes native viewer actions", asy
   await expect(page.getByRole("link", { name: "Download CV" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
   await expect(page.getByRole("link", { name: "Download CV" })).toHaveAttribute("download", "Vigano_Gabriele_CV.pdf");
   await expect(page.getByRole("link", { name: "Open in new tab" })).toHaveAttribute("target", "_blank");
-  await expect(page.locator('iframe[title="Gabriele Viganò CV"]')).toHaveAttribute("src", "/cv/Vigano_Gabriele_CV.pdf");
+  await expect(page.getByText("Integrated PDF viewer")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zoom in" })).toBeEnabled();
+  await expect(page.locator("canvas").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Explore further." })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
