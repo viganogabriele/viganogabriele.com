@@ -756,12 +756,30 @@ body {
 .circular-carousel__control svg { width: 1rem; height: 1rem; }
 .circular-carousel__control:hover { border-color: color-mix(in srgb, var(--accent) 58%, transparent); background: color-mix(in srgb, var(--accent) 12%, var(--color-surface)); color: var(--accent-soft); }
 
+/* Projects use the same carousel language as the toolkit, but their full
+   context lives directly underneath. Keeping this ring compact makes that
+   context visible without a long page-sized project panel. */
+.project-carousel .circular-carousel__stage { height: 20.5rem; }
+.project-carousel .circular-carousel__card {
+  width: min(20rem, calc(100% - 3.5rem));
+  min-height: 15.5rem;
+}
+.project-carousel .project-carousel-card { padding: 1.15rem; }
+.project-carousel .project-carousel-card .artifact-svg { height: 4rem; }
+
 @media (max-width: 639px) {
   .circular-carousel { padding-top: 0.85rem; }
   .circular-carousel__stage { height: 24rem; perspective: 760px; }
   .circular-carousel__card { width: min(19.5rem, calc(100% - 4rem)); min-height: 17rem; }
   .circular-carousel__card .tool-group { padding: 1rem; }
   .circular-carousel__card .tool-row { min-height: 2.15rem; }
+  .project-carousel .circular-carousel__stage { height: 18.5rem; }
+  .project-carousel .circular-carousel__card {
+    width: min(17.5rem, calc(100% - 4rem));
+    min-height: 14.25rem;
+  }
+  .project-carousel .project-carousel-card { padding: 1rem; }
+  .project-carousel .project-carousel-card .artifact-svg { height: 3.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
