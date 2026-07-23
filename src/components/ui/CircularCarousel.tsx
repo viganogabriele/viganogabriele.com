@@ -59,6 +59,7 @@ export function CircularCarousel<T>({
   const hovering = useRef(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [tickerRevision, setTickerRevision] = useState(0);
+  const [inView, setInView] = useState(true);
 
   const updateCards = useCallback(() => {
     const count = items.length;
@@ -145,8 +146,20 @@ export function CircularCarousel<T>({
     return () => observer.disconnect();
   }, [updateCards]);
 
+  // The idle-rotation loop below runs every frame indefinitely — pausing it
+  // while scrolled off-screen avoids continuous work competing with real
+  // scroll compositing (this ran unconditionally before, on every carousel,
+  // for as long as the tab was open).
   useEffect(() => {
-    if (reducedMotion || !items.length) return;
+    const node = rootRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: "200px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion || !items.length || !inView) return;
     const tick = (now: number) => {
       const previous = lastFrame.current ?? now;
       const elapsed = Math.min(40, now - previous);
@@ -165,7 +178,7 @@ export function CircularCarousel<T>({
     };
     frameRef.current = window.requestAnimationFrame(tick);
     return stopAnimation;
-  }, [autoRotateSpeed, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
+  }, [autoRotateSpeed, inView, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
 
   const select = useCallback((index: number) => {
     if (!items.length) return;
