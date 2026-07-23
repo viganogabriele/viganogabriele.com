@@ -134,13 +134,9 @@ body {
 }
 
 .hero-wordmark-line-accent {
-  overflow: visible;
+  overflow: hidden;
   margin-top: -0.04em;
   padding-top: 0.16em;
-}
-
-.hero-wordmark-line-accent > span {
-  animation: none;
 }
 
 .hero-wordmark-o-grave {
