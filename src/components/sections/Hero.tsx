@@ -30,10 +30,18 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
   return (
     <section id="top" className="hero-grid relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/[0.07] pb-10 pt-24 sm:pt-28 lg:pt-36">
       <div className="hero-scanlines absolute inset-0 opacity-80" />
-      <div className="pointer-events-none absolute inset-x-0 top-[18%] h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-7 px-5 pb-12 sm:px-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-10 lg:px-10">
         <div className="relative z-10">
+          <m.p
+            initial={reduced ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.16, duration: 0.6, ease: ease.cinematic }}
+            className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-accent/75"
+          >
+            <m.span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} />
+            Milan, Italy
+          </m.p>
           <m.h1
             aria-label="GABRIELE VIGANÒ"
             initial={reduced ? false : { opacity: 0, y: 28 }}
@@ -41,7 +49,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             transition={{ delay: 0.23, duration: 0.9, ease: ease.cinematic }}
             ref={wordmarkRef}
             style={{ fontVariationSettings: `'wght' ${weight}` }}
-            className="hero-wordmark max-w-4xl font-medium leading-[0.8] tracking-[-0.09em] text-bone"
+            className="hero-wordmark mt-4 max-w-4xl font-medium leading-[0.8] tracking-[-0.09em] text-bone"
           >
             <span className="hero-wordmark-line block"><span>GABRIELE</span></span>
             <span className="hero-wordmark-line hero-wordmark-line-accent block pl-[0.06em] text-zinc-300" aria-hidden="true"><span>VIGAN<span className="hero-wordmark-o-grave">O</span></span></span>
@@ -96,7 +104,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
                 <a
                   href={`mailto:${profile.email}`}
                   data-cursor="hover"
-                  className="group relative inline-flex items-center gap-3 overflow-hidden bg-bone px-5 py-3.5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
+                  className="group relative inline-flex min-h-12 items-center gap-3 overflow-hidden rounded-full bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
                 >
                   <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                   <Mail className="relative h-4 w-4" />
@@ -104,7 +112,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
                   <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </a>
               </Magnetic>
-              <a href={profile.cvPath} download data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white"><FileText className="h-4 w-4" /> Download CV</a>
+              <a href={profile.cvPath} download data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/[0.12] px-5 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white"><FileText className="h-4 w-4" /> Download CV</a>
             </div>
           </m.div>
         </div>

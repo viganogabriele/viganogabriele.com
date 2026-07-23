@@ -120,6 +120,7 @@ test("hero makes Gabriele's current profile and contact path immediately availab
   const hero = page.locator("#top");
   await expect(hero.getByLabel("Professional profile")).toContainText("Board Member & Treasurer at PoliNetwork");
   await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering student at Politecnico di Milano");
+  await expect(hero).toContainText("Milan, Italy");
   await expect(hero.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "mailto:info@viganogabriele.com");
   await expect(hero.getByRole("link", { name: "Download CV" })).toHaveAttribute("href", "/cv/gabriele-vigano-cv.pdf");
   await expect(hero.getByRole("link", { name: "LinkedIn" })).toHaveCount(0);
