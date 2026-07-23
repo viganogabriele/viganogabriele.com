@@ -8,7 +8,7 @@ import { Magnetic } from "../motion/Magnetic";
 import { TextScramble } from "../motion/TextScramble";
 import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 
-export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate: (target: string) => void; systemActive: boolean; onToggleSystem: () => void }) {
+export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; onToggleSystem: () => void }) {
   const reduced = useReducedMotion();
   const { level } = useMotionProfile();
   const scrollMotion = !reduced && level === "full";
@@ -34,22 +34,6 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-7 px-5 pb-12 sm:px-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-10 lg:px-10">
         <div className="relative z-10">
-          <m.p
-            initial={reduced ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.16, duration: 0.6, ease: ease.cinematic }}
-            className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-accent/75"
-          >
-            <span className="inline-flex items-center gap-2 whitespace-nowrap">
-              <m.span
-                className="inline-block h-1.5 w-1.5 flex-none rounded-full bg-accent"
-                animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }}
-                transition={{ duration: 1.6, repeat: Infinity }}
-              />
-              <span>{profile.location}</span>
-            </span>
-          </m.p>
-
           <m.h1
             aria-label="GABRIELE VIGANÒ"
             initial={reduced ? false : { opacity: 0, y: 28 }}
@@ -57,7 +41,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
             transition={{ delay: 0.23, duration: 0.9, ease: ease.cinematic }}
             ref={wordmarkRef}
             style={{ fontVariationSettings: `'wght' ${weight}` }}
-            className="hero-wordmark mt-5 max-w-4xl font-medium leading-[0.76] tracking-[-0.09em] text-bone"
+            className="hero-wordmark max-w-4xl font-medium leading-[0.76] tracking-[-0.09em] text-bone"
           >
             <span className="hero-wordmark-line block"><span>GABRIELE</span></span>
             <span className="hero-wordmark-line hero-wordmark-line-accent block pl-[0.06em] text-zinc-300" aria-hidden="true"><span>VIGAN<span className="hero-wordmark-o-grave">O</span></span></span>
@@ -70,7 +54,7 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
             className="mt-10"
           >
             <p className="flex max-w-3xl items-start text-[clamp(1.55rem,7vw,3rem)] font-medium leading-[0.98] tracking-[-0.05em] text-bone">
-              <TextScramble text="Computer Engineering student. Board Member & Treasurer at PoliNetwork, a student association." />
+              <TextScramble text="Ambitious about building products, teams and systems that hold up." />
               <m.span
                 className="ml-2 inline-block h-8 w-1 bg-accent"
                 animate={reduced || level !== "full" ? undefined : { opacity: [1, 0, 1] }}
@@ -111,17 +95,17 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Magnetic>
                 <a
-                  href={`mailto:${profile.email}?subject=CV%20request`}
+                  href={`mailto:${profile.email}`}
                   data-cursor="hover"
                   className="group relative inline-flex items-center gap-3 overflow-hidden bg-bone px-5 py-3.5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
                 >
                   <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                  <FileText className="relative h-4 w-4" />
-                  <span className="relative">Request CV</span>
+                  <Mail className="relative h-4 w-4" />
+                  <span className="relative">Get in touch</span>
                   <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </a>
               </Magnetic>
-              <a href={`mailto:${profile.email}`} data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white"><Mail className="h-4 w-4" /> Get in touch</a>
+              <a href={profile.cvPath} download data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-4 py-3 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white"><FileText className="h-4 w-4" /> Download CV</a>
             </div>
           </m.div>
         </div>
@@ -139,17 +123,6 @@ export function Hero({ onNavigate, systemActive, onToggleSystem }: { onNavigate:
         </m.div>
       </div>
 
-      <m.a
-        href="#about"
-        onClick={(event) => { event.preventDefault(); onNavigate("#about"); }}
-        data-cursor="hover"
-        initial={reduced ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.1, duration: 0.6, ease: ease.softSettle }}
-        className="absolute bottom-3 left-5 flex min-h-11 items-center gap-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-white sm:bottom-6 sm:left-8 lg:left-10"
-      >
-        Explore profile <ArrowUpRight className="h-3 w-3 rotate-90" />
-      </m.a>
     </section>
   );
 }

@@ -43,7 +43,7 @@ export function HomePage() {
       <SystemModeOverlay active={systemActive} transitionId={systemTransitionId} safeMode={webkitSafeMode} laserEnabled={laserEnabled} />
       <SystemHUD active={systemActive} />
       <main id="main-content">
-        <Hero onNavigate={scrollToSection} systemActive={systemActive} onToggleSystem={toggleSystem} />
+        <Hero systemActive={systemActive} onToggleSystem={toggleSystem} />
         <About />
         <Expertise />
         <Projects />
