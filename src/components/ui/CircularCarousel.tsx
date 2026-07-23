@@ -12,6 +12,7 @@ export interface CircularCarouselProps<T> {
   pauseDuration?: number;
   snap?: boolean;
   reducedMotion?: boolean;
+  radiusScale?: number;
   className?: string;
   previousControlLabel?: string;
   nextControlLabel?: string;
@@ -37,6 +38,7 @@ export function CircularCarousel<T>({
   pauseDuration = 3000,
   snap = true,
   reducedMotion = false,
+  radiusScale = 1,
   className = "",
   previousControlLabel = "Show previous skill group",
   nextControlLabel = "Show next skill group",
@@ -64,7 +66,7 @@ export function CircularCarousel<T>({
     const root = rootRef.current;
     const width = root?.clientWidth ?? 0;
     const compact = width < 640;
-    const radius = Math.min(compact ? 180 : 290, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.34)));
+    const radius = Math.min(compact ? 180 : 290, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.34))) * radiusScale;
     const depth = compact ? 76 : 96;
     const step = 360 / count;
     let nearest = 0;
@@ -104,7 +106,7 @@ export function CircularCarousel<T>({
       setActiveIndex(nearest);
       onActiveIndexChange?.(nearest);
     }
-  }, [items.length, onActiveIndexChange]);
+  }, [items.length, onActiveIndexChange, radiusScale]);
 
   const stopAnimation = useCallback(() => {
     if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);

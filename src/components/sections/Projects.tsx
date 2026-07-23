@@ -93,6 +93,7 @@ export function Projects() {
           getItemLabel={(project) => `${project.title.replace("\n", " ")} project`}
           renderCard={(project, _index, active) => <ProjectCard project={project} active={active} />}
           reducedMotion={prefersReducedMotion || level === "static"}
+          radiusScale={0.68}
           autoRotateSpeed={5}
           dragSensitivity={0.34}
           momentumStrength={1.15}
