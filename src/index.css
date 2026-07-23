@@ -755,10 +755,10 @@ body {
 /* Projects use the same carousel language as the toolkit, but their full
    context lives directly underneath. Keeping this ring compact makes that
    context visible without a long page-sized project panel. */
-.project-carousel .circular-carousel__stage { height: 15.75rem; }
+.project-carousel .circular-carousel__stage { height: 14rem; }
 .project-carousel .circular-carousel__card {
   width: min(16.5rem, calc(100% - 4rem));
-  min-height: 11.75rem;
+  min-height: 10rem;
 }
 .project-carousel .project-carousel-card { padding: 1rem; }
 
@@ -768,10 +768,10 @@ body {
   .circular-carousel__card { width: min(19.5rem, calc(100% - 4rem)); min-height: 17rem; }
   .circular-carousel__card .tool-group { padding: 1rem; }
   .circular-carousel__card .tool-row { min-height: 2.15rem; }
-  .project-carousel .circular-carousel__stage { height: 14.75rem; }
+  .project-carousel .circular-carousel__stage { height: 13.5rem; }
   .project-carousel .circular-carousel__card {
     width: min(15.25rem, calc(100% - 4rem));
-    min-height: 10.75rem;
+    min-height: 9.5rem;
   }
   .project-carousel .project-carousel-card { padding: 1rem; }
 }
