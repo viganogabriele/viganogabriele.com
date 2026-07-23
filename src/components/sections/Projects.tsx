@@ -1,115 +1,102 @@
-import { AnimatePresence, m, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { m } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
 import { useState } from "react";
 import { projects } from "../../data/projects";
-import { ease } from "../../lib/motion";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ArtifactSVG } from "../ui/ArtifactSVG";
+import { CircularCarousel } from "../ui/CircularCarousel";
 import { SectionHeader } from "../ui/SectionHeader";
 
-function ProjectSlide({ project }: { project: typeof projects[number] }) {
+type ProjectItem = typeof projects[number];
+
+function ProjectCard({ project, active }: { project: ProjectItem; active: boolean }) {
+  return (
+    <div className="project-carousel-card h-full p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-4 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500">
+        <span>{project.index} / work</span>
+        <span className="text-accent">{active ? "selected" : project.status}</span>
+      </div>
+      <ArtifactSVG type={project.artifact} className="mt-4 h-20 w-full text-accent/70" />
+      <h3 className="mt-4 whitespace-pre-line text-2xl font-medium leading-[0.86] tracking-[-0.06em] text-bone sm:text-3xl">{project.title}</h3>
+      <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-zinc-400">{project.description}</p>
+      <div className="mt-4 flex border-t border-white/[0.08] pt-3">
+        {project.metrics.map((metric, index) => (
+          <div key={metric.label} className={`min-w-0 flex-1 ${index ? "border-l border-white/[0.08] pl-3" : "pr-3"}`}>
+            <p className="text-lg font-medium tracking-[-0.05em] text-accent">{metric.value}</p>
+            <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.1em] text-zinc-600">{metric.label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProjectDetail({ project }: { project: ProjectItem }) {
   return (
     <m.article
-      data-accent={project.accent}
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.36, ease: ease.cinematic }}
-      className="project-carousel-slide grid overflow-hidden border border-white/[0.1] bg-surface/55 lg:grid-cols-[0.85fr_1.15fr]"
+      key={project.title}
+      data-project-detail
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.38 }}
+      className="mt-8 border-y border-white/[0.09] py-7 sm:py-9"
     >
-      <div className="relative flex min-h-56 items-center justify-center overflow-hidden border-b border-white/[0.08] p-8 text-accent/65 lg:min-h-full lg:border-b-0 lg:border-r lg:p-12">
-        <ArtifactSVG type={project.artifact} className="w-full max-w-sm" />
-        <span className="absolute bottom-5 left-5 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">{project.index} / selected work</span>
-      </div>
-
-      <div className="flex min-w-0 flex-col p-6 sm:p-8 lg:p-10">
-        <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500">
-          <span>{project.eyebrow}</span>
-          <span className="text-blue-soft">{project.status}</span>
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
+        <div>
+          <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-accent">Selected project / {project.index}</p>
+          <h3 className="mt-3 whitespace-pre-line text-4xl font-medium leading-[0.85] tracking-[-0.065em] text-bone sm:text-5xl">{project.title}</h3>
+          <p className="mt-5 text-base leading-relaxed text-zinc-300">{project.description}</p>
         </div>
-        <h3 className="mt-7 whitespace-pre-line text-[clamp(3rem,8vw,6rem)] font-medium leading-[0.84] tracking-[-0.075em] text-bone">{project.title}</h3>
-        <p className="mt-6 max-w-2xl text-base leading-relaxed text-zinc-300">{project.description}</p>
-
-        <dl className="mt-7 grid grid-cols-2 border-y border-white/[0.08]">
-          {project.metrics.map((metric, index) => (
-            <div key={metric.label} className={`py-4 ${index > 0 ? "border-l border-white/[0.08] pl-4" : "pr-4"}`}>
-              <dt className="font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-600">{metric.label}</dt>
-              <dd className="mt-2 text-2xl font-medium tracking-[-0.05em] text-accent">{metric.value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        <div className="mt-7 grid gap-5 text-sm leading-relaxed md:grid-cols-2">
+        <div className="grid gap-6 text-sm leading-relaxed sm:grid-cols-2">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">Role</p>
             <p className="mt-2 text-zinc-200">{project.role}</p>
+            <p className="mt-6 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">Contribution</p>
+            <p className="mt-2 text-zinc-400">{project.contribution}</p>
           </div>
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">Outcome</p>
             <p className="mt-2 text-zinc-300">{project.outcome}</p>
+            <p className="mt-5 border-l border-accent/50 pl-3 font-mono text-[10px] leading-relaxed text-accent/80">{project.proof}</p>
           </div>
         </div>
-
-        <details className="mt-6 border-t border-white/[0.08] pt-4 text-sm leading-relaxed text-zinc-400">
-          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.13em] text-accent marker:text-accent">Contribution & proof</summary>
-          <p className="mt-4">{project.contribution}</p>
-          <p className="mt-3 border-l border-accent/50 pl-3 font-mono text-[10px] leading-relaxed text-accent/80">{project.proof}</p>
-        </details>
-
-        <div className="mt-7 flex flex-wrap items-center justify-between gap-5 border-t border-white/[0.08] pt-5">
-          <div className="flex flex-wrap gap-x-3 gap-y-2 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">
-            {project.stack.map((item) => <span key={item}>/{item}</span>)}
-          </div>
-          {project.link && (
-            <a href={project.link} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 px-1 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:text-white">
-              Inspect <ArrowUpRight className="h-3.5 w-3.5" />
-            </a>
-          )}
+      </div>
+      <div className="mt-7 flex flex-wrap items-center justify-between gap-5 border-t border-white/[0.08] pt-5">
+        <div className="flex flex-wrap gap-x-3 gap-y-2 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">
+          {project.stack.map((item) => <span key={item}>/{item}</span>)}
         </div>
+        {project.link && <a href={project.link} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:text-white">Open on GitHub <ArrowUpRight className="h-3.5 w-3.5" /></a>}
       </div>
     </m.article>
   );
 }
 
 export function Projects() {
-  const reduced = useReducedMotion();
+  const { prefersReducedMotion, level } = useMotionProfile();
   const [activeIndex, setActiveIndex] = useState(0);
   const activeProject = projects[activeIndex];
-  const select = (index: number) => setActiveIndex((index + projects.length) % projects.length);
 
   return (
-    <section id="projects" className="relative mt-36 lg:mt-48">
-      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
-        <SectionHeader index="03 / SELECTED WORK" title="Proof, not just presentation." subtitle="Browse the work quickly, then open the detail only when it is useful." />
-        <div className="mt-10" role="region" aria-roledescription="carousel" aria-label="Selected projects">
-          <div className="mb-4 flex flex-col gap-4 border-y border-white/[0.08] py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 gap-1 overflow-x-auto" role="tablist" aria-label="Choose a project">
-              {projects.map((project, index) => (
-                <button
-                  key={project.title}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeIndex === index}
-                  aria-controls="active-project"
-                  onClick={() => select(index)}
-                  className={`min-h-11 shrink-0 px-3 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors ${activeIndex === index ? "text-accent" : "text-zinc-500 hover:text-zinc-200"}`}
-                >
-                  {project.index} / {project.title.replace("\n", " ")}
-                </button>
-              ))}
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <button type="button" onClick={() => select(activeIndex - 1)} data-cursor="hover" className="inline-flex h-11 w-11 items-center justify-center border border-white/[0.1] text-zinc-300 transition-colors hover:border-accent/60 hover:text-accent" aria-label="Show previous project"><ChevronLeft className="h-4 w-4" /></button>
-              <span className="min-w-12 text-center font-mono text-[9px] tracking-[0.15em] text-zinc-500" aria-live="polite">{String(activeIndex + 1).padStart(2, "0")} / {String(projects.length).padStart(2, "0")}</span>
-              <button type="button" onClick={() => select(activeIndex + 1)} data-cursor="hover" className="inline-flex h-11 w-11 items-center justify-center border border-white/[0.1] text-zinc-300 transition-colors hover:border-accent/60 hover:text-accent" aria-label="Show next project"><ChevronRight className="h-4 w-4" /></button>
-            </div>
-          </div>
-          <div id="active-project" role="tabpanel">
-            <AnimatePresence mode="wait" initial={!reduced}>
-              <ProjectSlide key={activeProject.title} project={activeProject} />
-            </AnimatePresence>
-          </div>
+    <section id="projects" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
+      <SectionHeader index="03 / SELECTED WORK" title="Proof, not just presentation." subtitle="Select a project to compare the work, then find the important context below." />
+      <div className="mt-10 border border-white/[0.1] bg-surface/80">
+        <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-500">
+          <span>Browse / selected work</span>
+          <span className="text-accent">Select a card</span>
         </div>
+        <CircularCarousel
+          items={projects}
+          ariaLabel="Selected projects"
+          getItemLabel={(project) => `${project.title.replace("\n", " ")} project`}
+          renderCard={(project, _index, active) => <ProjectCard project={project} active={active} />}
+          reducedMotion={prefersReducedMotion || level === "static"}
+          previousControlLabel="Show previous project"
+          nextControlLabel="Show next project"
+          onActiveIndexChange={setActiveIndex}
+          className="project-carousel"
+        />
       </div>
+      <ProjectDetail project={activeProject} />
     </section>
   );
 }

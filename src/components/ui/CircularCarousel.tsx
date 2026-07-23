@@ -13,6 +13,9 @@ export interface CircularCarouselProps<T> {
   snap?: boolean;
   reducedMotion?: boolean;
   className?: string;
+  previousControlLabel?: string;
+  nextControlLabel?: string;
+  onActiveIndexChange?: (index: number) => void;
 }
 
 const normalizeAngle = (angle: number) => ((angle + 180) % 360 + 360) % 360 - 180;
@@ -34,6 +37,9 @@ export function CircularCarousel<T>({
   snap = true,
   reducedMotion = false,
   className = "",
+  previousControlLabel = "Show previous skill group",
+  nextControlLabel = "Show next skill group",
+  onActiveIndexChange,
 }: CircularCarouselProps<T>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
@@ -94,8 +100,9 @@ export function CircularCarousel<T>({
     if (activeRef.current !== nearest) {
       activeRef.current = nearest;
       setActiveIndex(nearest);
+      onActiveIndexChange?.(nearest);
     }
-  }, [items.length]);
+  }, [items.length, onActiveIndexChange]);
 
   const stopAnimation = useCallback(() => {
     if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
@@ -270,9 +277,9 @@ export function CircularCarousel<T>({
         ))}
       </div>
       <div className="circular-carousel__controls" aria-label="Carousel controls">
-        <button type="button" className="circular-carousel__control" onClick={() => navigate(-1)} aria-label="Show previous skill group"><ChevronLeft aria-hidden="true" /></button>
+        <button type="button" className="circular-carousel__control" onClick={() => navigate(-1)} aria-label={previousControlLabel}><ChevronLeft aria-hidden="true" /></button>
         <span className="font-mono text-[9px] tracking-[0.15em] text-zinc-500" aria-hidden="true">{String(activeIndex + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
-        <button type="button" className="circular-carousel__control" onClick={() => navigate(1)} aria-label="Show next skill group"><ChevronRight aria-hidden="true" /></button>
+        <button type="button" className="circular-carousel__control" onClick={() => navigate(1)} aria-label={nextControlLabel}><ChevronRight aria-hidden="true" /></button>
       </div>
     </div>
   );

@@ -49,12 +49,13 @@ test("mobile navigation is keyboard-safe and anchors projects", async ({ page })
 test("projects contain the three real case studies", async ({ page }) => {
   await page.goto("/");
   const projectsCarousel = page.getByRole("region", { name: "Selected projects" });
-  await expect(projectsCarousel.getByRole("tab")).toHaveCount(3);
+  await expect(projectsCarousel.locator("[data-carousel-card]")).toHaveCount(3);
   await expect(projectsCarousel.getByText("PoliNetwork", { exact: false }).first()).toBeVisible();
   await projectsCarousel.getByRole("button", { name: "Show next project" }).click();
-  await expect(projectsCarousel.getByRole("tabpanel")).toContainText("Interactive Portfolio");
-  await projectsCarousel.getByRole("tab", { name: /03 \/ Study Quest/ }).click();
-  await expect(projectsCarousel.getByRole("tabpanel")).toContainText("Study Quest");
+  await expect(projectsCarousel.getByRole("button", { name: /Bring Interactive Portfolio project to the front/ })).toHaveAttribute("data-active", "true");
+  await expect(page.locator("[data-project-detail]")).toContainText("Interactive Portfolio");
+  await projectsCarousel.getByRole("button", { name: "Show next project" }).click();
+  await expect(page.locator("[data-project-detail]")).toContainText("Study Quest");
   await expect(page.getByText("Next Build", { exact: false })).toHaveCount(0);
 });
 
@@ -62,7 +63,7 @@ test("skills carousel keeps a single readable active card and supports controls"
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".circular-carousel");
+  const carousel = page.locator(".tool-carousel");
   await carousel.scrollIntoViewIfNeeded();
   await expect(carousel.locator("[data-carousel-card]")).toHaveCount(4);
   await expect(carousel.locator('[data-carousel-card][data-active="true"]')).toHaveCount(1);
@@ -80,7 +81,7 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".circular-carousel");
+  const carousel = page.locator(".tool-carousel");
   await carousel.scrollIntoViewIfNeeded();
   await page.waitForTimeout(800);
   await expect(carousel.getByRole("button", { name: /Bring Frontend & web to the front/ })).toHaveAttribute("data-active", "true");
