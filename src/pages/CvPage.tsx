@@ -38,7 +38,7 @@ function CvDocumentViewer() {
       <div className="overflow-hidden border border-white/[0.11] bg-surface/80 shadow-2xl shadow-black/20">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500 sm:px-5">
         <span className="inline-flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-accent" /> Vigano_Gabriele_CV.pdf</span>
-        <span className="hidden sm:inline">Integrated PDF viewer</span><span className="sm:hidden">Tap document for full screen</span>
+        <span className="hidden sm:inline">Integrated PDF viewer</span><a href={profile.cvPath} className="text-accent transition-colors hover:text-white sm:hidden">Tap to view full screen</a>
       </div>
       <div className="hidden items-center justify-end border-b border-white/[0.08] bg-background/45 px-4 py-2 sm:flex" aria-label="PDF viewer controls">
         <div className="inline-flex items-center rounded-full border border-white/[0.1] bg-surface/60 p-1">
@@ -65,7 +65,6 @@ function CvDocumentViewer() {
             </Document>
           </div>
         )}
-        {!failed && <a href={profile.cvPath} className="absolute inset-0 z-10 flex items-end justify-center bg-gradient-to-t from-[#080b16]/80 via-transparent to-transparent px-5 pb-6 text-center sm:hidden" aria-label="Open CV full screen"><span className="border border-white/[0.18] bg-background/85 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-bone">Tap to view full screen</span></a>}
       </div>
     </div>
   );
@@ -75,7 +74,28 @@ export function CvPage() {
   const reduced = useReducedMotion();
   const { level } = useMotionProfile();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
+  const [downloading, setDownloading] = useState(false);
   const entrance = reduced || level === "static" ? false : { opacity: 0, y: 16 };
+
+  const downloadCv = async () => {
+    setDownloading(true);
+    try {
+      const response = await fetch(profile.cvPath);
+      if (!response.ok) throw new Error("CV download failed");
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "Vigano_Gabriele_CV.pdf";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
+    } catch {
+      window.location.assign(profile.cvPath);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <AppShell>
@@ -102,7 +122,7 @@ export function CvPage() {
               <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400">A focused overview of Gabriele Viganò’s work across product, operations, and technical systems.</p>
             </div>
             <div className="flex flex-wrap gap-3" aria-label="CV actions">
-              <a href={profile.cvPath} download="Vigano_Gabriele_CV.pdf" data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"><Download className="h-4 w-4" /> Download CV</a>
+              <button type="button" onClick={() => void downloadCv()} disabled={downloading} data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft disabled:cursor-wait disabled:opacity-70"><Download className="h-4 w-4" /> {downloading ? "Preparing…" : "Download CV"}</button>
               <a href={profile.cvPath} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent hover:text-white"><ExternalLink className="h-3.5 w-3.5" /> Open in new tab</a>
             </div>
           </div>

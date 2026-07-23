@@ -132,11 +132,9 @@ test("CV page keeps the document primary and gives mobile users a full-screen do
   await expect(page).toHaveTitle("CV | Gabriele Viganò");
   await expect(page.getByRole("heading", { name: "Curriculum Vitae." })).toBeVisible();
   await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
-  await expect(page.getByRole("link", { name: "Download CV" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
-  await expect(page.getByRole("link", { name: "Download CV" })).toHaveAttribute("download", "Vigano_Gabriele_CV.pdf");
+  await expect(page.getByRole("button", { name: "Download CV" })).toBeEnabled();
   await expect(page.getByRole("link", { name: "Open in new tab" })).toHaveAttribute("target", "_blank");
-  await expect(page.getByText("Tap document for full screen")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open CV full screen" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
+  await expect(page.getByRole("link", { name: "Tap to view full screen" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
   await expect(page.locator("canvas").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Explore further." })).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
