@@ -38,7 +38,7 @@ function formatNumber(value: number, decimals: number, grouped: boolean) {
 export function CountUp({
   value,
   className,
-  duration = 1.4,
+  duration = 2.2,
   /** Pass the parent's inView boolean so the count starts in sync with the parent reveal. */
   trigger,
   /** Delay in seconds before the count starts (match parent stagger delay). */

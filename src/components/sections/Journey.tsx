@@ -70,6 +70,7 @@ export function Journey() {
 
   const { scrollY } = useScroll();
   const [scrollRange, setScrollRange] = useState<[number, number]>([0, 1]);
+  const [railHeight, setRailHeight] = useState(0);
 
   useEffect(() => {
     const measure = () => {
@@ -79,6 +80,7 @@ export function Journey() {
       const pageBottom = window.scrollY + rect.bottom;
       const vh = window.innerHeight;
       setScrollRange([pageTop - vh * 0.95, pageBottom - vh * 0.15]);
+      setRailHeight(rect.height);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -93,7 +95,11 @@ export function Journey() {
   }, []);
 
   const fillScale = useTransform(scrollY, scrollRange, [0, 1]);
-  const indicatorY = useTransform(scrollY, scrollRange, ["0%", "100%"]);
+  // translateY in px (not `top` in %) — `top` is layout-triggering and was
+  // forcing a reflow on every scroll frame for as long as this page has a
+  // rail on screen. -4 offsets by half the dot's own height (h-2 = 8px) to
+  // replicate the centering the old -translate-y-1/2 utility class gave it.
+  const indicatorY = useTransform(scrollY, scrollRange, [-4, railHeight - 4]);
 
   return (
     <section id="journey" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
@@ -118,8 +124,8 @@ export function Journey() {
             <m.span
               aria-hidden
               data-journey-indicator
-              className="pointer-events-none absolute left-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_85%,transparent)]"
-              style={{ top: indicatorY }}
+              className="pointer-events-none absolute left-0 top-0 h-2 w-2 rounded-full bg-accent shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_85%,transparent)]"
+              style={{ x: "-50%", y: indicatorY }}
             />
           </>
         )}

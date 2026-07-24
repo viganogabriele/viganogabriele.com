@@ -111,7 +111,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
               <div
                 id="connect-output"
                 aria-live="polite"
-                className="min-h-[1.5rem] w-full font-mono text-xs text-zinc-500 sm:ml-3 sm:w-auto sm:text-sm"
+                className="flex min-h-11 w-full items-center font-mono text-xs text-zinc-500 sm:ml-3 sm:w-auto sm:text-sm"
               >
                 <AnimatePresence>
                   {emailOpen && (
@@ -123,7 +123,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                       transition={{ duration: 0.25 }}
                       className="text-accent"
                     >
-                      connected / {EMAIL}
+                      connected / <button type="button" onClick={copy} data-cursor="hover" className="underline decoration-accent/35 underline-offset-4 transition-colors hover:text-white" aria-label="Copy email address">{EMAIL}</button>
                     </m.span>
                   )}
                 </AnimatePresence>
@@ -135,7 +135,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                 <a
                   href={`mailto:${EMAIL}`}
                   data-cursor="hover"
-                  className="group relative inline-flex items-center gap-3 overflow-hidden bg-bone px-6 py-4 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
+                  className="group relative inline-flex min-h-12 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
                 >
                   <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                   <Mail className="relative h-4 w-4" />
@@ -148,7 +148,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
                 type="button"
                 onClick={copy}
                 data-cursor="hover"
-                className="group relative inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 py-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-blue/60 hover:text-blue-soft"
+                className="group relative inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-blue/60 hover:text-blue-soft"
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {copied ? (
@@ -213,7 +213,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
         </div>
         <div className="mt-24 flex flex-col justify-between gap-2 border-t border-white/[0.06] pt-5 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-600 sm:flex-row">
           <span>Gabriele Viganò · Milan, IT</span>
-          <span>SYS · {level === "full" ? "MOTION" : "STATIC"} · React · Vite</span>
+          <span>© {new Date().getFullYear()} All rights reserved.</span>
         </div>
       </footer>
     </ScrollReveal>

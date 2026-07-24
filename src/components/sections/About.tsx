@@ -26,12 +26,12 @@ export function About() {
       <ScrollReveal>
         <div className="grid gap-12 border-l border-white/[0.1] pl-5 md:grid-cols-[1.2fr_0.8fr] md:pl-8">
           <p className="max-w-2xl text-xl leading-[1.45] tracking-[-0.025em] text-zinc-300 md:text-2xl">
-            I'm Gabriele, a Computer Engineering student in Milan directing product, operations and people at PoliNetwork. I turn fragmented requirements into products, teams, and operations that people can actually rely on.
+            I’m ambitious about making complex work useful: turning fragmented requirements into products, teams, and operations that people can actually rely on.
           </p>
           <div className="border-t border-white/[0.1] pt-4 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
-            <span className="text-blue-soft">Personal detail</span>
+            <span className="text-blue-soft">Current curiosity</span>
             <p className="mt-3 max-w-xs leading-relaxed text-zinc-400">
-              Between lectures and the next community event, I keep a Proxmox and TrueNAS homelab running—because recovery, redundancy, and maintainability are part of the build.
+              I’m most interested in practical AI: applying coding agents, self-hosted tools, and automation to real workflows—then verifying that the result is actually useful and reliable.
             </p>
           </div>
         </div>
@@ -40,9 +40,9 @@ export function About() {
       <ScrollReveal className="mt-14">
         <div ref={statsRef} className="proof-grid grid grid-cols-2 border-y border-white/[0.09] lg:grid-cols-4">
           {[
-            { value: "30+", label: "volunteers recruited" },
-            { value: "5", label: "teams built" },
-            { value: "1,000+", label: "event attendees" },
+            { value: "30+", label: "people recruited through a structured process" },
+            { value: "5", label: "teams built toward autonomous delivery" },
+            { value: "1,000+", label: "people brought together at one event" },
             { value: "Education", label: "Computer Engineering student at Politecnico di Milano", link: "https://www.polimi.it/en" },
           ].map((item, index) => (
             <m.div

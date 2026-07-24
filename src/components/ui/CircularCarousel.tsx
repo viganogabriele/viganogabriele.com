@@ -12,7 +12,12 @@ export interface CircularCarouselProps<T> {
   pauseDuration?: number;
   snap?: boolean;
   reducedMotion?: boolean;
+  radiusScale?: number;
   className?: string;
+  previousControlLabel?: string;
+  nextControlLabel?: string;
+  onActiveIndexChange?: (index: number) => void;
+  pauseOnHover?: boolean;
 }
 
 const normalizeAngle = (angle: number) => ((angle + 180) % 360 + 360) % 360 - 180;
@@ -33,7 +38,12 @@ export function CircularCarousel<T>({
   pauseDuration = 3000,
   snap = true,
   reducedMotion = false,
+  radiusScale = 1,
   className = "",
+  previousControlLabel = "Show previous skill group",
+  nextControlLabel = "Show next skill group",
+  onActiveIndexChange,
+  pauseOnHover = true,
 }: CircularCarouselProps<T>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
@@ -47,8 +57,10 @@ export function CircularCarousel<T>({
   const moved = useRef(false);
   const pointer = useRef<{ id: number; x: number; y: number; time: number; horizontal: boolean } | null>(null);
   const hovering = useRef(false);
+  const moveFrame = useRef<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [tickerRevision, setTickerRevision] = useState(0);
+  const [inView, setInView] = useState(true);
 
   const updateCards = useCallback(() => {
     const count = items.length;
@@ -56,7 +68,7 @@ export function CircularCarousel<T>({
     const root = rootRef.current;
     const width = root?.clientWidth ?? 0;
     const compact = width < 640;
-    const radius = Math.min(compact ? 180 : 290, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.34)));
+    const radius = Math.min(compact ? 180 : 290, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.34))) * radiusScale;
     const depth = compact ? 76 : 96;
     const step = 360 / count;
     let nearest = 0;
@@ -94,8 +106,9 @@ export function CircularCarousel<T>({
     if (activeRef.current !== nearest) {
       activeRef.current = nearest;
       setActiveIndex(nearest);
+      onActiveIndexChange?.(nearest);
     }
-  }, [items.length]);
+  }, [items.length, onActiveIndexChange, radiusScale]);
 
   const stopAnimation = useCallback(() => {
     if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
@@ -134,8 +147,24 @@ export function CircularCarousel<T>({
     return () => observer.disconnect();
   }, [updateCards]);
 
+  // The idle-rotation loop below runs every frame indefinitely — pausing it
+  // while scrolled off-screen avoids continuous work competing with real
+  // scroll compositing (this ran unconditionally before, on every carousel,
+  // for as long as the tab was open).
   useEffect(() => {
-    if (reducedMotion || !items.length) return;
+    const node = rootRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: "200px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => () => {
+    if (moveFrame.current !== null) window.cancelAnimationFrame(moveFrame.current);
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion || !items.length || !inView) return;
     const tick = (now: number) => {
       const previous = lastFrame.current ?? now;
       const elapsed = Math.min(40, now - previous);
@@ -154,7 +183,7 @@ export function CircularCarousel<T>({
     };
     frameRef.current = window.requestAnimationFrame(tick);
     return stopAnimation;
-  }, [autoRotateSpeed, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
+  }, [autoRotateSpeed, inView, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
 
   const select = useCallback((index: number) => {
     if (!items.length) return;
@@ -198,12 +227,23 @@ export function CircularCarousel<T>({
     point.time = now;
     moved.current ||= Math.abs(dx) > 2;
     if (moved.current && !event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.setPointerCapture(event.pointerId);
-    updateCards();
+    // Raw pointermove can fire far more often than the display refreshes,
+    // especially on heavier browser engines (in-app webviews). Coalesce the
+    // actual style writes to at most once per frame instead of once per
+    // event — the rotation/velocity math above stays immediate since it's
+    // just numbers, not DOM writes.
+    if (moveFrame.current === null) {
+      moveFrame.current = window.requestAnimationFrame(() => {
+        moveFrame.current = null;
+        updateCards();
+      });
+    }
   };
 
   const endPointer = (event: React.PointerEvent<HTMLDivElement>) => {
     if (pointer.current?.id !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (moveFrame.current !== null) { window.cancelAnimationFrame(moveFrame.current); moveFrame.current = null; }
     pointer.current = null;
     dragging.current = false;
     pause();
@@ -241,8 +281,8 @@ export function CircularCarousel<T>({
       onPointerMove={onPointerMove}
       onPointerUp={endPointer}
       onPointerCancel={endPointer}
-      onPointerEnter={() => { hovering.current = true; pause(); }}
-      onPointerLeave={() => { hovering.current = false; if (!dragging.current) pause(); }}
+      onPointerEnter={() => { hovering.current = pauseOnHover; if (pauseOnHover) pause(); }}
+      onPointerLeave={() => { hovering.current = false; if (pauseOnHover && !dragging.current) pause(); }}
       onKeyDown={(event) => {
         if (event.key === "ArrowLeft") { event.preventDefault(); navigate(-1); }
         if (event.key === "ArrowRight") { event.preventDefault(); navigate(1); }
@@ -270,9 +310,9 @@ export function CircularCarousel<T>({
         ))}
       </div>
       <div className="circular-carousel__controls" aria-label="Carousel controls">
-        <button type="button" className="circular-carousel__control" onClick={() => navigate(-1)} aria-label="Show previous skill group"><ChevronLeft aria-hidden="true" /></button>
+        <button type="button" className="circular-carousel__control" onClick={() => navigate(-1)} aria-label={previousControlLabel}><ChevronLeft aria-hidden="true" /></button>
         <span className="font-mono text-[9px] tracking-[0.15em] text-zinc-500" aria-hidden="true">{String(activeIndex + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
-        <button type="button" className="circular-carousel__control" onClick={() => navigate(1)} aria-label="Show next skill group"><ChevronRight aria-hidden="true" /></button>
+        <button type="button" className="circular-carousel__control" onClick={() => navigate(1)} aria-label={nextControlLabel}><ChevronRight aria-hidden="true" /></button>
       </div>
     </div>
   );

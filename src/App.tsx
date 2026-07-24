@@ -24,6 +24,12 @@ function InitialHomePreloader({ enabled }: { enabled: boolean }) {
     return () => { document.body.style.overflow = previousOverflow; };
   }, [loading]);
 
+  // Gates the hero wordmark's CSS reveal (see index.css) so it plays after
+  // the preloader is gone instead of finishing underneath it, unseen.
+  useEffect(() => {
+    if (!loading) document.documentElement.setAttribute("data-hero-reveal", "true");
+  }, [loading]);
+
   return <AnimatePresence>{loading && <Preloader progress={progress} reducedMotion={prefersReducedMotion} />}</AnimatePresence>;
 }
 

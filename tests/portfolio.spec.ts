@@ -31,34 +31,45 @@ test("home has no horizontal overflow across target viewports", async ({ page })
   }
 });
 
-test("mobile navigation is keyboard-safe and anchors work", async ({ page }) => {
+test("mobile navigation is keyboard-safe and anchors projects", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const menu = page.getByRole("button", { name: "Toggle navigation" });
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByRole("link", { name: "Work", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Projects", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(menu).toHaveAttribute("aria-expanded", "false");
   await menu.click();
-  await page.getByRole("link", { name: "Work", exact: true }).click();
+  await page.getByRole("link", { name: "Projects", exact: true }).click();
   await expect(page.locator("#projects")).toBeInViewport();
 });
 
 test("projects contain the three real case studies", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("PoliNetwork", { exact: false }).first()).toBeVisible();
-  await expect(page.getByText("Interactive Portfolio", { exact: false }).first()).toBeAttached();
-  await expect(page.getByText("Study Quest", { exact: false }).first()).toBeAttached();
+  const projectsCarousel = page.getByRole("region", { name: "Selected projects" });
+  await expect(projectsCarousel.locator("[data-carousel-card]")).toHaveCount(3);
+  await expect(projectsCarousel.getByText("PoliNetwork", { exact: false }).first()).toBeVisible();
+  await projectsCarousel.getByRole("button", { name: "Show next project" }).click();
+  await expect(projectsCarousel.getByRole("button", { name: /Bring Interactive Portfolio project to the front/ })).toHaveAttribute("data-active", "true");
+  await expect(page.locator("[data-project-detail]")).toContainText("Interactive Portfolio");
+  await projectsCarousel.getByRole("button", { name: "Show next project" }).click();
+  await expect(page.locator("[data-project-detail]")).toContainText("Study Quest");
   await expect(page.getByText("Next Build", { exact: false })).toHaveCount(0);
+});
+
+test("notes and certifications expose their destinations without relying on hover", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("Read note").first()).toBeVisible();
+  await expect(page.getByText("View credential").first()).toBeVisible();
 });
 
 test("skills carousel keeps a single readable active card and supports controls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".circular-carousel");
+  const carousel = page.locator(".tool-carousel");
   await carousel.scrollIntoViewIfNeeded();
   await expect(carousel.locator("[data-carousel-card]")).toHaveCount(4);
   await expect(carousel.locator('[data-carousel-card][data-active="true"]')).toHaveCount(1);
@@ -76,7 +87,7 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".circular-carousel");
+  const carousel = page.locator(".tool-carousel");
   await carousel.scrollIntoViewIfNeeded();
   await page.waitForTimeout(800);
   await expect(carousel.getByRole("button", { name: /Bring Frontend & web to the front/ })).toHaveAttribute("data-active", "true");
@@ -102,6 +113,17 @@ test("hero portrait stays crisp while scrolling and the surname keeps its accent
   await expect(page.getByRole("heading", { name: /GABRIELE VIGANÒ/i })).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 420));
   await expect(page.locator(".hero-visual-frame")).toHaveCSS("opacity", "1");
+});
+
+test("hero makes Gabriele's current profile and contact path immediately available", async ({ page }) => {
+  await page.goto("/");
+  const hero = page.locator("#top");
+  await expect(hero.getByLabel("Professional profile")).toContainText("Board Member & Treasurer at PoliNetwork");
+  await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering student at Politecnico di Milano");
+  await expect(hero).toContainText("Milan, Italy");
+  await expect(hero.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "mailto:info@viganogabriele.com");
+  await expect(hero.getByRole("link", { name: "Download CV" })).toHaveAttribute("href", "/cv/gabriele-vigano-cv.pdf");
+  await expect(hero.getByRole("link", { name: "LinkedIn" })).toHaveCount(0);
 });
 
 test("home identity metadata and favicon are exact", async ({ page }) => {

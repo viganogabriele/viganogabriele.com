@@ -30,7 +30,7 @@ export function Notes() {
                 }}
                 data-scroll-anchor={`note-${note.slug}`}
                 data-cursor="hover"
-                className="group grid gap-3 py-6 transition-colors md:grid-cols-[3rem_1.25fr_.75fr_auto] md:items-center md:gap-6 md:py-8"
+                className="group grid gap-3 pb-6 pt-4 transition-colors md:grid-cols-[3rem_1.25fr_.75fr_auto] md:items-center md:gap-6 md:pb-8 md:pt-5"
               >
                 <span className="font-mono text-[10px] text-zinc-600">0{index + 1}</span>
                 <div>
@@ -43,7 +43,10 @@ export function Notes() {
                   <p>{note.date} / {note.readingTime}</p>
                   <p className="mt-2 hidden text-zinc-500 md:block">{note.tags.join(" · ")}</p>
                 </div>
-                <ArrowUpRight className="h-4 w-4 text-zinc-600 transition-all group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-accent" />
+                <span className="inline-flex min-h-11 items-center justify-end gap-2 font-mono text-[9px] uppercase tracking-[0.13em] text-zinc-500 transition-colors group-hover:text-accent">
+                  <span>Read note</span>
+                  <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
+                </span>
               </Link>
             </FadeIn>
           );
