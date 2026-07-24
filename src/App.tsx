@@ -5,7 +5,7 @@ import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, use
 import { AnimatePresence, m } from "framer-motion";
 import { HomePage } from "./pages/HomePage";
 import { useMotionProfile } from "./hooks/useMotionProfile";
-import { findScrollAnchor, getRegisteredNoteReturn, getScrollSnapshot, type ScrollSnapshot } from "./lib/navigationState";
+import { findScrollAnchor, getRegisteredNoteReturn, getScrollSnapshot, readNoteNavigationState, takeQueuedNoteReturn, type ScrollSnapshot } from "./lib/navigationState";
 import { usePreloader } from "./hooks/usePreloader";
 import { Preloader } from "./components/layout/Preloader";
 
@@ -73,7 +73,13 @@ function RouteScrollManager() {
   const [showInitialPreloader] = useState(() => HOME_PATHS.has(location.pathname));
   const [positions, setPositions] = useState(() => new Map<string, ScrollSnapshot>());
   const [transitioning, setTransitioning] = useState(false);
+  const [previousKey, setPreviousKey] = useState(location.key);
   const previousLocation = useRef<Location>(location);
+  // Derive the cover synchronously from the incoming location as well as the
+  // settled transition state. Effects run after React has committed the next
+  // route; deriving it here ensures the first commit already contains the
+  // opaque cover, so there is never a one-frame content flash on mobile.
+  const routeChanged = previousKey !== location.key;
 
   useEffect(() => {
     const previous = window.history.scrollRestoration;
@@ -91,6 +97,7 @@ function RouteScrollManager() {
         return next;
       });
       previousLocation.current = location;
+      setPreviousKey(location.key);
       setTransitioning(true);
     }
   }, [location]);
@@ -100,7 +107,7 @@ function RouteScrollManager() {
   return <>
     <AnimatedRoutes positions={positions} onSettled={onSettled} />
     <InitialHomePreloader enabled={showInitialPreloader} />
-    <RouteTransitionCover active={transitioning} reducedMotion={prefersReducedMotion} />
+    <RouteTransitionCover active={routeChanged || transitioning} reducedMotion={prefersReducedMotion} />
   </>;
 }
 
@@ -126,7 +133,7 @@ function RouteScrollCommit({ location, navigationType, positions, onSettled }: {
   useLayoutEffect(() => {
     let firstFrame = 0;
     let secondFrame = 0;
-    let correctionFrame = 0;
+    let settleTimer = 0;
     let cancelled = false;
     let interacted = false;
     const markInteracted = () => { interacted = true; };
@@ -139,11 +146,9 @@ function RouteScrollCommit({ location, navigationType, positions, onSettled }: {
         document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
         return;
       }
-      if (navigationType !== "POP") {
-        window.scrollTo({ top: 0, behavior: "auto" });
-        return;
-      }
-      const snapshot = getRegisteredNoteReturn(location.key) ?? positions.get(location.key);
+      const noteReturn = readNoteNavigationState(location.state)?.noteReturn.snapshot;
+      const queuedReturn = location.pathname === "/" ? takeQueuedNoteReturn() : null;
+      const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.get(location.key);
       if (!snapshot) {
         window.scrollTo({ top: 0, behavior: "auto" });
         return;
@@ -151,19 +156,17 @@ function RouteScrollCommit({ location, navigationType, positions, onSettled }: {
       const anchor = correctAnchor && snapshot.anchor ? findScrollAnchor(snapshot.anchor.id) : null;
       const top = anchor ? window.scrollY + anchor.getBoundingClientRect().top - snapshot.anchor!.offset : snapshot.y;
       window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+      if (!correctAnchor && snapshot) {
+        settleTimer = window.setTimeout(() => {
+          if (!cancelled && !interacted) window.scrollTo({ top: snapshot.y, behavior: "auto" });
+        }, 60);
+      }
     };
-
-    const fontsAreStillLoading = document.fonts?.status === "loading";
 
     firstFrame = requestAnimationFrame(() => {
       secondFrame = requestAnimationFrame(() => {
         restore();
         onSettled();
-        if (fontsAreStillLoading) {
-          void document.fonts?.ready?.then(() => {
-            correctionFrame = requestAnimationFrame(() => restore(true));
-          });
-        }
       });
     });
 
@@ -171,7 +174,7 @@ function RouteScrollCommit({ location, navigationType, positions, onSettled }: {
       cancelled = true;
       cancelAnimationFrame(firstFrame);
       cancelAnimationFrame(secondFrame);
-      cancelAnimationFrame(correctionFrame);
+      window.clearTimeout(settleTimer);
       interactionEvents.forEach((event) => window.removeEventListener(event, markInteracted));
     };
   }, [location, navigationType, positions, onSettled]);
