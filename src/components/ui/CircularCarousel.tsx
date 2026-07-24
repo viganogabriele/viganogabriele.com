@@ -95,7 +95,7 @@ export function CircularCarousel<T>({
       // avoids the soft rasterisation some browsers apply to positive-Z text.
       const z = isCompact ? 0 : (frontness - 1) * depth;
       const scale = isCompact ? 1 : 0.84 + frontness * 0.16;
-      const opacity = isCompact ? (index === activeRef.current ? 1 : 0) : 0.28 + frontness * 0.72;
+      const opacity = isCompact ? (index === nearest ? 1 : 0) : 0.28 + frontness * 0.72;
       const rotateY = isCompact ? 0 : -Math.sin(radians) * 20;
       card.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${rotateY.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
       card.style.opacity = opacity.toFixed(3);
@@ -312,7 +312,8 @@ export function CircularCarousel<T>({
             data-carousel-card
             data-active={index === 0 ? "true" : "false"}
             role="button"
-            tabIndex={0}
+            tabIndex={compact && activeIndex !== index ? -1 : 0}
+            aria-hidden={compact && activeIndex !== index ? true : undefined}
             aria-label={`Bring ${getItemLabel(item, index)} to the front`}
             onClick={() => { if (!moved.current) select(index); }}
             onKeyDown={(event) => {

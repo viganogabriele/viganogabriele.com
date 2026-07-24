@@ -142,13 +142,13 @@ function RouteScrollCommit({ location, navigationType, positions, onSettled }: {
 
     const restore = (correctAnchor = false) => {
       if (cancelled || interacted) return;
-      if (location.hash) {
-        document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
-        return;
-      }
       const noteReturn = readNoteNavigationState(location.state)?.noteReturn.snapshot;
       const queuedReturn = location.pathname === "/" ? takeQueuedNoteReturn() : null;
       const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.get(location.key);
+      if (!snapshot && location.hash) {
+        document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
+        return;
+      }
       if (!snapshot) {
         window.scrollTo({ top: 0, behavior: "auto" });
         return;
@@ -156,9 +156,14 @@ function RouteScrollCommit({ location, navigationType, positions, onSettled }: {
       const anchor = correctAnchor && snapshot.anchor ? findScrollAnchor(snapshot.anchor.id) : null;
       const top = anchor ? window.scrollY + anchor.getBoundingClientRect().top - snapshot.anchor!.offset : snapshot.y;
       window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
-      if (!correctAnchor && snapshot) {
+      if (!correctAnchor && snapshot.anchor) {
+        const snapshotAnchor = snapshot.anchor;
         settleTimer = window.setTimeout(() => {
-          if (!cancelled && !interacted) window.scrollTo({ top: snapshot.y, behavior: "auto" });
+          if (cancelled || interacted) return;
+          const settledAnchor = findScrollAnchor(snapshotAnchor.id);
+          if (!settledAnchor) return;
+          const top = window.scrollY + settledAnchor.getBoundingClientRect().top - snapshotAnchor.offset;
+          window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
         }, 60);
       }
     };
