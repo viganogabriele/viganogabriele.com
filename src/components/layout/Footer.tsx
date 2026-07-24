@@ -213,7 +213,7 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
         </div>
         <div className="mt-24 flex flex-col justify-between gap-2 border-t border-white/[0.06] pt-5 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-600 sm:flex-row">
           <span>Gabriele Viganò · Milan, IT</span>
-          <span>SYS · {level === "full" ? "MOTION" : "STATIC"} · React · Vite</span>
+          <span>© {new Date().getFullYear()} All rights reserved.</span>
         </div>
       </footer>
     </ScrollReveal>

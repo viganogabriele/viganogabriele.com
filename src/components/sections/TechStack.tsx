@@ -52,7 +52,6 @@ export function TechStack() {
             getItemLabel={(group) => group.label}
             renderCard={(group, index, active) => <ToolGroupCard group={group} index={index} active={active} />}
             reducedMotion={prefersReducedMotion || level === "static"}
-            pauseOnHover={false}
             className="tool-carousel"
           />
         </div>
