@@ -87,7 +87,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               {reduced || level === "static" ? ctaButton : <Magnetic>{ctaButton}</Magnetic>}
-              <a href="/cv" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-5 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white"><FileText className="h-4 w-4" /> Download CV</a>
+              <a href="/cv" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-5 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white"><FileText className="h-4 w-4" /> View CV</a>
             </div>
           </m.div>
         </div>
