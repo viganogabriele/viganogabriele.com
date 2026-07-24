@@ -61,40 +61,47 @@ export function CircularCarousel<T>({
   const [activeIndex, setActiveIndex] = useState(0);
   const [tickerRevision, setTickerRevision] = useState(0);
   const [inView, setInView] = useState(true);
+  const [compact, setCompact] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639px)");
+    const sync = () => setCompact(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   const updateCards = useCallback(() => {
     const count = items.length;
     if (!count) return;
     const root = rootRef.current;
     const width = root?.clientWidth ?? 0;
-    const compact = width < 640;
-    const radius = Math.min(compact ? 180 : 290, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.34))) * radiusScale;
-    const depth = compact ? 76 : 96;
+    const isCompact = compact || width < 640;
+    const radius = Math.min(isCompact ? 180 : 290, Math.max(isCompact ? 145 : 210, width * (isCompact ? 0.52 : 0.34))) * radiusScale;
+    const depth = isCompact ? 76 : 96;
     const step = 360 / count;
-    let nearest = 0;
-    let nearestDistance = Number.POSITIVE_INFINITY;
+    const nearest = items.reduce((best, _item, index) => (
+      Math.abs(normalizeAngle(rotation.current + index * step)) < Math.abs(normalizeAngle(rotation.current + best * step)) ? index : best
+    ), 0);
 
     cardRefs.current.forEach((card, index) => {
       if (!card) return;
       const angle = normalizeAngle(rotation.current + index * step);
       const radians = angle * Math.PI / 180;
-      const frontness = (Math.cos(radians) + 1) / 2;
-      const distance = Math.abs(angle);
-      const x = Math.sin(radians) * radius;
+      const frontness = isCompact ? (index === nearest ? 1 : 0) : (Math.cos(radians) + 1) / 2;
+      const x = isCompact ? 0 : Math.sin(radians) * radius;
       // Keep the front card on the text-rendering plane. It still reads as the
       // closest card because every other card moves back into negative Z, but
       // avoids the soft rasterisation some browsers apply to positive-Z text.
-      const z = (frontness - 1) * depth;
-      const scale = (compact ? 0.78 : 0.84) + frontness * (compact ? 0.22 : 0.16);
-      const opacity = (compact ? 0.18 : 0.28) + frontness * (compact ? 0.82 : 0.72);
-      const rotateY = -Math.sin(radians) * 20;
-      const isActive = distance < nearestDistance;
-      if (isActive) { nearest = index; nearestDistance = distance; }
+      const z = isCompact ? 0 : (frontness - 1) * depth;
+      const scale = isCompact ? 1 : 0.84 + frontness * 0.16;
+      const opacity = isCompact ? (index === activeRef.current ? 1 : 0) : 0.28 + frontness * 0.72;
+      const rotateY = isCompact ? 0 : -Math.sin(radians) * 20;
       card.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${rotateY.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
       card.style.opacity = opacity.toFixed(3);
       card.style.zIndex = String(Math.round(frontness * 100));
       card.style.filter = "none";
-      card.style.pointerEvents = frontness < 0.1 ? "none" : "auto";
+      card.style.pointerEvents = isCompact && index !== nearest ? "none" : frontness < 0.1 ? "none" : "auto";
     });
 
     cardRefs.current.forEach((card, index) => {
@@ -108,7 +115,7 @@ export function CircularCarousel<T>({
       setActiveIndex(nearest);
       onActiveIndexChange?.(nearest);
     }
-  }, [items.length, onActiveIndexChange, radiusScale]);
+  }, [compact, items, onActiveIndexChange, radiusScale]);
 
   const stopAnimation = useCallback(() => {
     if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
@@ -116,8 +123,15 @@ export function CircularCarousel<T>({
     lastFrame.current = null;
   }, []);
 
-  const animateTo = useCallback((target: number, duration = reducedMotion ? 180 : 540) => {
+  const animateTo = useCallback((target: number, duration = reducedMotion || compact ? 0 : 540) => {
     stopAnimation();
+    if (duration === 0) {
+      rotation.current = target;
+      updateCards();
+      velocity.current = 0;
+      setTickerRevision((revision) => revision + 1);
+      return;
+    }
     const start = rotation.current;
     const startedAt = performance.now();
     const tick = (now: number) => {
@@ -129,7 +143,7 @@ export function CircularCarousel<T>({
       else { frameRef.current = null; velocity.current = 0; setTickerRevision((revision) => revision + 1); }
     };
     frameRef.current = window.requestAnimationFrame(tick);
-  }, [reducedMotion, stopAnimation, updateCards]);
+  }, [compact, reducedMotion, stopAnimation, updateCards]);
 
   const settle = useCallback(() => {
     if (!snap || !items.length) return;
@@ -164,7 +178,7 @@ export function CircularCarousel<T>({
   }, []);
 
   useEffect(() => {
-    if (reducedMotion || !items.length || !inView) return;
+    if (reducedMotion || compact || !items.length || !inView) return;
     const tick = (now: number) => {
       const previous = lastFrame.current ?? now;
       const elapsed = Math.min(40, now - previous);
@@ -183,7 +197,7 @@ export function CircularCarousel<T>({
     };
     frameRef.current = window.requestAnimationFrame(tick);
     return stopAnimation;
-  }, [autoRotateSpeed, inView, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
+  }, [autoRotateSpeed, compact, inView, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
 
   const select = useCallback((index: number) => {
     if (!items.length) return;
