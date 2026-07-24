@@ -494,6 +494,20 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   }
 }
 
+/* In-app browsers (Telegram, etc.) can fail to match (hover: none) and
+   (pointer: coarse) reliably despite being touch-only and often less
+   capable than the platform's real browser — isTelegramBrowser() (a
+   user-agent check, see useFeatureDetect) is what sets .telegram-safe, so
+   mirror the touch mitigations above under it explicitly rather than
+   trusting the media query alone. */
+.telegram-safe .ambient-layer,
+.telegram-safe .ambient-blob,
+.telegram-safe .gpu-promote,
+.telegram-safe .circular-carousel__card {
+  backface-visibility: visible;
+  will-change: auto;
+}
+
 /* Custom cursor — desktop only.
    Centering uses negative margins so the transform property is free for
    Framer Motion (ring's scale animation) and direct JS translations
@@ -621,6 +635,10 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
 .noise.telegram-safe::before {
   animation: none;
   opacity: 0.18;
+  /* Same fix as the touch media query above, restated here in case the
+     in-app browser doesn't match (hover: none)/(pointer: coarse) — see
+     isTelegramBrowser() in useFeatureDetect. */
+  mix-blend-mode: normal;
 }
 
 /* ─── Hero grid background ───────────────────────────────────────────────────── */
@@ -927,6 +945,11 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   .hero-scanlines {
     animation: none;
   }
+}
+
+.telegram-safe .hero-grid,
+.telegram-safe .hero-scanlines {
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1445,6 +1468,18 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   #about, #projects, #stack, #journey, #notes, #certifications {
     content-visibility: visible;
   }
+}
+
+/* In-app browsers can miss the touch media query above (see
+   useFeatureDetect's isTelegramBrowser) — restate it under .telegram-safe
+   so this class of browser reliably gets the same fix. */
+.telegram-safe #about,
+.telegram-safe #projects,
+.telegram-safe #stack,
+.telegram-safe #journey,
+.telegram-safe #notes,
+.telegram-safe #certifications {
+  content-visibility: visible;
 }
 
 /* ─── View Transitions API — note ↔ home navigation ─────────────────────────── */
