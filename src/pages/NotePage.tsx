@@ -7,7 +7,7 @@ import { legacySlugRedirects, noteBySlug } from "../data/notes";
 import { JsonLd, PageMeta } from "../lib/seo";
 import { NotFoundPage } from "./NotFoundPage";
 import { ScrollBar } from "../components/motion/ScrollBar";
-import { readNoteNavigationState, registerNoteReturn } from "../lib/navigationState";
+import { queueNoteReturn, readNoteNavigationState, registerNoteReturn } from "../lib/navigationState";
 
 export function NotePage() {
   const { slug = "" } = useParams();
@@ -30,7 +30,12 @@ export function NotePage() {
   const closeNote = () => {
     if (navigationState) {
       registerNoteReturn(navigationState);
-      navigate(-1);
+      queueNoteReturn(navigationState.noteReturn.snapshot);
+      navigate({
+        pathname: navigationState.noteReturn.pathname,
+        search: navigationState.noteReturn.search,
+        hash: navigationState.noteReturn.hash,
+      }, { replace: true, state: navigationState, viewTransition: true });
       return;
     }
     navigate({ pathname: "/", hash: "#notes" }, { replace: true, viewTransition: true });

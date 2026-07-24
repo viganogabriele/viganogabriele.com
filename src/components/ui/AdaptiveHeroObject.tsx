@@ -45,7 +45,7 @@ export function AdaptiveHeroObject({
   systemActive: boolean;
   onToggleSystem: () => void;
 }) {
-  const { level } = useMotionProfile();
+  const { level, isCompact } = useMotionProfile();
   const label = systemActive ? "IDENTIFIED · TAP TO EXIT SYS" : "PORTRAIT · ENTER SYS";
 
   return (
@@ -59,7 +59,7 @@ export function AdaptiveHeroObject({
         data-cursor="hover"
       >
         <span className="hero-object-aura" aria-hidden="true" />
-        <PortraitFallback staticMode={level === "static"} />
+        <PortraitFallback staticMode={level !== "full" || isCompact} />
         <span className="hero-object-corner hero-object-corner-tl" aria-hidden="true" />
         <span className="hero-object-corner hero-object-corner-br" aria-hidden="true" />
         <span className="hero-object-label" aria-hidden="true">{label}</span>

@@ -16,6 +16,7 @@ export interface NoteNavigationState {
 }
 
 const noteReturnSnapshots = new Map<string, ScrollSnapshot>();
+let pendingNoteReturn: ScrollSnapshot | null = null;
 
 // Must match the content-visibility:auto selector in index.css.
 export const DEFERRED_SECTION_SELECTOR = "#about, #projects, #stack, #journey, #notes, #certifications";
@@ -79,6 +80,16 @@ export function readNoteNavigationState(value: unknown): NoteNavigationState | n
 
 export function registerNoteReturn(state: NoteNavigationState) {
   noteReturnSnapshots.set(state.noteReturn.key, state.noteReturn.snapshot);
+}
+
+export function queueNoteReturn(snapshot: ScrollSnapshot) {
+  pendingNoteReturn = snapshot;
+}
+
+export function takeQueuedNoteReturn() {
+  const snapshot = pendingNoteReturn;
+  pendingNoteReturn = null;
+  return snapshot;
 }
 
 export function getRegisteredNoteReturn(key: string) {
