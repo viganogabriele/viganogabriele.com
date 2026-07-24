@@ -473,6 +473,17 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
     backface-visibility: visible;
   }
 
+  /* Same reasoning as above: the carousel ring promotes each card to its own
+     compositor layer for a 3D rotation that only ever reaches ±20deg, so
+     backface-visibility never has anything to hide. Off-screen (including
+     behind content-visibility:auto sections), those layers are prime
+     candidates for eviction under a tight mobile GPU tile budget — then have
+     to be re-rasterized right as the section scrolls back into view. */
+  .circular-carousel__card {
+    backface-visibility: visible;
+    will-change: auto;
+  }
+
   html,
   body {
     overscroll-behavior-y: none;
