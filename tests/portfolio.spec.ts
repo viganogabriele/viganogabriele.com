@@ -137,6 +137,10 @@ test("CV page keeps the document primary and gives mobile users a full-screen do
   await expect(page.getByRole("link", { name: "Tap to view full screen" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
   await expect(page.locator("canvas").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Explore further." })).toHaveCount(0);
+  await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(page.getByLabel("System mode discovery")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Explore selected work" })).toHaveAttribute("href", "/#projects");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });

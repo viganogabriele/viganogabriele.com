@@ -1,5 +1,5 @@
 import { m, useReducedMotion } from "framer-motion";
-import { ArrowLeft, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -135,7 +135,7 @@ export function CvPage() {
           <div className="mt-4 flex flex-col gap-6 border-b border-white/[0.09] pb-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 id="cv-title" className="text-5xl font-medium leading-[0.88] tracking-[-0.07em] text-bone sm:text-7xl">Curriculum<br />Vitae.</h1>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400">A focused overview of Gabriele Viganò’s work across product, operations, and technical systems.</p>
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400">Product, operations, and systems — at a glance.</p>
             </div>
             <div className="flex flex-wrap gap-3" aria-label="CV actions">
               <button type="button" onClick={() => void downloadCv()} disabled={downloading} data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft disabled:cursor-wait disabled:opacity-70"><Download className="h-4 w-4" /> {downloading ? "Preparing…" : "Download CV"}</button>
@@ -147,6 +147,11 @@ export function CvPage() {
         <m.section initial={entrance} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.6, delay: reduced ? 0 : 0.1, ease: ease.cinematic }} className="mt-7" aria-label="CV document viewer">
           <CvDocumentViewer />
         </m.section>
+
+        {systemActive && <m.aside initial={reduced ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.35, ease: ease.cinematic }} className="mt-8 border border-accent/30 bg-accent/[0.05] px-5 py-4 sm:mt-10 sm:flex sm:items-center sm:justify-between sm:gap-6" aria-label="System mode discovery">
+          <div><p className="font-mono text-[9px] uppercase tracking-[0.17em] text-accent">SYS / discovery unlocked</p><p className="mt-2 text-sm text-zinc-300">Trace the work behind the document.</p></div>
+          <Link to="/#projects" data-cursor="hover" className="mt-4 inline-flex min-h-11 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-bone transition-colors hover:text-accent sm:mt-0">Explore selected work <ArrowUpRight className="h-3.5 w-3.5" /></Link>
+        </m.aside>}
 
         <Footer onNavigate={() => window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })} />
       </main>
