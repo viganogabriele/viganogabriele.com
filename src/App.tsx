@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { BrowserRouter, Route, Routes, useLocation, useNavigationType, type Location } from "react-router-dom";
-import { Component, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { HomePage } from "./pages/HomePage";
 import { useMotionProfile } from "./hooks/useMotionProfile";
@@ -34,10 +34,45 @@ function InitialHomePreloader({ enabled }: { enabled: boolean }) {
   return <AnimatePresence>{loading && <Preloader progress={progress} reducedMotion={prefersReducedMotion} />}</AnimatePresence>;
 }
 
+// Fake-ramp progress for subsequent SPA navigations — there's no real asset
+// list to track here (unlike the first load), so this exists purely to keep
+// the same calibration visual instead of a static/frozen bar.
+function useRouteTransitionProgress(active: boolean, reducedMotion: boolean) {
+  const [rampProgress, setRampProgress] = useState(0);
+  const animate = active && !reducedMotion;
+
+  useEffect(() => {
+    if (!animate) return;
+    let frame = 0;
+    let amount = 0;
+    const tick = () => {
+      amount = Math.min(92, amount + (92 - amount) * 0.12 + 1.5);
+      setRampProgress(amount);
+      if (amount < 91.5) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [animate]);
+
+  if (reducedMotion) return active ? 60 : 100;
+  if (!active) return 100;
+  return rampProgress;
+}
+
+// Reuses the same Preloader that covers the first load, so clicking into a
+// note or the CV page (and returning) reads as one consistent instrument
+// rather than a branded intro followed by plain "Loading route…" text.
+function RouteTransitionCover({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
+  const progress = useRouteTransitionProgress(active, reducedMotion);
+  return <AnimatePresence>{active && <Preloader progress={progress} reducedMotion={reducedMotion} />}</AnimatePresence>;
+}
+
 function RouteScrollManager() {
   const location = useLocation();
+  const { prefersReducedMotion } = useMotionProfile();
   const [showInitialPreloader] = useState(() => HOME_PATHS.has(location.pathname));
   const [positions, setPositions] = useState(() => new Map<string, ScrollSnapshot>());
+  const [transitioning, setTransitioning] = useState(false);
   const previousLocation = useRef<Location>(location);
 
   useEffect(() => {
@@ -56,10 +91,17 @@ function RouteScrollManager() {
         return next;
       });
       previousLocation.current = location;
+      setTransitioning(true);
     }
   }, [location]);
 
-  return <><AnimatedRoutes positions={positions} /><InitialHomePreloader enabled={showInitialPreloader} /></>;
+  const onSettled = useCallback(() => setTransitioning(false), []);
+
+  return <>
+    <AnimatedRoutes positions={positions} onSettled={onSettled} />
+    <InitialHomePreloader enabled={showInitialPreloader} />
+    <RouteTransitionCover active={transitioning} reducedMotion={prefersReducedMotion} />
+  </>;
 }
 
 export default function App() {
@@ -80,11 +122,7 @@ class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: stri
   }
 }
 
-function RouteLoadingFallback() {
-  return <div className="flex min-h-[100dvh] items-center justify-center bg-background" role="status" aria-live="polite"><span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">Loading route…</span></div>;
-}
-
-function RouteScrollCommit({ location, navigationType, positions }: { location: Location; navigationType: ReturnType<typeof useNavigationType>; positions: Map<string, ScrollSnapshot> }) {
+function RouteScrollCommit({ location, navigationType, positions, onSettled }: { location: Location; navigationType: ReturnType<typeof useNavigationType>; positions: Map<string, ScrollSnapshot>; onSettled: () => void }) {
   useLayoutEffect(() => {
     let firstFrame = 0;
     let secondFrame = 0;
@@ -120,6 +158,7 @@ function RouteScrollCommit({ location, navigationType, positions }: { location: 
     firstFrame = requestAnimationFrame(() => {
       secondFrame = requestAnimationFrame(() => {
         restore();
+        onSettled();
         if (fontsAreStillLoading) {
           void document.fonts?.ready?.then(() => {
             correctionFrame = requestAnimationFrame(() => restore(true));
@@ -135,14 +174,14 @@ function RouteScrollCommit({ location, navigationType, positions }: { location: 
       cancelAnimationFrame(correctionFrame);
       interactionEvents.forEach((event) => window.removeEventListener(event, markInteracted));
     };
-  }, [location, navigationType, positions]);
+  }, [location, navigationType, positions, onSettled]);
 
   return null;
 }
 
-function AnimatedRoutes({ positions }: { positions: Map<string, ScrollSnapshot> }) {
+function AnimatedRoutes({ positions, onSettled }: { positions: Map<string, ScrollSnapshot>; onSettled: () => void }) {
   const location = useLocation();
   const navigationType = useNavigationType();
   const { prefersReducedMotion } = useMotionProfile();
-  return <RouteErrorBoundary resetKey={location.key}><AnimatePresence mode="wait" initial={false}><m.div className="relative" key={location.key} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }} transition={{ duration: prefersReducedMotion ? 0 : 0.24 }}><RouteScrollCommit location={location} navigationType={navigationType} positions={positions} /><Suspense fallback={<RouteLoadingFallback />}><Routes location={location}><Route path="/" element={<HomePage />} /><Route path="/index.html" element={<HomePage />} /><Route path="/viganogabriele.com" element={<HomePage />} /><Route path="/viganogabriele.com/" element={<HomePage />} /><Route path="/viganogabriele.com/index.html" element={<HomePage />} /><Route path="/cv" element={<CvPage />} /><Route path="/cv/" element={<CvPage />} /><Route path="/notes/:slug" element={<NotePage />} /><Route path="*" element={<NotFoundPage />} /></Routes></Suspense></m.div></AnimatePresence></RouteErrorBoundary>;
+  return <RouteErrorBoundary resetKey={location.key}><AnimatePresence mode="wait" initial={false}><m.div className="relative" key={location.key} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }} transition={{ duration: prefersReducedMotion ? 0 : 0.24 }}><Suspense fallback={<span className="sr-only" role="status">Loading…</span>}><RouteScrollCommit location={location} navigationType={navigationType} positions={positions} onSettled={onSettled} /><Routes location={location}><Route path="/" element={<HomePage />} /><Route path="/index.html" element={<HomePage />} /><Route path="/viganogabriele.com" element={<HomePage />} /><Route path="/viganogabriele.com/" element={<HomePage />} /><Route path="/viganogabriele.com/index.html" element={<HomePage />} /><Route path="/cv" element={<CvPage />} /><Route path="/cv/" element={<CvPage />} /><Route path="/notes/:slug" element={<NotePage />} /><Route path="*" element={<NotFoundPage />} /></Routes></Suspense></m.div></AnimatePresence></RouteErrorBoundary>;
 }
