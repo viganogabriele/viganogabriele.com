@@ -17,9 +17,7 @@ import { SystemHUD } from "../components/motion/SystemHUD";
 import { useSystemMode } from "../hooks/useSystemMode";
 import { homeMetadata, websitePersonJsonLd } from "../data/site";
 import { JsonLd, PageMeta } from "../lib/seo";
-
-// Must match the content-visibility:auto selector in index.css.
-const DEFERRED_SECTION_SELECTOR = "#about, #projects, #stack, #journey, #notes, #certifications";
+import { withDeferredSectionsVisible } from "../lib/navigationState";
 
 export function HomePage() {
   const reduced = useReducedMotion();
@@ -33,16 +31,7 @@ export function HomePage() {
       window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
       return;
     }
-    // content-visibility:auto (see index.css) only reports a section's real
-    // height once it has been laid out. Sections between here and the target
-    // can still be at their placeholder height, which understates the jump
-    // and lands short, inside the wrong section. Forcing them visible just
-    // long enough to measure keeps the offset accurate; content-visibility
-    // remembers the resolved size once reverted, so nothing re-collapses.
-    const deferred = Array.from(document.querySelectorAll<HTMLElement>(DEFERRED_SECTION_SELECTOR));
-    deferred.forEach((node) => { node.style.contentVisibility = "visible"; });
-    const y = element.getBoundingClientRect().top + window.scrollY - 92;
-    deferred.forEach((node) => { node.style.contentVisibility = ""; });
+    const y = withDeferredSectionsVisible(() => element.getBoundingClientRect().top + window.scrollY) - 92;
     window.scrollTo({ top: y, behavior: reduced ? "auto" : "smooth" });
   }, [reduced]);
 
