@@ -44,7 +44,7 @@ export const homeMetadata: PageMetadata = {
 };
 
 export const cvMetadata: PageMetadata = {
-  title: `CV | ${site.name}`,
+  title: `${site.name} — CV`,
   description: "Curriculum vitae of Gabriele Viganò — product, operations, and technical systems.",
   path: "/cv",
   canonical: true,

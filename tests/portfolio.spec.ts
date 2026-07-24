@@ -129,7 +129,7 @@ test("hero makes Gabriele's current profile and contact path immediately availab
 test("CV page keeps the document primary and gives mobile users a full-screen document path", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/cv");
-  await expect(page).toHaveTitle("CV | Gabriele Viganò");
+  await expect(page).toHaveTitle("Gabriele Viganò — CV");
   await expect(page.getByRole("heading", { name: "Curriculum Vitae." })).toBeVisible();
   await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
   await expect(page.getByRole("button", { name: "Download CV" })).toBeEnabled();
@@ -171,7 +171,7 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
   ];
   const expected = [
     { path: "/", title: "Gabriele Viganò", canonical: "https://www.viganogabriele.com/", type: "website" },
-    { path: "/cv", title: "CV | Gabriele Viganò", canonical: "https://www.viganogabriele.com/cv", type: "website" },
+    { path: "/cv", title: "Gabriele Viganò — CV", canonical: "https://www.viganogabriele.com/cv", type: "website" },
     { path: "/notes/noticing-what-the-association-wasnt-using", title: "Noticing What the Association Wasn't Using | Gabriele Viganò", canonical: "https://www.viganogabriele.com/notes/noticing-what-the-association-wasnt-using", type: "article" },
   ];
 
