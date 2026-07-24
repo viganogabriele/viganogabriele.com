@@ -23,7 +23,7 @@ const LinkedInIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export function Footer() {
+export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
   const [copied, setCopied] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
   const [emailOpen, setEmailOpen] = useState(false);
@@ -203,8 +203,8 @@ export function Footer() {
             >
               LinkedIn <LinkedInIcon className="h-4 w-4" />
             </a>
-            <Link to="/cv" data-cursor="hover" className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white">
-              View CV <ArrowUpRight className="h-4 w-4" />
+            <Link to={context === "cv" ? "/" : "/cv"} data-cursor="hover" className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white">
+              {context === "cv" ? "View website" : "View CV"} <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
