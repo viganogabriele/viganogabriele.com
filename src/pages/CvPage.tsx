@@ -21,16 +21,22 @@ function CvDocumentViewer() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [pageAspect, setPageAspect] = useState(0);
   const [failed, setFailed] = useState(false);
-  const pageWidth = Math.round(Math.max(viewportWidth - (viewportWidth >= 640 ? 32 : 16), 280) * zoom);
+  const horizontalInset = viewportWidth >= 640 ? 32 : 16;
+  const verticalInset = viewportWidth >= 640 ? 32 : 16;
+  const widthToFit = Math.max(viewportWidth - horizontalInset, 280);
+  const heightToFit = Math.max(viewportHeight - verticalInset, 280);
+  const pageWidth = Math.round((pageAspect ? Math.min(widthToFit, heightToFit * pageAspect) : widthToFit) * zoom);
   const clampZoom = (value: number) => Math.min(2.5, Math.max(0.75, Number(value.toFixed(2))));
 
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
-    const updateWidth = () => setViewportWidth(viewport.clientWidth);
-    updateWidth();
-    const observer = new ResizeObserver(updateWidth);
+    const updateSize = () => { setViewportWidth(viewport.clientWidth); setViewportHeight(viewport.clientHeight); };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
     observer.observe(viewport);
     return () => observer.disconnect();
   }, []);
@@ -39,7 +45,7 @@ function CvDocumentViewer() {
       <div ref={viewerRef} className="overflow-hidden border border-white/[0.11] bg-surface/80 shadow-2xl shadow-black/20 fullscreen:h-[100dvh] fullscreen:w-[100dvw] fullscreen:border-0">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500 sm:px-5">
         <span className="inline-flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-accent" /> Vigano_Gabriele_CV.pdf</span>
-        <span className="hidden sm:inline">Integrated PDF viewer</span><a href={profile.cvPath} className="text-accent transition-colors hover:text-white sm:hidden">Tap to view full screen</a>
+        <span className="hidden sm:inline">Integrated PDF viewer</span><span className="text-accent sm:hidden">Tap to view full screen</span>
       </div>
       <div className="hidden items-center justify-end gap-2 border-b border-white/[0.08] bg-background/45 px-4 py-2 sm:flex" aria-label="PDF viewer controls">
         <div className="inline-flex items-center rounded-full border border-white/[0.1] bg-surface/60 p-1">
@@ -57,11 +63,12 @@ function CvDocumentViewer() {
           <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
         ) : (
           <div className="flex min-h-full min-w-fit items-start justify-center">
-            <Document file={profile.cvPath} onLoadSuccess={() => { setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Loading document…</span>}>
+            <Document file={profile.cvPath} onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Loading document…</span>}>
               {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer={false} renderTextLayer={false} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Rendering page…</span>} />}
             </Document>
           </div>
         )}
+        {!failed && <a href={profile.cvPath} className="absolute inset-0 z-10 sm:hidden" aria-label="Open CV full screen" />}
       </div>
     </div>
   );
@@ -79,7 +86,17 @@ export function CvPage() {
     try {
       const response = await fetch(profile.cvPath);
       if (!response.ok) throw new Error("CV download failed");
-      const objectUrl = URL.createObjectURL(await response.blob());
+      const blob = await response.blob();
+      const file = new File([blob], "Vigano_Gabriele_CV.pdf", { type: "application/pdf" });
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: "Gabriele Viganò CV" });
+          return;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+        }
+      }
+      const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = objectUrl;
       link.download = "Vigano_Gabriele_CV.pdf";
