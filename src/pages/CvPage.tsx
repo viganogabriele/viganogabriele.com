@@ -1,5 +1,5 @@
 import { m, useReducedMotion } from "framer-motion";
-import { ArrowLeft, Download, ExternalLink, FileText, Minus, Plus, Power } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Link } from "react-router-dom";
@@ -17,11 +17,12 @@ import { PageMeta } from "../lib/seo";
 pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
 
 function CvDocumentViewer() {
+  const viewerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [failed, setFailed] = useState(false);
-  const pageWidth = Math.round(Math.min(Math.max(viewportWidth - 32, 280), 860) * zoom);
+  const pageWidth = Math.round(Math.max(viewportWidth - (viewportWidth >= 640 ? 32 : 16), 280) * zoom);
   const clampZoom = (value: number) => Math.min(2.5, Math.max(0.75, Number(value.toFixed(2))));
 
   useEffect(() => {
@@ -35,26 +36,22 @@ function CvDocumentViewer() {
   }, []);
 
   return (
-      <div className="overflow-hidden border border-white/[0.11] bg-surface/80 shadow-2xl shadow-black/20">
+      <div ref={viewerRef} className="overflow-hidden border border-white/[0.11] bg-surface/80 shadow-2xl shadow-black/20 fullscreen:h-[100dvh] fullscreen:w-[100dvw] fullscreen:border-0">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500 sm:px-5">
         <span className="inline-flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-accent" /> Vigano_Gabriele_CV.pdf</span>
         <span className="hidden sm:inline">Integrated PDF viewer</span><a href={profile.cvPath} className="text-accent transition-colors hover:text-white sm:hidden">Tap to view full screen</a>
       </div>
-      <div className="hidden items-center justify-end border-b border-white/[0.08] bg-background/45 px-4 py-2 sm:flex" aria-label="PDF viewer controls">
+      <div className="hidden items-center justify-end gap-2 border-b border-white/[0.08] bg-background/45 px-4 py-2 sm:flex" aria-label="PDF viewer controls">
         <div className="inline-flex items-center rounded-full border border-white/[0.1] bg-surface/60 p-1">
           <button type="button" onClick={() => setZoom((current) => clampZoom(current - 0.25))} disabled={zoom <= 0.75} data-cursor="hover" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
           <span className="min-w-12 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-400" aria-live="polite">{Math.round(zoom * 100)}%</span>
           <button type="button" onClick={() => setZoom((current) => clampZoom(current + 0.25))} disabled={zoom >= 2.5} data-cursor="hover" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
         </div>
+        <button type="button" onClick={() => { void viewerRef.current?.requestFullscreen?.(); }} data-cursor="hover" className="inline-flex h-10 items-center gap-2 border border-white/[0.1] px-3 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-300 transition-colors hover:border-accent hover:text-white" aria-label="View CV full screen"><Maximize2 className="h-3.5 w-3.5" /> Full screen</button>
       </div>
       <div
         ref={viewportRef}
-        className="relative h-[68svh] min-h-[34rem] overflow-auto bg-[#151a2b] p-4 sm:h-[min(78svh,62rem)] sm:p-6"
-        onWheel={(event) => {
-          if (!event.ctrlKey) return;
-          event.preventDefault();
-          setZoom((current) => clampZoom(current + (event.deltaY < 0 ? 0.1 : -0.1)));
-        }}
+        className="relative h-[72svh] min-h-[34rem] overflow-auto bg-[#151a2b] p-2 sm:h-[min(84svh,72rem)] sm:min-h-[44rem] sm:p-4 fullscreen:h-[calc(100dvh-3.75rem)] fullscreen:max-h-none"
       >
         {failed ? (
           <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
