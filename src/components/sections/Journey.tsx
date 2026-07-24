@@ -23,11 +23,8 @@ function JourneyItem({
   const Icon = item.icon;
 
   return (
-    <m.article
+    <article
       ref={ref as never}
-      initial={staticMotion ? false : { opacity: 0, x: -14 }}
-      animate={staticMotion ? undefined : inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -14 }}
-      transition={{ duration: 0.55, delay: index * 0.07, ease: ease.softSettle }}
       className="relative pb-12 last:pb-0"
     >
       <span
@@ -37,7 +34,12 @@ function JourneyItem({
       >
         {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-accent/50 motion-reduce:animate-none" />}
       </span>
-      <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
+      <m.div
+        className="grid gap-3 md:grid-cols-[9rem_1fr]"
+        initial={staticMotion ? false : { opacity: 0, x: -14 }}
+        animate={staticMotion ? undefined : inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -14 }}
+        transition={{ duration: 0.55, delay: index * 0.07, ease: ease.softSettle }}
+      >
         <m.p
           className="mb-1 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600 md:mb-0"
           initial={staticMotion ? false : { opacity: 0, y: 8 }}
@@ -58,8 +60,8 @@ function JourneyItem({
           <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-accent">{item.subtitle}</p>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">{item.description}</p>
         </m.div>
-      </div>
-    </m.article>
+      </m.div>
+    </article>
   );
 }
 
@@ -111,21 +113,21 @@ export function Journey() {
       <div
         ref={railRef}
         data-journey-rail
-        className="journey-rail relative ml-4 pl-[var(--journey-gutter)] [--journey-gutter:2rem] md:ml-[15%] md:[--journey-gutter:3rem]"
+        className="journey-rail relative ml-4 pl-[var(--journey-gutter)] [--journey-axis-x:0px] [--journey-gutter:2rem] md:ml-[15%] md:[--journey-gutter:3rem]"
       >
-        <span data-journey-axis aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-px -translate-x-1/2 bg-white/[0.1]" />
+        <span data-journey-axis aria-hidden className="pointer-events-none absolute top-0 h-full w-px -translate-x-1/2 bg-white/[0.1]" style={{ left: "var(--journey-axis-x)" }} />
         {!staticMotion && (
           <>
             <m.span
               aria-hidden
-              className="pointer-events-none absolute left-0 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-blue via-accent to-violet"
-              style={{ scaleY: fillScale, originY: 0 }}
+              className="pointer-events-none absolute top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-blue via-accent to-violet"
+              style={{ left: "var(--journey-axis-x)", scaleY: fillScale, originY: 0 }}
             />
             <m.span
               aria-hidden
               data-journey-indicator
-              className="pointer-events-none absolute left-0 top-0 h-2 w-2 rounded-full bg-accent shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_85%,transparent)]"
-              style={{ x: "-50%", y: indicatorY }}
+              className="pointer-events-none absolute top-0 h-2 w-2 rounded-full bg-accent shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_85%,transparent)]"
+              style={{ left: "var(--journey-axis-x)", x: "-50%", y: indicatorY }}
             />
           </>
         )}
