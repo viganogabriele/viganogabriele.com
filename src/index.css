@@ -1434,6 +1434,19 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   contain-intrinsic-size: auto 800px;
 }
 
+/* On touch, a fast flick can jump straight past several of these sections in
+   one frame — profiled (CDP CPU throttling, iPhone 13 emulation, a momentum-
+   style scroll simulation) at 66-83ms worst-frame with content-visibility
+   active vs 33-50ms with it off, concentrated right at section boundaries.
+   That's the deferred layout/paint being paid back in one lump instead of
+   the render-budget win it's meant for. Desktop scrolling doesn't reproduce
+   this, so the optimization stays there. */
+@media (hover: none) and (pointer: coarse) {
+  #about, #projects, #stack, #journey, #notes, #certifications {
+    content-visibility: visible;
+  }
+}
+
 /* ─── View Transitions API — note ↔ home navigation ─────────────────────────── */
 /* Suppress the whole-page root cross-fade so framer-motion's existing page-fade
    keeps running uninterrupted. Named view-transition elements (note titles) still
