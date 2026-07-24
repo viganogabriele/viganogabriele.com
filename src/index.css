@@ -553,8 +553,12 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
 
 @media (hover: none) and (pointer: coarse) {
   .noise::before {
-    opacity: 0.14;
-    mix-blend-mode: soft-light;
+    opacity: 0.06;
+    /* soft-light forces this fixed full-viewport layer to re-blend against
+       everything scrolling underneath on every frame — a profiled, dominant
+       source of mobile scroll jank. Plain compositing lets the browser keep
+       it on a static layer; a lower opacity keeps the grain subtle. */
+    mix-blend-mode: normal;
     animation: none;
   }
 }
@@ -599,7 +603,7 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
 /* Keep the lighter touch profile authoritative on Retina mobile displays. */
 @media (hover: none) and (pointer: coarse) and (min-resolution: 2dppx) {
   .noise::before {
-    opacity: 0.14;
+    opacity: 0.06;
   }
 }
 
