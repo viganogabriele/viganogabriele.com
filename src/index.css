@@ -114,6 +114,13 @@ a {
   }
 }
 
+/* A custom cursor is portalled outside a fullscreen element, so restore the
+   platform cursor while the integrated document viewer owns the screen. */
+:fullscreen,
+:fullscreen * {
+  cursor: auto !important;
+}
+
 body {
   background-color: var(--color-background, #080b16);
   color: var(--color-foreground);

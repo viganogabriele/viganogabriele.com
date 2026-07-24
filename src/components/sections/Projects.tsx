@@ -62,7 +62,7 @@ function ProjectDetail({ project }: { project: ProjectItem }) {
             {project.stack.map((item) => <span key={item} className="border border-accent/30 bg-accent/[0.06] px-2 py-1">{item}</span>)}
           </div>
         </div>
-        {project.link && <a href={project.link} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:border-accent hover:bg-accent/[0.08] hover:text-white">Open on GitHub <ArrowUpRight className="h-3.5 w-3.5" /></a>}
+        {project.link && <a href={project.link} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:border-accent hover:bg-accent/[0.08] hover:text-white">Open on GitHub <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" /></a>}
       </div>
     </m.article>
   );

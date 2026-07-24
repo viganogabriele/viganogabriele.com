@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
 import { notes } from "../src/data/notes";
-import { homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site";
+import { cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site";
 
 const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^>]*>\s*|<meta\s+(?:name|property)="(?:description|robots|twitter:[^"]+|og:[^"]+|article:[^"]+)"[^>]*>\s*|<script\s+type="application\/ld\+json"\s+data-jsonld="[^"]+">[\s\S]*?<\/script>\s*/g;
 
@@ -69,6 +69,7 @@ function withMetadata(shell: string, metadata: PageMetadata, structuredData?: { 
 function sitemap() {
   const urls = [
     { path: "/", lastmod: site.updatedAt, changefreq: "weekly", priority: "1.0" },
+    { path: "/cv", lastmod: site.updatedAt, changefreq: "monthly", priority: "0.8" },
     ...notes.map((note) => ({ path: `/notes/${note.slug}`, lastmod: note.datePublished, changefreq: "monthly", priority: "0.7" })),
   ];
   const entries = urls.map((entry) => [
@@ -87,6 +88,7 @@ async function generateStaticPages(outDir: string) {
   const index = await readFile(indexPath, "utf8");
   const home = withMetadata(index, homeMetadata, { id: "website-person", data: websitePersonJsonLd });
   await writeFile(indexPath, home);
+  await writeFile(resolve(outDir, "cv.html"), withMetadata(index, cvMetadata));
   await writeFile(resolve(outDir, "404.html"), withMetadata(index, notFoundMetadata));
 
   await Promise.all(notes.map(async (note) => {
@@ -111,7 +113,9 @@ export function staticPages(): Plugin {
       return () => {
         const routeStaticPage = (request: IncomingMessage, response: ServerResponse, next: (error?: unknown) => void) => {
           const pathname = new URL(request.url ?? "/", "http://preview.local").pathname;
-          if (pathname.startsWith("/notes/") && !pathname.endsWith(".html")) {
+          if (pathname === "/cv" || pathname === "/cv/") {
+            request.url = "/cv.html";
+          } else if (pathname.startsWith("/notes/") && !pathname.endsWith(".html")) {
             request.url = `${pathname}.html`;
           } else if (!pathname.includes(".") && pathname !== "/") {
             void readFile(resolve(process.cwd(), "dist", "404.html"))

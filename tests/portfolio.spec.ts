@@ -122,8 +122,27 @@ test("hero makes Gabriele's current profile and contact path immediately availab
   await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering student at Politecnico di Milano");
   await expect(hero).toContainText("Milan, Italy");
   await expect(hero.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "mailto:info@viganogabriele.com");
-  await expect(hero.getByRole("link", { name: "Download CV" })).toHaveAttribute("href", "/cv/gabriele-vigano-cv.pdf");
+  await expect(hero.getByRole("link", { name: "Download CV" })).toHaveAttribute("href", "/cv");
   await expect(hero.getByRole("link", { name: "LinkedIn" })).toHaveCount(0);
+});
+
+test("CV page keeps the document primary and gives mobile users a full-screen document path", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/cv");
+  await expect(page).toHaveTitle("CV | Gabriele Viganò");
+  await expect(page.getByRole("heading", { name: "Curriculum Vitae." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
+  await expect(page.getByRole("button", { name: "Download CV" })).toBeEnabled();
+  await expect(page.getByRole("link", { name: "Open in new tab" })).toHaveAttribute("target", "_blank");
+  await expect(page.getByRole("link", { name: "Tap to view full screen" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
+  await expect(page.locator("canvas").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Explore further." })).toHaveCount(0);
+  await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(page.getByLabel("System mode discovery")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Explore selected work" })).toHaveAttribute("href", "/#projects");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
 });
 
 test("home identity metadata and favicon are exact", async ({ page }) => {
@@ -152,7 +171,8 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
   ];
   const expected = [
     { path: "/", title: "Gabriele Viganò", canonical: "https://www.viganogabriele.com/", type: "website" },
-    { path: "/notes/event-operations-from-zero", title: "How I Organized Events Without Ever Doing It Before | Gabriele Viganò", canonical: "https://www.viganogabriele.com/notes/event-operations-from-zero", type: "article" },
+    { path: "/cv", title: "CV | Gabriele Viganò", canonical: "https://www.viganogabriele.com/cv", type: "website" },
+    { path: "/notes/noticing-what-the-association-wasnt-using", title: "Noticing What the Association Wasn't Using | Gabriele Viganò", canonical: "https://www.viganogabriele.com/notes/noticing-what-the-association-wasnt-using", type: "article" },
   ];
 
   for (const route of expected) {
@@ -176,7 +196,7 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
   const sitemap = await request.get("/sitemap.xml");
   expect(sitemap.status()).toBe(200);
   const xml = await sitemap.text();
-  expect(xml).toContain("https://www.viganogabriele.com/notes/homelab-security-first");
+  expect(xml).toContain("https://www.viganogabriele.com/notes/vpn-off-by-default");
   expect(xml).not.toContain("motion-performance");
 });
 

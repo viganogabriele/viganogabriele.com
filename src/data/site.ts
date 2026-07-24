@@ -43,6 +43,16 @@ export const homeMetadata: PageMetadata = {
   image: site.socialImage,
 };
 
+export const cvMetadata: PageMetadata = {
+  title: `CV | ${site.name}`,
+  description: "Curriculum vitae of Gabriele Viganò — product, operations, and technical systems.",
+  path: "/cv",
+  canonical: true,
+  robots: "index, follow, max-image-preview:large",
+  type: "website",
+  image: site.socialImage,
+};
+
 export function noteMetadata(note: NoteItem): PageMetadata {
   return {
     title: `${note.title} | ${site.name}`,
