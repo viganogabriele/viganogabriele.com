@@ -57,6 +57,7 @@ export function CircularCarousel<T>({
   const moved = useRef(false);
   const pointer = useRef<{ id: number; x: number; y: number; time: number; horizontal: boolean } | null>(null);
   const hovering = useRef(false);
+  const moveFrame = useRef<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [tickerRevision, setTickerRevision] = useState(0);
   const [inView, setInView] = useState(true);
@@ -158,6 +159,10 @@ export function CircularCarousel<T>({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => () => {
+    if (moveFrame.current !== null) window.cancelAnimationFrame(moveFrame.current);
+  }, []);
+
   useEffect(() => {
     if (reducedMotion || !items.length || !inView) return;
     const tick = (now: number) => {
@@ -222,12 +227,23 @@ export function CircularCarousel<T>({
     point.time = now;
     moved.current ||= Math.abs(dx) > 2;
     if (moved.current && !event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.setPointerCapture(event.pointerId);
-    updateCards();
+    // Raw pointermove can fire far more often than the display refreshes,
+    // especially on heavier browser engines (in-app webviews). Coalesce the
+    // actual style writes to at most once per frame instead of once per
+    // event — the rotation/velocity math above stays immediate since it's
+    // just numbers, not DOM writes.
+    if (moveFrame.current === null) {
+      moveFrame.current = window.requestAnimationFrame(() => {
+        moveFrame.current = null;
+        updateCards();
+      });
+    }
   };
 
   const endPointer = (event: React.PointerEvent<HTMLDivElement>) => {
     if (pointer.current?.id !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (moveFrame.current !== null) { window.cancelAnimationFrame(moveFrame.current); moveFrame.current = null; }
     pointer.current = null;
     dragging.current = false;
     pause();
