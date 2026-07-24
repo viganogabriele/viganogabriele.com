@@ -122,7 +122,7 @@ test("hero makes Gabriele's current profile and contact path immediately availab
   await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering student at Politecnico di Milano");
   await expect(hero).toContainText("Milan, Italy");
   await expect(hero.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "mailto:info@viganogabriele.com");
-  await expect(hero.getByRole("link", { name: "Download CV" })).toHaveAttribute("href", "/cv");
+  await expect(hero.getByRole("link", { name: "View CV" })).toHaveAttribute("href", "/cv");
   await expect(hero.getByRole("link", { name: "LinkedIn" })).toHaveCount(0);
 });
 
@@ -455,8 +455,8 @@ test("preloader remains static with reduced motion and is absent on direct secon
   await expect(preloader).toHaveAttribute("data-reduced-motion", "true");
   await expect(preloader).toHaveCount(0);
 
-  await page.goto("/notes/event-operations-from-zero");
-  await expect(page.getByRole("heading", { name: /How I Organized Events/i })).toBeVisible();
+  await page.goto("/notes/noticing-what-the-association-wasnt-using");
+  await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.goto("/does-not-exist");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
@@ -515,7 +515,7 @@ test("home, note, and 404 have no runtime errors or failed same-origin requests"
     if (new URL(request.url()).origin === "http://127.0.0.1:4173") failedRequests.push(request.url());
   });
 
-  for (const path of ["/", "/notes/event-operations-from-zero"]) {
+  for (const path of ["/", "/notes/noticing-what-the-association-wasnt-using"]) {
     await page.goto(path);
     await expect(page.locator("#main-content")).toBeVisible();
   }
@@ -531,8 +531,8 @@ test("home, note, and 404 have no runtime errors or failed same-origin requests"
 });
 
 test("notes expose accurate article metadata and missing notes render a 404", async ({ page }) => {
-  await page.goto("/notes/event-operations-from-zero");
-  await expect(page.getByRole("heading", { name: /How I Organized Events/i })).toBeVisible();
+  await page.goto("/notes/noticing-what-the-association-wasnt-using");
+  await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
   const jsonLd = await page.locator('script[data-jsonld^="note-"]').textContent();
   expect(jsonLd).toContain('"datePublished":"2026-04-01"');
   await page.goto("/notes/does-not-exist");
@@ -545,13 +545,13 @@ test("closing a note restores its exact position on desktop and iPhone", async (
     await page.setViewportSize(viewport);
     await page.goto("/");
     await expect(page.locator("[data-preloader]")).toHaveCount(0);
-    const note = page.locator('[data-scroll-anchor="note-portfolio-vibe-coding-to-production"]');
+    const note = page.locator('[data-scroll-anchor="note-the-prompt-was-never-the-hard-part"]');
     await note.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 240, behavior: "auto" }));
     await expect(note).toBeInViewport();
     const expectedY = await page.evaluate(() => window.scrollY);
 
     await note.click();
-    await expect(page.getByRole("heading", { name: /How I Built This Website/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /The Prompt Was Never the Hard Part/i })).toBeVisible();
     await page.getByRole("button", { name: "Close note and return to notes" }).click();
     await expect(note).toBeVisible();
     await expect(page.locator("[data-preloader]")).toHaveCount(0);
@@ -568,7 +568,7 @@ test("browser back still restores the exact note position", async ({ page }) => 
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const note = page.locator('[data-scroll-anchor="note-homelab-security-first"]');
+  const note = page.locator('[data-scroll-anchor="note-vpn-off-by-default"]');
   await note.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 180, behavior: "auto" }));
   const expectedY = await page.evaluate(() => window.scrollY);
   await note.click();
@@ -579,7 +579,7 @@ test("browser back still restores the exact note position", async ({ page }) => 
 
 test("direct note close falls back to the notes section without replaying the preloader", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/notes/event-operations-from-zero");
+  await page.goto("/notes/noticing-what-the-association-wasnt-using");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.getByRole("button", { name: "Close note and return to notes" }).click();
   await expect(page).toHaveURL(/\/#notes$/);
@@ -591,10 +591,10 @@ test("a manual interaction cancels a pending scroll correction", async ({ page }
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const note = page.locator('[data-scroll-anchor="note-homelab-security-first"]');
+  const note = page.locator('[data-scroll-anchor="note-vpn-off-by-default"]');
   await note.evaluate((element) => window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 180));
   await note.click();
-  await expect(page.getByRole("heading", { name: /Homelab: Security First/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Why My Home VPN Is Off by Default/i })).toBeVisible();
   await page.goBack();
   await page.waitForTimeout(350);
   await page.evaluate(() => {
@@ -631,7 +631,7 @@ test("reduced motion preserves content and accessibility", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await expect(page.getByText("I build products, teams and systems that hold up.")).toBeVisible();
+  await expect(page.getByText("Ambitious about building products, teams and systems that hold up.")).toBeVisible();
   const system = page.getByRole("button", { name: "Toggle system mode" });
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
