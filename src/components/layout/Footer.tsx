@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
+import { Link } from "react-router-dom";
 
 const EMAIL = "info@viganogabriele.com";
 
@@ -22,7 +23,7 @@ const LinkedInIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export function Footer({ onNavigate }: { onNavigate: (target: string) => void }) {
+export function Footer() {
   const [copied, setCopied] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
   const [emailOpen, setEmailOpen] = useState(false);
@@ -202,13 +203,9 @@ export function Footer({ onNavigate }: { onNavigate: (target: string) => void })
             >
               LinkedIn <LinkedInIcon className="h-4 w-4" />
             </a>
-            <button
-              type="button"
-              onClick={() => onNavigate("body")}
-              className="flex min-h-12 items-center justify-between border-b border-white/[0.08] text-left hover:text-white"
-            >
-              Back to top <span>↑</span>
-            </button>
+            <Link to="/cv" data-cursor="hover" className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white">
+              View CV <ArrowUpRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
         <div className="mt-24 flex flex-col justify-between gap-2 border-t border-white/[0.06] pt-5 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-600 sm:flex-row">

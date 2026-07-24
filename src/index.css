@@ -105,6 +105,19 @@ a {
   top: max(1rem, env(safe-area-inset-top));
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .nav-panel {
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .nav-panel:hover {
+    border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+    box-shadow: 0 0 1.5rem color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+  .nav-link:hover > span {
+    opacity: .6;
+  }
+}
+
 /* The native pointer is suppressed only while the portal cursor exists. */
 .has-custom-cursor {
   *,

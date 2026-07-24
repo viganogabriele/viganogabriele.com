@@ -153,7 +153,7 @@ export function CvPage() {
           <Link to="/#projects" data-cursor="hover" className="mt-4 inline-flex min-h-11 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-bone transition-colors hover:text-accent sm:mt-0">Explore selected work <ArrowUpRight className="h-3.5 w-3.5" /></Link>
         </m.aside>}
 
-        <Footer onNavigate={() => window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })} />
+        <Footer />
       </main>
     </AppShell>
   );
