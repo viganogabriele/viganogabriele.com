@@ -95,16 +95,16 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
 });
 
-test("adaptive hero exposes its interaction and a visual fallback", async ({ page }) => {
+test("mobile hero omits the portrait while preserving the SYS control", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const portrait = page.locator(".hero-object-button");
-  await expect(portrait).toBeVisible();
-  await expect(portrait).toHaveAccessibleName(/PORTRAIT · ENTER SYS/);
-  await expect(page.locator(".hero-object-button canvas, .hero-object-button picture").first()).toBeVisible();
-  await portrait.click();
-  await expect(portrait).toHaveAttribute("aria-pressed", "true");
+  await expect(portrait).toBeHidden();
+  const system = page.getByRole("button", { name: "Toggle system mode" });
+  await expect(system).toBeVisible();
+  await system.click();
+  await expect(system).toHaveAttribute("aria-pressed", "true");
 });
 
 test("hero portrait stays crisp while scrolling and the surname keeps its accent", async ({ page }) => {
