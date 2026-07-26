@@ -17,7 +17,7 @@ export function NotePage() {
   const navigate = useNavigate();
   const navigationState = readNoteNavigationState(location.state);
   const note = noteBySlug.get(slug);
-  const redirecting = !note && slug in legacySlugRedirects;
+  const redirecting = !note && Object.prototype.hasOwnProperty.call(legacySlugRedirects, slug);
   useRouteReady(Boolean(note));
 
   useEffect(() => {

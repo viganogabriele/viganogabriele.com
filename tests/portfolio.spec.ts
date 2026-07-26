@@ -620,6 +620,8 @@ test("notes expose accurate article metadata and missing notes render a 404", as
   await page.goto("/notes/does-not-exist");
   await expect(page).toHaveURL(/does-not-exist/);
   await expect(page.getByRole("heading", { name: "Not here." })).toBeVisible();
+  await page.goto("/notes/toString");
+  await expect(page.getByRole("heading", { name: "Not here." })).toBeVisible();
 });
 
 test("closing a note restores its exact position on desktop and iPhone", async ({ page }) => {

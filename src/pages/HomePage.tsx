@@ -45,7 +45,7 @@ export function HomePage({ routeActive = true }: { routeActive?: boolean }) {
       <Navbar onNavigate={scrollToSection} systemActive={systemActive} onToggleSystem={toggleSystem} />
       <SystemModeOverlay active={systemActive} transitionId={systemTransitionId} safeMode={webkitSafeMode} laserEnabled={laserEnabled} />
       <SystemHUD active={systemActive} />
-      <main id="main-content">
+      <main id={routeActive ? "main-content" : undefined}>
         <Hero systemActive={systemActive} onToggleSystem={toggleSystem} />
         <About />
         <Expertise />

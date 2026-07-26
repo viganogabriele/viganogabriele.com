@@ -220,6 +220,8 @@ export function CircularCarousel<T>({
     if (event.target instanceof Element && event.target.closest(".circular-carousel__controls")) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     stopAnimation();
+    selectionTarget.current = null;
+    updateCards();
     pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: performance.now(), horizontal: event.pointerType !== "touch" };
     dragging.current = true;
     moved.current = false;
