@@ -18,10 +18,12 @@ import { useSystemMode } from "../hooks/useSystemMode";
 import { homeMetadata, websitePersonJsonLd } from "../data/site";
 import { JsonLd, PageMeta } from "../lib/seo";
 import { withDeferredSectionsVisible } from "../lib/navigationState";
+import { useRouteReadyAfterImage } from "../hooks/useRouteReady";
 
 export function HomePage() {
   const reduced = useReducedMotion();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
+  useRouteReadyAfterImage("[data-hero-portrait]");
 
   const scrollToSection = useCallback((target: string) => {
     const selector = target === "body" ? "body" : target;

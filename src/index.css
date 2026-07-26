@@ -1509,14 +1509,23 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   content-visibility: visible;
 }
 
+@keyframes route-progress {
+  from { transform: translateX(-140%); }
+  to { transform: translateX(350%); }
+}
+
+.route-progress-bar {
+  animation: route-progress 0.9s ease-in-out infinite;
+}
+
 /* ─── View Transitions API — note ↔ home navigation ─────────────────────────── */
-/* Suppress the whole-page root cross-fade so framer-motion's existing page-fade
-   keeps running uninterrupted. Named view-transition elements (note titles) still
-   animate with the browser-default morph between list and article. */
+/* Suppress the whole-page root cross-fade. Named view-transition elements
+   (note titles) still animate with the browser-default morph between list and article. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
+  .route-progress-bar { animation: none; transform: translateX(75%); }
   ::view-transition-group(*) { animation-duration: 0.01s; }
 }

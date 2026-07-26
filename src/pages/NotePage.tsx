@@ -9,6 +9,7 @@ import { NotFoundPage } from "./NotFoundPage";
 import { ScrollBar } from "../components/motion/ScrollBar";
 import { Footer } from "../components/layout/Footer";
 import { queueNoteReturn, readNoteNavigationState, registerNoteReturn } from "../lib/navigationState";
+import { useRouteReady } from "../hooks/useRouteReady";
 
 export function NotePage() {
   const { slug = "" } = useParams();
@@ -16,6 +17,7 @@ export function NotePage() {
   const navigate = useNavigate();
   const navigationState = readNoteNavigationState(location.state);
   const note = noteBySlug.get(slug);
+  useRouteReady();
 
   useEffect(() => {
     if (navigationState) registerNoteReturn(navigationState);

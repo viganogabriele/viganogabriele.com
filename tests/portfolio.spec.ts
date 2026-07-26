@@ -421,18 +421,26 @@ test("SYS laser never changes page or viewport dimensions", async ({ page }) => 
   }
 });
 
-test("preloader appears on every full home load and stays deterministic with cached assets", async ({ page }) => {
-  await page.goto("/");
+test("the loading screen is a lightweight readiness gate without a minimum duration", async ({ page }) => {
+  let releasePortrait!: () => void;
+  const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
+  await page.route("**/*image-face*", async (route) => {
+    await portraitReleased;
+    await route.continue();
+  });
+  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
   const preloader = page.locator("[data-preloader]");
   await expect(preloader).toBeVisible();
-  await page.waitForTimeout(250);
-  await expect(preloader).toBeVisible();
+  await expect(preloader.getByRole("progressbar", { name: "Loading page" })).toHaveCount(1);
+  releasePortrait();
+  await navigation;
   await expect(preloader).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 
+  const started = Date.now();
   await page.reload();
-  await expect(preloader).toBeVisible();
   await expect(preloader).toHaveCount(0, { timeout: 1000 });
+  expect(Date.now() - started).toBeLessThan(1000);
 });
 
 test("skip link is revealed only for keyboard focus", async ({ page }) => {
@@ -447,12 +455,20 @@ test("skip link is revealed only for keyboard focus", async ({ page }) => {
   await expect.poll(() => skipLink.evaluate((node) => getComputedStyle(node).transform)).toBe("matrix(1, 0, 0, 1, 0, 0)");
 });
 
-test("preloader remains static with reduced motion and is absent on direct secondary routes", async ({ page }) => {
+test("preloader remains static with reduced motion and secondary routes dismiss it as soon as ready", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  let releasePortrait!: () => void;
+  const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
+  await page.route("**/*image-face*", async (route) => {
+    await portraitReleased;
+    await route.continue();
+  });
+  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
   const preloader = page.locator("[data-preloader]");
   await expect(preloader).toBeVisible();
   await expect(preloader).toHaveAttribute("data-reduced-motion", "true");
+  releasePortrait();
+  await navigation;
   await expect(preloader).toHaveCount(0);
 
   await page.goto("/notes/noticing-what-the-association-wasnt-using");
@@ -460,6 +476,36 @@ test("preloader remains static with reduced motion and is absent on direct secon
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.goto("/does-not-exist");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
+});
+
+test("CV stays covered until the first PDF page and its annotations are rendered", async ({ page }) => {
+  let releasePdf!: () => void;
+  const pdfReleased = new Promise<void>((resolve) => { releasePdf = resolve; });
+  let markPdfRequested!: () => void;
+  const pdfRequested = new Promise<void>((resolve) => { markPdfRequested = resolve; });
+  await page.route("**/cv/Vigano_Gabriele_CV.pdf", async (route) => {
+    markPdfRequested();
+    await pdfReleased;
+    await route.continue();
+  });
+
+  await page.goto("/cv", { waitUntil: "domcontentloaded" });
+  await pdfRequested;
+  await expect(page.locator("[data-preloader]")).toBeVisible();
+  await expect(page.locator("[data-route-content]")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("canvas")).toHaveCount(0);
+
+  releasePdf();
+  await expect(page.locator("canvas").first()).toBeVisible();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+});
+
+test("likely internal destinations prefetch on intent", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const cvRequest = page.waitForRequest((request) => request.url().includes("CvPage-") && request.url().endsWith(".js"));
+  await page.locator("#top").getByRole("link", { name: "View CV" }).hover();
+  await cvRequest;
 });
 
 test("fine-pointer cursor works at compact desktop width and is absent on touch", async ({ page }) => {
