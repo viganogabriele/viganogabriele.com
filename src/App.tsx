@@ -7,13 +7,12 @@ import { RouteReadyContext } from "./hooks/useRouteReady";
 import { useMotionProfile } from "./hooks/useMotionProfile";
 import { findScrollAnchor, getRegisteredNoteReturn, getScrollSnapshot, readNoteNavigationState, takeQueuedNoteReturn, type ScrollSnapshot } from "./lib/navigationState";
 import { loadCvPage, loadNotFoundPage, loadNotePage, prefetchRoute } from "./lib/routePrefetch";
+import { HOME_PATHS } from "./lib/routes";
 import { HomePage } from "./pages/HomePage";
 
 const NotePage = lazy(() => loadNotePage().then((module) => ({ default: module.NotePage })));
 const CvPage = lazy(() => loadCvPage().then((module) => ({ default: module.CvPage })));
 const NotFoundPage = lazy(() => loadNotFoundPage().then((module) => ({ default: module.NotFoundPage })));
-const HOME_PATHS = new Set(["/", "/index.html", "/viganogabriele.com", "/viganogabriele.com/", "/viganogabriele.com/index.html"]);
-
 function useRoutePrefetching() {
   useEffect(() => {
     const prefetch = (event: Event) => {

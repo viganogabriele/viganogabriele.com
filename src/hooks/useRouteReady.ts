@@ -24,7 +24,7 @@ export function useRouteReadyAfterImage(selector: string, required = true, activ
       return;
     }
     const image = document.querySelector<HTMLImageElement>(selector);
-    if (!image || (image.complete && image.naturalWidth > 0)) {
+    if (!image || image.complete) {
       ready();
       return;
     }

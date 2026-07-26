@@ -38,6 +38,11 @@ function CvDocumentViewer({ onReady }: { onReady: () => void }) {
   const reportReady = () => {
     if (canvasReady.current && annotationsReady.current) onReady();
   };
+  const reportRenderFailure = () => {
+    canvasReady.current = true;
+    annotationsReady.current = true;
+    onReady();
+  };
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -72,7 +77,7 @@ function CvDocumentViewer({ onReady }: { onReady: () => void }) {
         ) : (
           <div className="flex min-w-fit items-start justify-center sm:min-h-full">
             <Document file={profile.cvPath} onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => { setFailed(true); onReady(); }} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Loading document…</span>}>
-              {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer={false} onRenderSuccess={() => { canvasReady.current = true; reportReady(); }} onRenderAnnotationLayerSuccess={() => { annotationsReady.current = true; reportReady(); }} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Rendering page…</span>} />}
+              {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer={false} onRenderSuccess={() => { canvasReady.current = true; reportReady(); }} onRenderError={reportRenderFailure} onRenderAnnotationLayerSuccess={() => { annotationsReady.current = true; reportReady(); }} onRenderAnnotationLayerError={reportRenderFailure} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Rendering page…</span>} />}
             </Document>
           </div>
         )}

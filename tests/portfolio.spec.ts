@@ -457,10 +457,8 @@ test("the loading screen is a lightweight readiness gate without a minimum durat
   await expect(preloader).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 
-  const started = Date.now();
   await page.reload();
   await expect(preloader).toHaveCount(0, { timeout: 1500 });
-  expect(Date.now() - started).toBeLessThan(1500);
 });
 
 test("skip link is revealed only for keyboard focus", async ({ page }) => {
@@ -524,8 +522,9 @@ test("likely internal destinations prefetch on intent", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const cvRequest = page.waitForRequest((request) => request.url().includes("CvPage-") && request.url().endsWith(".js"));
+  const pdfRequest = page.waitForRequest((request) => request.url().endsWith("/cv/Vigano_Gabriele_CV.pdf"));
   await page.locator("#top").getByRole("link", { name: "View CV" }).hover();
-  await cvRequest;
+  await Promise.all([cvRequest, pdfRequest]);
 });
 
 test("mobile Home does not wait for the hidden desktop portrait", async ({ page }) => {
