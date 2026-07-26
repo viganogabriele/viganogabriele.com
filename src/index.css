@@ -72,6 +72,7 @@ html {
   overflow-anchor: none;
   overflow-x: clip;
   position: relative;
+  scrollbar-gutter: stable;
   scroll-padding-top: 6.5rem;
   text-size-adjust: 100%;
 }
@@ -500,9 +501,8 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
 
   /* Same reasoning as above: the carousel ring promotes each card to its own
      compositor layer for a 3D rotation that only ever reaches ±20deg, so
-     backface-visibility never has anything to hide. Off-screen (including
-     behind content-visibility:auto sections), those layers are prime
-     candidates for eviction under a tight mobile GPU tile budget — then have
+     backface-visibility never has anything to hide. Off-screen, those layers
+     are prime candidates for eviction under a tight mobile GPU tile budget — then have
      to be re-rasterized right as the section scrolls back into view. */
   .circular-carousel__card {
     backface-visibility: visible;
@@ -1472,43 +1472,6 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   opacity: 0;
 }
 
-/* ─── content-visibility: auto — defer rendering of below-fold sections ──────── */
-/* Skips layout/paint/composite for off-screen sections, recovering initial-render
-   budget on long-scroll pages. contain-intrinsic-size: auto 800px provides a
-   plausible placeholder height so the scroll bar stays stable; the `auto` keyword
-   remembers the real size after the first paint. #expertise is excluded because
-   it contains a `position: sticky` panel that must interact with the scroll
-   container freely. */
-#about, #projects, #stack, #journey, #notes, #certifications {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 800px;
-}
-
-/* On touch, a fast flick can jump straight past several of these sections in
-   one frame — profiled (CDP CPU throttling, iPhone 13 emulation, a momentum-
-   style scroll simulation) at 66-83ms worst-frame with content-visibility
-   active vs 33-50ms with it off, concentrated right at section boundaries.
-   That's the deferred layout/paint being paid back in one lump instead of
-   the render-budget win it's meant for. Desktop scrolling doesn't reproduce
-   this, so the optimization stays there. */
-@media (hover: none) and (pointer: coarse) {
-  #about, #projects, #stack, #journey, #notes, #certifications {
-    content-visibility: visible;
-  }
-}
-
-/* In-app browsers can miss the touch media query above (see
-   useFeatureDetect's isTelegramBrowser) — restate it under .telegram-safe
-   so this class of browser reliably gets the same fix. */
-.telegram-safe #about,
-.telegram-safe #projects,
-.telegram-safe #stack,
-.telegram-safe #journey,
-.telegram-safe #notes,
-.telegram-safe #certifications {
-  content-visibility: visible;
-}
-
 @keyframes route-progress {
   from { transform: translateX(-140%); }
   to { transform: translateX(350%); }
@@ -1518,14 +1481,6 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   animation: route-progress 0.9s ease-in-out infinite;
 }
 
-/* ─── View Transitions API — note ↔ home navigation ─────────────────────────── */
-/* Suppress the whole-page root cross-fade. Named view-transition elements
-   (note titles) still animate with the browser-default morph between list and article. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-}
 @media (prefers-reduced-motion: reduce) {
   .route-progress-bar { animation: none; transform: translateX(75%); }
-  ::view-transition-group(*) { animation-duration: 0.01s; }
 }

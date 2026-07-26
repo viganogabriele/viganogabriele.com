@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { pageUrl, site, type PageMetadata } from "../data/site";
 
 export { pageUrl, site };
@@ -35,6 +36,7 @@ function setCanonical(url?: string) {
 }
 
 export function PageMeta({ metadata }: { metadata: PageMetadata }) {
+  const location = useLocation();
   useEffect(() => {
     const url = metadata.canonical ? pageUrl(metadata.path) : undefined;
     const image = metadata.image ? pageUrl(metadata.image.path) : undefined;
@@ -63,7 +65,7 @@ export function PageMeta({ metadata }: { metadata: PageMetadata }) {
     setMeta('meta[name="twitter:description"]', "name", "twitter:description", image ? metadata.description : undefined);
     setMeta('meta[name="twitter:image"]', "name", "twitter:image", image);
     setMeta('meta[name="twitter:image:alt"]', "name", "twitter:image:alt", image ? metadata.image?.alt : undefined);
-  }, [metadata]);
+  }, [location.key, metadata]);
   return null;
 }
 

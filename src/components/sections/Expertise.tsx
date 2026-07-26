@@ -40,7 +40,7 @@ function ExpertiseItem({
       </div>
       <div>
         <m.p
-          className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500"
+          className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-400"
           initial={staticMotion ? false : { opacity: 0, y: 8 }}
           animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
           transition={{ duration: 0.4, delay: 0.05, ease: ease.softSettle }}

@@ -52,6 +52,7 @@ export function CircularCarousel<T>({
   const frameRef = useRef<number | null>(null);
   const lastFrame = useRef<number | null>(null);
   const velocity = useRef(0);
+  const selectionTarget = useRef<number | null>(null);
   const pauseUntil = useRef(0);
   const dragging = useRef(false);
   const moved = useRef(false);
@@ -74,6 +75,7 @@ export function CircularCarousel<T>({
     const nearest = items.reduce((best, _item, index) => (
       Math.abs(normalizeAngle(rotation.current + index * step)) < Math.abs(normalizeAngle(rotation.current + best * step)) ? index : best
     ), 0);
+    const selected = selectionTarget.current ?? nearest;
 
     cardRefs.current.forEach((card, index) => {
       if (!card) return;
@@ -97,14 +99,14 @@ export function CircularCarousel<T>({
 
     cardRefs.current.forEach((card, index) => {
       if (!card) return;
-      const active = index === nearest;
+      const active = index === selected;
       card.dataset.active = String(active);
       card.setAttribute("aria-current", active ? "true" : "false");
     });
-    if (activeRef.current !== nearest) {
-      activeRef.current = nearest;
-      setActiveIndex(nearest);
-      onActiveIndexChange?.(nearest);
+    if (activeRef.current !== selected) {
+      activeRef.current = selected;
+      setActiveIndex(selected);
+      onActiveIndexChange?.(selected);
     }
   }, [items, onActiveIndexChange, radiusScale]);
 
@@ -114,13 +116,14 @@ export function CircularCarousel<T>({
     lastFrame.current = null;
   }, []);
 
-  const animateTo = useCallback((target: number, duration = reducedMotion ? 180 : 540) => {
+  const animateTo = useCallback((target: number, duration = reducedMotion ? 180 : 540, onComplete?: () => void) => {
     stopAnimation();
     if (duration === 0) {
       rotation.current = target;
       updateCards();
       velocity.current = 0;
       setTickerRevision((revision) => revision + 1);
+      onComplete?.();
       return;
     }
     const start = rotation.current;
@@ -131,7 +134,12 @@ export function CircularCarousel<T>({
       rotation.current = start + (target - start) * eased;
       updateCards();
       if (progress < 1) frameRef.current = window.requestAnimationFrame(tick);
-      else { frameRef.current = null; velocity.current = 0; setTickerRevision((revision) => revision + 1); }
+      else {
+        frameRef.current = null;
+        velocity.current = 0;
+        setTickerRevision((revision) => revision + 1);
+        onComplete?.();
+      }
     };
     frameRef.current = window.requestAnimationFrame(tick);
   }, [reducedMotion, stopAnimation, updateCards]);
@@ -195,15 +203,21 @@ export function CircularCarousel<T>({
     pause();
     velocity.current = 0;
     const step = 360 / items.length;
-    animateTo(rotation.current - normalizeAngle(rotation.current + index * step));
-  }, [animateTo, items.length, pause]);
+    selectionTarget.current = index;
+    updateCards();
+    animateTo(rotation.current - normalizeAngle(rotation.current + index * step), undefined, () => {
+      selectionTarget.current = null;
+    });
+  }, [animateTo, items.length, pause, updateCards]);
 
   const navigate = useCallback((direction: 1 | -1) => {
-    const next = (activeRef.current + direction + items.length) % items.length;
+    const current = selectionTarget.current ?? activeRef.current;
+    const next = (current + direction + items.length) % items.length;
     select(next);
   }, [items.length, select]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.target instanceof Element && event.target.closest(".circular-carousel__controls")) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     stopAnimation();
     pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: performance.now(), horizontal: event.pointerType !== "touch" };

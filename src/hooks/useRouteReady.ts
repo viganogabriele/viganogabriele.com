@@ -12,17 +12,18 @@ export function useRouteReady(ready = true) {
   }, [location.key, markReady, ready]);
 }
 
-export function useRouteReadyAfterImage(selector: string, required = true) {
+export function useRouteReadyAfterImage(selector: string, required = true, active = true) {
   const location = useLocation();
   const markReady = useContext(RouteReadyContext);
 
   useLayoutEffect(() => {
+    if (!active) return;
+    const ready = () => markReady(location.key);
     if (!required) {
-      markReady(location.key);
+      ready();
       return;
     }
     const image = document.querySelector<HTMLImageElement>(selector);
-    const ready = () => markReady(location.key);
     if (!image || (image.complete && image.naturalWidth > 0)) {
       ready();
       return;
@@ -33,5 +34,5 @@ export function useRouteReadyAfterImage(selector: string, required = true) {
       image.removeEventListener("load", ready);
       image.removeEventListener("error", ready);
     };
-  }, [location.key, markReady, required, selector]);
+  }, [active, location.key, markReady, required, selector]);
 }

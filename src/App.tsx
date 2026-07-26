@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { BrowserRouter, Route, Routes, useLocation, useNavigationType, type Location } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation, type Location } from "react-router-dom";
 import { Preloader } from "./components/layout/Preloader";
 import { RouteReadyContext } from "./hooks/useRouteReady";
 import { useMotionProfile } from "./hooks/useMotionProfile";
@@ -70,9 +70,13 @@ function RouteScrollManager() {
 
   useEffect(() => {
     if (!loading) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = previousOverflow; };
+    const preventScroll = (event: Event) => event.preventDefault();
+    window.addEventListener("wheel", preventScroll, { passive: false });
+    window.addEventListener("touchmove", preventScroll, { passive: false });
+    return () => {
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("touchmove", preventScroll);
+    };
   }, [loading]);
 
   const markReady = useCallback((key: string) => {
@@ -111,71 +115,98 @@ class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: stri
   }
 }
 
-function RouteScrollCommit({ location, navigationType, positions, ready, onSettled }: { location: Location; navigationType: ReturnType<typeof useNavigationType>; positions: Map<string, ScrollSnapshot>; ready: boolean; onSettled: (key: string) => void }) {
+function RouteScrollCommit({ location, positions, ready, onSettled }: { location: Location; positions: Map<string, ScrollSnapshot>; ready: boolean; onSettled: (key: string) => void }) {
   useLayoutEffect(() => {
     if (!ready) return;
-    let settleTimer = 0;
+    if (location.pathname.startsWith("/notes/")) {
+      onSettled(location.key);
+      return;
+    }
+    let frame = 0;
     let cancelled = false;
-    let interacted = false;
-    const markInteracted = () => { interacted = true; };
-    const interactionEvents: Array<keyof WindowEventMap> = ["wheel", "touchstart", "pointerdown", "keydown"];
-    interactionEvents.forEach((event) => window.addEventListener(event, markInteracted, { passive: true }));
+    const noteReturn = readNoteNavigationState(location.state)?.noteReturn.snapshot;
+    const queuedReturn = location.pathname === "/" ? takeQueuedNoteReturn() : null;
+    const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.get(location.key);
+    if (!snapshot && location.hash) {
+      document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
+      onSettled(location.key);
+      return;
+    }
+    if (!snapshot) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+      onSettled(location.key);
+      return;
+    }
 
-    const restore = (correctAnchor = false) => {
-      if (cancelled || interacted) return;
-      const noteReturn = readNoteNavigationState(location.state)?.noteReturn.snapshot;
-      const queuedReturn = location.pathname === "/" ? takeQueuedNoteReturn() : null;
-      const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.get(location.key);
-      if (!snapshot && location.hash) {
-        document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
+    let stableFrames = 0;
+    let previousHeight = 0;
+    let previousAnchorTop: number | null = null;
+    const settle = () => {
+      if (cancelled) return;
+      const height = document.documentElement.scrollHeight;
+      const anchor = snapshot.anchor ? findScrollAnchor(snapshot.anchor.id) : null;
+      const anchorDocumentTop = anchor ? window.scrollY + anchor.getBoundingClientRect().top : null;
+      const target = anchor
+        ? window.scrollY + anchor.getBoundingClientRect().top - snapshot.anchor!.offset
+        : snapshot.y;
+      const canReach = height - window.innerHeight + 1 >= target;
+      if (canReach) window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
+      const exact = anchor
+        ? Math.abs(anchor.getBoundingClientRect().top - snapshot.anchor!.offset) <= 1
+        : Math.abs(window.scrollY - snapshot.y) <= 1;
+      const anchorAnimating = anchor ? hasRunningAncestorAnimation(anchor) : false;
+      const anchorStable = anchorDocumentTop === null || (previousAnchorTop !== null && Math.abs(anchorDocumentTop - previousAnchorTop) <= 0.1);
+      stableFrames = canReach && exact && height === previousHeight && anchorStable && !anchorAnimating ? stableFrames + 1 : 0;
+      previousHeight = height;
+      previousAnchorTop = anchorDocumentTop;
+      if (stableFrames >= 2) {
+        onSettled(location.key);
         return;
       }
-      if (!snapshot) {
-        window.scrollTo({ top: 0, behavior: "auto" });
-        return;
-      }
-      const anchor = correctAnchor && snapshot.anchor ? findScrollAnchor(snapshot.anchor.id) : null;
-      const top = anchor ? window.scrollY + anchor.getBoundingClientRect().top - snapshot.anchor!.offset : snapshot.y;
-      window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
-      if (!correctAnchor && snapshot.anchor) {
-        const snapshotAnchor = snapshot.anchor;
-        settleTimer = window.setTimeout(() => {
-          if (cancelled || interacted) return;
-          const settledAnchor = findScrollAnchor(snapshotAnchor.id);
-          if (!settledAnchor) return;
-          const correctedTop = window.scrollY + settledAnchor.getBoundingClientRect().top - snapshotAnchor.offset;
-          window.scrollTo({ top: Math.max(0, correctedTop), behavior: "auto" });
-        }, 60);
-      }
+      frame = requestAnimationFrame(settle);
     };
-
-    restore();
-    onSettled(location.key);
+    frame = requestAnimationFrame(settle);
 
     return () => {
       cancelled = true;
-      window.clearTimeout(settleTimer);
-      interactionEvents.forEach((event) => window.removeEventListener(event, markInteracted));
+      cancelAnimationFrame(frame);
     };
-  }, [location, navigationType, positions, ready, onSettled]);
+  }, [location, positions, ready, onSettled]);
 
   return null;
 }
 
+function hasRunningAncestorAnimation(element: HTMLElement) {
+  let current: HTMLElement | null = element;
+  while (current) {
+    if (current.getAnimations().some((animation) => animation.playState === "running")) return true;
+    if (current.classList.contains("route-home")) return false;
+    current = current.parentElement;
+  }
+  return false;
+}
+
 function RenderedRoutes({ positions, ready, onSettled, onRouteError }: { positions: Map<string, ScrollSnapshot>; ready: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
   const location = useLocation();
-  const navigationType = useNavigationType();
+  const [homeMounted, setHomeMounted] = useState(false);
+  const homeRoute = HOME_PATHS.has(location.pathname);
+  const noteRoute = location.pathname.startsWith("/notes/");
+  const showHome = homeRoute || (homeMounted && noteRoute);
+  const markHomeMounted = useCallback((node: HTMLDivElement | null) => {
+    if (node) setHomeMounted(true);
+  }, []);
   return (
     <RouteErrorBoundary resetKey={location.key} onError={() => onRouteError(location.key)}>
       <div data-route-content className="relative" aria-hidden={!ready || undefined} inert={!ready || undefined}>
+        <RouteScrollCommit location={location} positions={positions} ready={ready} onSettled={onSettled} />
+        {showHome && <div ref={markHomeMounted} className="route-home" aria-hidden={!homeRoute || undefined} inert={!homeRoute || undefined}><HomePage routeActive={homeRoute} /></div>}
         <Suspense fallback={<span className="sr-only" role="status">Loading…</span>}>
-          <RouteScrollCommit location={location} navigationType={navigationType} positions={positions} ready={ready} onSettled={onSettled} />
           <Routes location={location}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/index.html" element={<HomePage />} />
-            <Route path="/viganogabriele.com" element={<HomePage />} />
-            <Route path="/viganogabriele.com/" element={<HomePage />} />
-            <Route path="/viganogabriele.com/index.html" element={<HomePage />} />
+            <Route path="/" element={null} />
+            <Route path="/index.html" element={null} />
+            <Route path="/viganogabriele.com" element={null} />
+            <Route path="/viganogabriele.com/" element={null} />
+            <Route path="/viganogabriele.com/index.html" element={null} />
             <Route path="/cv" element={<CvPage />} />
             <Route path="/cv/" element={<CvPage />} />
             <Route path="/notes/:slug" element={<NotePage />} />
