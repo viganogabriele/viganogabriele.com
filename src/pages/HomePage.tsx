@@ -1,5 +1,5 @@
 import { useReducedMotion } from "framer-motion";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { About } from "../components/sections/About";
 import { Certifications } from "../components/sections/Certifications";
 import { Expertise } from "../components/sections/Expertise";
@@ -19,11 +19,11 @@ import { homeMetadata, websitePersonJsonLd } from "../data/site";
 import { JsonLd, PageMeta } from "../lib/seo";
 import { useRouteReadyAfterImage } from "../hooks/useRouteReady";
 
-export function HomePage({ routeActive = true }: { routeActive?: boolean }) {
+export const HomePage = memo(function HomePage() {
   const reduced = useReducedMotion();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
   const portraitVisible = window.matchMedia("(min-width: 640px)").matches;
-  useRouteReadyAfterImage("[data-hero-portrait]", portraitVisible, routeActive);
+  useRouteReadyAfterImage("[data-hero-portrait]", portraitVisible);
 
   const scrollToSection = useCallback((target: string) => {
     const selector = target === "body" ? "body" : target;
@@ -45,7 +45,7 @@ export function HomePage({ routeActive = true }: { routeActive?: boolean }) {
       <Navbar onNavigate={scrollToSection} systemActive={systemActive} onToggleSystem={toggleSystem} />
       <SystemModeOverlay active={systemActive} transitionId={systemTransitionId} safeMode={webkitSafeMode} laserEnabled={laserEnabled} />
       <SystemHUD active={systemActive} />
-      <main id={routeActive ? "main-content" : undefined}>
+      <main id="main-content">
         <Hero systemActive={systemActive} onToggleSystem={toggleSystem} />
         <About />
         <Expertise />
@@ -60,4 +60,4 @@ export function HomePage({ routeActive = true }: { routeActive?: boolean }) {
       </main>
     </AppShell>
   );
-}
+});

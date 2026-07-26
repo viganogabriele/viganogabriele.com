@@ -187,18 +187,12 @@ function hasRunningAncestorAnimation(element: HTMLElement) {
 
 function RenderedRoutes({ positions, ready, onSettled, onRouteError }: { positions: Map<string, ScrollSnapshot>; ready: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
   const location = useLocation();
-  const [homeMounted, setHomeMounted] = useState(false);
   const homeRoute = HOME_PATHS.has(location.pathname);
-  const noteRoute = location.pathname.startsWith("/notes/");
-  const showHome = homeRoute || (homeMounted && noteRoute);
-  const markHomeMounted = useCallback((node: HTMLDivElement | null) => {
-    if (node) setHomeMounted(true);
-  }, []);
   return (
     <RouteErrorBoundary resetKey={location.key} onError={() => onRouteError(location.key)}>
       <div data-route-content className="relative" aria-hidden={!ready || undefined} inert={!ready || undefined}>
         <RouteScrollCommit location={location} positions={positions} ready={ready} onSettled={onSettled} />
-        {showHome && <div ref={markHomeMounted} className="route-home" aria-hidden={!homeRoute || undefined} inert={!homeRoute || undefined}><HomePage routeActive={homeRoute} /></div>}
+        {homeRoute && <div className="route-home"><HomePage /></div>}
         <Suspense fallback={<span className="sr-only" role="status">Loading…</span>}>
           <Routes location={location}>
             <Route path="/" element={null} />
