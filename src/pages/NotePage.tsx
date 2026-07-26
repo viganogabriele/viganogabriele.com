@@ -17,18 +17,20 @@ export function NotePage() {
   const navigate = useNavigate();
   const navigationState = readNoteNavigationState(location.state);
   const note = noteBySlug.get(slug);
-  useRouteReady();
+  const redirecting = !note && slug in legacySlugRedirects;
+  useRouteReady(Boolean(note));
 
   useEffect(() => {
     if (navigationState) registerNoteReturn(navigationState);
   }, [navigationState]);
 
   useEffect(() => {
-    if (!note && slug in legacySlugRedirects) {
+    if (redirecting) {
       navigate(`/notes/${legacySlugRedirects[slug]}`, { replace: true });
     }
-  }, [note, slug, navigate]);
+  }, [redirecting, slug, navigate]);
 
+  if (redirecting) return null;
   if (!note) return <NotFoundPage />;
   const closeNote = () => {
     if (navigationState) {

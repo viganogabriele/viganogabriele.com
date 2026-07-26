@@ -508,6 +508,29 @@ test("likely internal destinations prefetch on intent", async ({ page }) => {
   await cvRequest;
 });
 
+test("mobile Home does not wait for the hidden desktop portrait", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let releasePortrait!: () => void;
+  const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
+  await page.route("**/*image-face*", async (route) => {
+    await portraitReleased;
+    await route.continue();
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: /GABRIELE VIGANÒ/i })).toBeVisible();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  releasePortrait();
+});
+
+test("legacy note redirects stay covered until the canonical note is ready", async ({ page }) => {
+  await page.goto("/notes/homelab-security-first", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/notes\/vpn-off-by-default$/);
+  await expect(page.getByRole("heading", { name: /Why My Home VPN Is Off by Default/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Not here." })).toHaveCount(0);
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+});
+
 test("fine-pointer cursor works at compact desktop width and is absent on touch", async ({ page }) => {
   await page.setViewportSize({ width: 676, height: 822 });
   await page.goto("/");
