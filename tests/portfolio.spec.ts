@@ -556,6 +556,44 @@ test("fine-pointer cursor works at compact desktop width and is absent on touch"
   await expect(page.locator("[data-custom-cursor]")).toHaveAttribute("data-active", "true");
 });
 
+// Regression: Brave with "Desktop site" and in-app webviews (Telegram) expose
+// a touch screen while still reporting hover/fine-pointer, so every mitigation
+// gated purely on (hover: none) and (pointer: coarse) was skipped there —
+// leaving the hero grid drifting and the blended full-viewport grain layer
+// live, which stuttered the whole site on Brave but never on Safari.
+test("touch hardware gets the mobile mitigations even when the browser reports a fine pointer", async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, viewport: { width: 412, height: 915 } });
+  const page = await context.newPage();
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  await expect(page.locator("html")).toHaveAttribute("data-touch", "true");
+
+  const ambient = await page.evaluate(() => {
+    const grid = document.querySelector(".hero-grid");
+    const noise = document.querySelector(".noise");
+    const scanlines = document.querySelector(".hero-scanlines");
+    return {
+      gridAnimation: grid ? getComputedStyle(grid, "::before").animationName : null,
+      noiseAnimation: noise ? getComputedStyle(noise, "::before").animationName : null,
+      noiseBlend: noise ? getComputedStyle(noise, "::before").mixBlendMode : null,
+      scanlineAnimation: scanlines ? getComputedStyle(scanlines).animationName : null,
+    };
+  });
+  expect(ambient.gridAnimation).toBe("none");
+  expect(ambient.noiseAnimation).toBe("none");
+  expect(ambient.noiseBlend).toBe("normal");
+  expect(ambient.scanlineAnimation).toBe("none");
+
+  // The expensive desktop-only treatments must stay off on touch hardware.
+  await expect(page.locator("[data-custom-cursor]")).toHaveCount(0);
+  await expect(page.locator(".ambient-blob")).toHaveCount(0);
+  const navBlur = await page.evaluate(() => getComputedStyle(document.querySelector(".nav-panel")!).backdropFilter);
+  expect(navBlur === "none" || navBlur === "").toBe(true);
+
+  await context.close();
+});
+
 test("capability selection and journey axis stay deterministic while scrolling", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");

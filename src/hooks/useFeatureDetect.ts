@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { onViewportWidthChange } from "../lib/viewport";
 
 export const isTouchDevice = () =>
   typeof window !== "undefined" &&
@@ -18,11 +19,7 @@ export function useFeatureDetect() {
     () => typeof window !== "undefined" && window.innerWidth < 768,
   );
 
-  useEffect(() => {
-    const onResize = () => setIsCompact(window.innerWidth < 768);
-    window.addEventListener("resize", onResize, { passive: true });
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
+  useEffect(() => onViewportWidthChange(() => setIsCompact(window.innerWidth < 768)), []);
 
   return { isTouch, hasNoHover, isTelegramWebView, isCompact };
 }

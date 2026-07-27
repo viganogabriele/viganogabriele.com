@@ -21,6 +21,8 @@ export interface CircularCarouselProps<T> {
 }
 
 const normalizeAngle = (angle: number) => ((angle + 180) % 360 + 360) % 360 - 180;
+const easeOutQuart = (t: number) => 1 - (1 - t) ** 4;
+const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 
 /**
  * A deliberately DOM-driven 3D ring. React only tracks the active card for
@@ -116,7 +118,7 @@ export function CircularCarousel<T>({
     lastFrame.current = null;
   }, []);
 
-  const animateTo = useCallback((target: number, duration = reducedMotion ? 180 : 540, onComplete?: () => void) => {
+  const animateTo = useCallback((target: number, duration = reducedMotion ? 180 : 540, onComplete?: () => void, easing: (t: number) => number = easeOutQuart) => {
     stopAnimation();
     if (duration === 0) {
       rotation.current = target;
@@ -130,7 +132,7 @@ export function CircularCarousel<T>({
     const startedAt = performance.now();
     const tick = (now: number) => {
       const progress = Math.min(1, (now - startedAt) / duration);
-      const eased = 1 - (1 - progress) ** 4;
+      const eased = easing(progress);
       rotation.current = start + (target - start) * eased;
       updateCards();
       if (progress < 1) frameRef.current = window.requestAnimationFrame(tick);
@@ -148,7 +150,11 @@ export function CircularCarousel<T>({
     if (!snap || !items.length) return;
     const step = 360 / items.length;
     const target = Math.round(rotation.current / step) * step;
-    animateTo(target);
+    // Momentum has already decayed to a near-zero velocity by the time this
+    // runs, so the handoff needs a curve that also starts at zero velocity
+    // (ease-in-out) instead of the snappy ease-out used for explicit
+    // selection — otherwise the carousel visibly lurches right as it settles.
+    animateTo(target, undefined, undefined, easeInOutQuad);
   }, [animateTo, items.length, snap]);
 
   const pause = useCallback(() => { pauseUntil.current = performance.now() + pauseDuration; }, [pauseDuration]);
@@ -238,6 +244,13 @@ export function CircularCarousel<T>({
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
       if (Math.abs(dx) <= Math.abs(dy)) { dragging.current = false; return; }
       point.horizontal = true;
+      // Direction just locked in: rebase the tracking point to this event
+      // instead of applying the whole dead-zone distance as one delta —
+      // otherwise touch drags snap the carousel the instant the axis locks.
+      point.x = event.clientX;
+      point.y = event.clientY;
+      point.time = performance.now();
+      return;
     }
     const now = performance.now();
     const delta = dx * dragSensitivity;

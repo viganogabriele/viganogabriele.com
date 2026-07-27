@@ -2,6 +2,7 @@ import { m, useInView, useScroll, useTransform } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { timelineItems } from "../../data/timeline";
 import { ease } from "../../lib/motion";
+import { onViewportWidthChange } from "../../lib/viewport";
 import { SectionHeader } from "../ui/SectionHeader";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 
@@ -75,23 +76,34 @@ export function Journey() {
   const [railHeight, setRailHeight] = useState(0);
 
   useEffect(() => {
+    // Reading innerHeight live on every resize would remap this rail's whole
+    // scroll range mid-scroll whenever the mobile URL bar collapses/expands
+    // (see lib/viewport.ts), snapping both the fill and the indicator to a
+    // new position. Pin the height to the last real viewport change so the
+    // mapping stays stable while scrolling.
+    let viewportHeight = window.innerHeight;
     const measure = () => {
       if (!railRef.current) return;
       const rect = railRef.current.getBoundingClientRect();
       const pageTop = window.scrollY + rect.top;
       const pageBottom = window.scrollY + rect.bottom;
-      const vh = window.innerHeight;
-      setScrollRange([pageTop - vh * 0.95, pageBottom - vh * 0.15]);
+      const vh = viewportHeight;
+      const nextStart = pageTop - vh * 0.95;
+      const nextEnd = pageBottom - vh * 0.15;
+      setScrollRange((current) => current[0] === nextStart && current[1] === nextEnd ? current : [nextStart, nextEnd]);
       setRailHeight(rect.height);
     };
     measure();
     const observer = new ResizeObserver(measure);
     if (railRef.current) observer.observe(railRef.current);
-    window.addEventListener("resize", measure, { passive: true });
+    const removeResizeListener = onViewportWidthChange(() => {
+      viewportHeight = window.innerHeight;
+      measure();
+    });
     window.addEventListener("hashchange", measure);
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", measure);
+      removeResizeListener();
       window.removeEventListener("hashchange", measure);
     };
   }, []);

@@ -475,62 +475,45 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   backface-visibility: hidden;
 }
 
-@media (hover: none) and (pointer: coarse) {
-  .hero-object-aura,
-  .hero-fallback-scan {
-    animation: none;
-  }
-
-  /* Strip ALL GPU layer-promotion hints on touch.
-     translateZ(0)/will-change promote elements to their own compositor tiles.
-     On mobile the GPU tile budget is small: during slow finger-held scroll
-     the browser exhausts tiles and blanks sections below the viewport until
-     it can re-rasterize. Removing all hints lets the browser manage tiling
-     with its own built-in strategy. */
-  .ambient-layer {
-    backface-visibility: visible;
-  }
-
-  .ambient-blob {
-    backface-visibility: visible;
-  }
-
-  .gpu-promote {
-    backface-visibility: visible;
-  }
-
-  /* Same reasoning as above: the carousel ring promotes each card to its own
-     compositor layer for a 3D rotation that only ever reaches ±20deg, so
-     backface-visibility never has anything to hide. Off-screen, those layers
-     are prime candidates for eviction under a tight mobile GPU tile budget — then have
-     to be re-rasterized right as the section scrolls back into view. */
-  .circular-carousel__card {
-    backface-visibility: visible;
-    will-change: auto;
-  }
-
-  html,
-  body {
-    overscroll-behavior-y: none;
-  }
-
-  .noise {
-    isolation: isolate;
-  }
+/* ─── Touch mitigations ──────────────────────────────────────────────────────
+   Gated on [data-touch] (set from JS in index.html) rather than
+   (hover: none) and (pointer: coarse). The media query is unreliable in
+   exactly the browsers that need these most — Telegram's webview and Brave
+   with "Desktop site" report hover/fine-pointer while being touch-only — so
+   it silently skipped every mitigation there. There used to be a partial
+   .telegram-safe user-agent fallback for four of these selectors; the JS
+   check subsumes it and covers Brave too. */
+[data-touch] .hero-object-aura,
+[data-touch] .hero-fallback-scan {
+  animation: none;
 }
 
-/* In-app browsers (Telegram, etc.) can fail to match (hover: none) and
-   (pointer: coarse) reliably despite being touch-only and often less
-   capable than the platform's real browser — isTelegramBrowser() (a
-   user-agent check, see useFeatureDetect) is what sets .telegram-safe, so
-   mirror the touch mitigations above under it explicitly rather than
-   trusting the media query alone. */
-.telegram-safe .ambient-layer,
-.telegram-safe .ambient-blob,
-.telegram-safe .gpu-promote,
-.telegram-safe .circular-carousel__card {
+/* Strip ALL GPU layer-promotion hints on touch.
+   translateZ(0)/will-change promote elements to their own compositor tiles.
+   On mobile the GPU tile budget is small: during slow finger-held scroll
+   the browser exhausts tiles and blanks sections below the viewport until
+   it can re-rasterize. Removing all hints lets the browser manage tiling
+   with its own built-in strategy.
+   The carousel cards are included for the same reason: the ring promotes
+   each card for a 3D rotation that only ever reaches ±20deg, so
+   backface-visibility never has anything to hide, and off-screen those
+   layers are prime eviction candidates that must be re-rasterized right as
+   the section scrolls back into view. */
+[data-touch] .ambient-layer,
+[data-touch] .ambient-blob,
+[data-touch] .gpu-promote,
+[data-touch] .circular-carousel__card {
   backface-visibility: visible;
   will-change: auto;
+}
+
+html[data-touch],
+html[data-touch] body {
+  overscroll-behavior-y: none;
+}
+
+[data-touch] .noise {
+  isolation: isolate;
 }
 
 /* Custom cursor — desktop only.
@@ -601,16 +584,17 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   animation: grainShift 8s steps(10) infinite;
 }
 
-@media (hover: none) and (pointer: coarse) {
-  .noise::before {
-    opacity: 0.06;
-    /* soft-light forces this fixed full-viewport layer to re-blend against
-       everything scrolling underneath on every frame — a profiled, dominant
-       source of mobile scroll jank. Plain compositing lets the browser keep
-       it on a static layer; a lower opacity keeps the grain subtle. */
-    mix-blend-mode: normal;
-    animation: none;
-  }
+/* Highest-impact touch mitigation on the page: this is a fixed, full-viewport
+   layer that both blends and translates. `mix-blend-mode: overlay` forces it
+   to re-blend against everything scrolling underneath on every frame, and the
+   grainShift animation keeps it moving — together they read as "the
+   background is moving" and stutter the entire site, not just the hero.
+   Specificity (0,2,1) intentionally beats the 2dppx opacity rule below, so
+   this stays authoritative on Retina touch screens without a second rule. */
+[data-touch] .noise::before {
+  opacity: 0.06;
+  mix-blend-mode: normal;
+  animation: none;
 }
 
 @keyframes grainShift {
@@ -650,35 +634,27 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   }
 }
 
-/* Keep the lighter touch profile authoritative on Retina mobile displays. */
-@media (hover: none) and (pointer: coarse) and (min-resolution: 2dppx) {
-  .noise::before {
-    opacity: 0.06;
-  }
-}
-
-.noise.telegram-safe::before {
-  animation: none;
-  opacity: 0.18;
-  /* Same fix as the touch media query above, restated here in case the
-     in-app browser doesn't match (hover: none)/(pointer: coarse) — see
-     isTelegramBrowser() in useFeatureDetect. */
-  mix-blend-mode: normal;
-}
-
 /* ─── Hero grid background ───────────────────────────────────────────────────── */
-.hero-grid {
+/* The drift is a desktop-only ambient effect: it lives on ::before (sized one
+   tile period past every edge so the translation never exposes an edge) and
+   animates `transform`, not `background-position`, which would repaint every
+   tick. On touch it must never run — see the [data-touch] rule below. */
+.hero-grid::before {
+  content: "";
+  position: absolute;
+  inset: -64px;
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
   background-size: 64px 64px;
   background-position: -1px -1px;
+  pointer-events: none;
   animation: hero-grid-drift 24s linear infinite;
   transition: background-image 0.6s ease;
 }
 
 @keyframes hero-grid-drift {
-  to { background-position: 63px 63px; }
+  to { transform: translate3d(63px, 63px, 0); }
 }
 
 .system-overlay {
@@ -879,7 +855,7 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
 
   .face-hero-canvas,
   .section-anchor-label,
-  .hero-grid {
+  .hero-grid::before {
     transition: none;
   }
 }
@@ -919,7 +895,7 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
 }
 
 /* ─── System Mode activated state ────────────────────────────────────────────── */
-[data-system-mode="on"] .hero-grid {
+[data-system-mode="on"] .hero-grid::before {
   background-image:
     radial-gradient(circle, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px),
     linear-gradient(color-mix(in srgb, var(--accent) 2.8%, transparent) 1px, transparent 1px),
@@ -967,20 +943,16 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 15%, transparent) !important;
 }
 
-@media (hover: none) and (pointer: coarse) {
-  .hero-grid,
-  .hero-scanlines {
-    animation: none;
-  }
-}
-
-.telegram-safe .hero-grid,
-.telegram-safe .hero-scanlines {
+/* No ambient motion on touch: the drifting grid was the "background keeps
+   moving" report on Brave and Telegram, and the scanline flicker repaints the
+   whole hero on the same devices. Both stay on desktop. */
+[data-touch] .hero-grid::before,
+[data-touch] .hero-scanlines {
   animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-grid,
+  .hero-grid::before,
   .hero-scanlines {
     animation: none !important;
   }
@@ -1453,9 +1425,11 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
 
 /* The mobile SYS status is supplied by the overlay. Avoid both a visual clash
    and continual diagnostic updates on touch/coarse-pointer devices. */
-@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+@media (max-width: 767px) {
   .sys-hud { display: none; }
 }
+
+[data-touch] .sys-hud { display: none; }
 
 /* ─── Cursor trail — scia di punti in SYS mode ───────────────────────────────── */
 .cursor-trail-dot {
@@ -1472,15 +1446,40 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   opacity: 0;
 }
 
-@keyframes route-progress {
-  from { transform: translateX(-140%); }
-  to { transform: translateX(350%); }
+/* Approaches but never reaches 100% on its own — the route might resolve in
+   150ms (prefetched, from cache) or take much longer, and this shouldn't look
+   "stuck" either way. Whatever point it's reached when the route becomes
+   ready, the [data-phase="completing"] rule below takes over: it drops the
+   keyframe animation (which leaves the last computed scaleX applied, since
+   the keyframe's forwards fill-mode holds it) and transitions the rest of the
+   way to 100% instead of just vanishing mid-approach. */
+@keyframes route-progress-approach {
+  0% { transform: scaleX(0); }
+  20% { transform: scaleX(0.35); }
+  50% { transform: scaleX(0.6); }
+  80% { transform: scaleX(0.76); }
+  100% { transform: scaleX(0.86); }
 }
 
 .route-progress-bar {
-  animation: route-progress 0.9s ease-in-out infinite;
+  transform: scaleX(0);
+  animation: route-progress-approach 5s cubic-bezier(.16,1,.3,1) forwards;
+}
+
+.route-progress-bar[data-phase="completing"] {
+  animation: none;
+  transform: scaleX(1);
+  transition: transform 200ms cubic-bezier(.16,1,.3,1);
+}
+
+/* Timed to finish exactly when Preloader's FINISH_MS unmounts the overlay:
+   the bar reaches 100% first, then the whole thing fades. */
+[data-preloader][data-phase="completing"] {
+  pointer-events: none;
+  transition: opacity 180ms ease 80ms;
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .route-progress-bar { animation: none; transform: translateX(75%); }
+  .route-progress-bar { animation: none; transform: scaleX(0.6); }
 }

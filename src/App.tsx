@@ -41,6 +41,17 @@ function RouteScrollManager() {
   const routeReady = readyKey === location.key;
   const routeSettled = settledKey === location.key;
   const loading = !routeReady || !routeSettled;
+  // Kept mounted a little past `loading` going false so Preloader can finish
+  // its own bar-to-100%-then-fade animation instead of being yanked away.
+  // Adjusted during render (React's documented pattern for state derived from
+  // a prop change) rather than in an effect, to avoid an extra commit.
+  const [previousLoading, setPreviousLoading] = useState(loading);
+  const [preloaderVisible, setPreloaderVisible] = useState(loading);
+  if (loading !== previousLoading) {
+    setPreviousLoading(loading);
+    if (loading) setPreloaderVisible(true);
+  }
+  const hidePreloader = useCallback(() => setPreloaderVisible(false), []);
   useRoutePrefetching();
 
   useEffect(() => {
@@ -91,7 +102,7 @@ function RouteScrollManager() {
   return (
     <RouteReadyContext.Provider value={markReady}>
       <RenderedRoutes positions={positions} ready={routeReady} onSettled={onSettled} onRouteError={onRouteError} />
-      {loading && <Preloader reducedMotion={prefersReducedMotion} />}
+      {preloaderVisible && <Preloader reducedMotion={prefersReducedMotion} active={loading} onHidden={hidePreloader} />}
     </RouteReadyContext.Provider>
   );
 }
