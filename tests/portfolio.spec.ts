@@ -570,26 +570,20 @@ test("touch hardware gets the mobile mitigations even when the browser reports a
   await expect(page.locator("html")).toHaveAttribute("data-touch", "true");
 
   const ambient = await page.evaluate(() => {
-    const grid = document.querySelector(".hero-grid");
-    const noise = document.querySelector(".noise");
-    const scanlines = document.querySelector(".hero-scanlines");
     return {
-      gridBackground: grid ? getComputedStyle(grid).backgroundImage : null,
-      gridAnimation: grid ? getComputedStyle(grid, "::before").animationName : null,
-      gridPseudoContent: grid ? getComputedStyle(grid, "::before").content : null,
-      gridPseudoTransform: grid ? getComputedStyle(grid, "::before").transform : null,
-      noiseAnimation: noise ? getComputedStyle(noise, "::before").animationName : null,
-      noiseBlend: noise ? getComputedStyle(noise, "::before").mixBlendMode : null,
-      scanlineAnimation: scanlines ? getComputedStyle(scanlines).animationName : null,
+      gridCount: document.querySelectorAll(".hero-grid").length,
+      noiseCount: document.querySelectorAll(".noise").length,
+      scanlineCount: document.querySelectorAll(".hero-scanlines").length,
+      ambientLayerCount: document.querySelectorAll(".ambient-layer").length,
+      fixedDecorativeLayers: Array.from(document.querySelectorAll<HTMLElement>(".noise, .ambient-layer, .hero-scanlines"))
+        .filter((element) => getComputedStyle(element).position === "fixed").length,
     };
   });
-  expect(ambient.gridBackground).toContain("linear-gradient");
-  expect(ambient.gridAnimation).toBe("none");
-  expect(ambient.gridPseudoContent).toBe("none");
-  expect(ambient.gridPseudoTransform).toBe("none");
-  expect(ambient.noiseAnimation).toBe("none");
-  expect(ambient.noiseBlend).toBe("normal");
-  expect(ambient.scanlineAnimation).toBe("none");
+  expect(ambient.gridCount).toBe(0);
+  expect(ambient.noiseCount).toBe(0);
+  expect(ambient.scanlineCount).toBe(0);
+  expect(ambient.ambientLayerCount).toBe(0);
+  expect(ambient.fixedDecorativeLayers).toBe(0);
 
   // The expensive desktop-only treatments must stay off on touch hardware.
   await expect(page.locator("[data-custom-cursor]")).toHaveCount(0);

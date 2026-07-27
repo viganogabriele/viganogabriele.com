@@ -512,10 +512,6 @@ html[data-touch] body {
   overscroll-behavior-y: none;
 }
 
-[data-touch] .noise {
-  isolation: isolate;
-}
-
 /* Custom cursor — desktop only.
    Centering uses negative margins so the transform property is free for
    Framer Motion (ring's scale animation) and direct JS translations
@@ -582,19 +578,6 @@ html[data-touch] body {
   opacity: 0.32;
   mix-blend-mode: overlay;
   animation: grainShift 8s steps(10) infinite;
-}
-
-/* Highest-impact touch mitigation on the page: this is a fixed, full-viewport
-   layer that both blends and translates. `mix-blend-mode: overlay` forces it
-   to re-blend against everything scrolling underneath on every frame, and the
-   grainShift animation keeps it moving — together they read as "the
-   background is moving" and stutter the entire site, not just the hero.
-   Specificity (0,2,1) intentionally beats the 2dppx opacity rule below, so
-   this stays authoritative on Retina touch screens without a second rule. */
-[data-touch] .noise::before {
-  opacity: 0.06;
-  mix-blend-mode: normal;
-  animation: none;
 }
 
 @keyframes grainShift {
@@ -943,33 +926,11 @@ html[data-touch] body {
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 15%, transparent) !important;
 }
 
-/* Chromium-based mobile browsers can keep the oversized, transform-animated
-   pseudo-element in a compositor layer even after its animation is disabled.
-   During async scrolling Brave and Telegram's webview then re-anchor that
-   layer a frame late, which makes the grid visibly slide and janks the page.
-   Paint the static grid on the hero itself on touch hardware and remove the
-   pseudo-element from the render tree entirely. */
+/* Touch hardware never needs the legacy grid compositor layer. The React hero
+   omits the class entirely; this pre-paint guard also covers secondary pages
+   and prevents a layer from appearing before React mounts. */
 html[data-touch] .hero-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
-  background-position: -1px -1px;
-  background-size: 64px 64px;
-}
-
-html[data-touch][data-system-mode="on"] .hero-grid {
-  background-image:
-    radial-gradient(circle, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px),
-    linear-gradient(color-mix(in srgb, var(--accent) 2.8%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 2.8%, transparent) 1px, transparent 1px);
-  background-position: 10px 10px, -1px -1px, -1px -1px;
-  background-size: 20px 20px, 64px 64px, 64px 64px;
-}
-
-html[data-touch] .hero-grid::before,
-[data-touch] .hero-scanlines {
-  /* The scanline flicker repaints the whole hero on the same devices. */
-  animation: none;
+  background-image: none;
 }
 
 html[data-touch] .hero-grid::before {
