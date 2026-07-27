@@ -118,9 +118,9 @@ export function Journey() {
   return (
     <section id="journey" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <SectionHeader
-        index="05 / SYSTEM TRACE"
-        title="A path with branches."
-        subtitle="A few live threads: what I'm learning, leading, and building next."
+        index="04 / EXPERIENCE"
+        title="Experience."
+        subtitle="What I’m learning, leading, and building now."
       />
       <div
         ref={railRef}
@@ -132,13 +132,13 @@ export function Journey() {
           <>
             <m.span
               aria-hidden
-              className="pointer-events-none absolute top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-blue via-accent to-violet"
+              className="pointer-events-none absolute top-0 h-full w-px -translate-x-1/2 bg-accent/70"
               style={{ left: "var(--journey-axis-x)", scaleY: fillScale, originY: 0 }}
             />
             <m.span
               aria-hidden
               data-journey-indicator
-              className="pointer-events-none absolute top-0 h-2 w-2 rounded-full bg-accent shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_85%,transparent)]"
+              className="pointer-events-none absolute top-0 h-2 w-2 rounded-full bg-accent"
               style={{ left: "var(--journey-axis-x)", x: "-50%", y: indicatorY }}
             />
           </>

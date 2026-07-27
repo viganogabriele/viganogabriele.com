@@ -12,9 +12,9 @@ export function Notes() {
   return (
     <section id="notes" data-scroll-anchor="notes" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <SectionHeader
-        index="06 / FIELD NOTES"
-        title="Notes from the build."
-        subtitle="Compact thoughts on operations, interfaces, and resilient systems."
+        index="05 / NOTES"
+        title="Notes."
+        subtitle="Thoughts from projects, events, interfaces, and systems."
       />
       <div className="note-row">
         {notes.map((note, index) => {
@@ -37,7 +37,7 @@ export function Notes() {
                   <h3 className="text-2xl tracking-[-0.045em] text-zinc-200 transition-colors group-hover:text-accent md:text-3xl">
                     {note.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-500 md:hidden">{note.preview}</p>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-500">{note.preview}</p>
                 </div>
                 <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-600">
                   <p>{note.date} / {note.readingTime}</p>

@@ -1,59 +1,27 @@
-import { Bot, Code2, PanelsTopLeft, Server } from "lucide-react";
 import { toolGroups } from "../../data/techStack";
-import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ScrollReveal } from "../motion/ScrollReveal";
-import { CircularCarousel } from "../ui/CircularCarousel";
 import { SectionHeader } from "../ui/SectionHeader";
 
-type ToolGroupType = typeof toolGroups[number];
-
-const groupIcons = [Code2, Server, PanelsTopLeft, Bot];
-
-function ToolGroupCard({ group, index, active }: { group: ToolGroupType; index: number; active: boolean }) {
-  const Icon = groupIcons[index] ?? Code2;
-  return (
-    <div className="tool-group static-skill h-full p-5 sm:p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent">0{index + 1} / skills</p>
-          <h3 className="mt-3 text-xl tracking-[-0.045em] text-bone sm:text-2xl">{group.label}</h3>
-        </div>
-        <Icon aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-accent/80" />
-      </div>
-      <p className="mt-4 max-w-sm text-sm leading-relaxed text-zinc-400">{group.description}</p>
-      <ul className={`mt-5 grid gap-2 ${active ? "" : "circular-carousel__secondary"}`} aria-label={group.label}>
-        {group.tools.map((tool) => (
-          <li key={tool} className="tool-row flex min-h-10 items-center border-l border-accent/45 bg-white/[0.025] px-3 font-mono text-[10px] tracking-[0.08em] text-zinc-200">{tool}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export function TechStack() {
-  const { prefersReducedMotion, level } = useMotionProfile();
-
   return (
-    <section id="stack" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
+    <section id="stack" className="relative mx-auto mt-32 max-w-7xl px-5 sm:px-8 lg:mt-40 lg:px-10">
       <SectionHeader
-        index="04 / TOOLKIT"
-        title="The workshop bench."
-        subtitle="Tools I use to build interfaces, run systems, collaborate clearly, and explore practical AI workflows."
+        index="06 / TOOLS"
+        title="Tools & practice."
+        subtitle="The technologies and working methods I use regularly."
       />
       <ScrollReveal>
-        <div className="tool-workbench border border-white/[0.1] bg-surface/80">
-          <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-500">
-            <span>Bench / toolkit</span>
-            <span className="text-accent">Practical systems</span>
-          </div>
-          <CircularCarousel
-            items={toolGroups}
-            ariaLabel="Skill groups"
-            getItemLabel={(group) => group.label}
-            renderCard={(group, index, active) => <ToolGroupCard group={group} index={index} active={active} />}
-            reducedMotion={prefersReducedMotion || level === "static"}
-            className="tool-carousel"
-          />
+        <div className="grid border-y border-white/[0.09] sm:grid-cols-2 lg:grid-cols-4">
+          {toolGroups.map((group, index) => (
+            <article key={group.label} className="border-b border-white/[0.07] py-7 sm:px-6 sm:odd:border-r sm:[&:nth-last-child(-n+2)]:border-b-0 lg:border-b-0 lg:[&:not(:last-child)]:border-r lg:first:pl-0 lg:last:pr-0">
+              <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">0{index + 1}</p>
+              <h3 className="mt-3 text-xl tracking-[-0.035em] text-bone">{group.label}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-zinc-500">{group.description}</p>
+              <ul className="mt-5 space-y-2 text-sm text-zinc-300" aria-label={group.label}>
+                {group.tools.map((tool) => <li key={tool}>{tool}</li>)}
+              </ul>
+            </article>
+          ))}
         </div>
       </ScrollReveal>
     </section>

@@ -48,11 +48,11 @@ export const HomePage = memo(function HomePage() {
       <main id="main-content">
         <Hero systemActive={systemActive} onToggleSystem={toggleSystem} />
         <About />
-        <Expertise />
         <Projects />
-        <TechStack />
+        <Expertise />
         <Journey />
         <Notes />
+        <TechStack />
         <Certifications />
         <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
           <Footer />

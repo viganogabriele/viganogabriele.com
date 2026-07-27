@@ -1,5 +1,3 @@
-export type ProjectArtifact = "network" | "portfolio" | "studyquest";
-
 export interface Project {
   title: string;
   index: string;
@@ -12,10 +10,7 @@ export interface Project {
   stack: string[];
   status: string;
   link?: string;
-  artifact: ProjectArtifact;
   metrics: Array<{ value: string; label: string }>;
-  accent: "blue" | "violet" | "bone";
-  buildMeta: string;
 }
 
 export const projects: Project[] = [
@@ -31,10 +26,7 @@ export const projects: Project[] = [
     stack: ["Product", "UX", "Figma", "Operations"],
     status: "In progress · ongoing",
     link: "https://github.com/PoliNetworkOrg",
-    artifact: "network",
     metrics: [{ value: "45K+", label: "students" }, { value: "1K+", label: "event attendees" }],
-    accent: "violet",
-    buildMeta: "45K network / 5 active teams",
   },
   {
     index: "02",
@@ -42,16 +34,13 @@ export const projects: Project[] = [
     title: "Interactive\nPortfolio",
     description: "This site — designed and built solo, not templated.",
     role: "Solo — design, build, iterate",
-    contribution: "Built the 3D carousel, motion profiling, custom cursor, and system-mode overlay from scratch.",
-    outcome: "Fast and accessible on low-power devices, touch, and in-app browsers like Telegram.",
+    contribution: "Designed the information architecture, editorial UI, motion system, accessibility paths, and alternate SYS experience.",
+    outcome: "A distinctive portfolio that remains fast and accessible on low-power devices, touch, and in-app browsers like Telegram.",
     proof: "Lint and production build pass clean; tested on touch and Telegram's in-app browser.",
     stack: ["React 19", "TypeScript", "Framer Motion", "Vite"],
     status: "Continuously evolving",
     link: "https://github.com/viganogabriele/viganogabriele.com",
-    artifact: "portfolio",
     metrics: [{ value: "A–Z", label: "design & build" }, { value: "AA", label: "accessibility target" }],
-    accent: "blue",
-    buildMeta: "React 19 / Vite 8 / Motion profile",
   },
   {
     index: "03",
@@ -65,9 +54,6 @@ export const projects: Project[] = [
     stack: ["React Native", "Expo", "Gemini API", "Zustand"],
     status: "Hackathon build",
     link: "https://github.com/viganogabriele/gdg2026",
-    artifact: "studyquest",
     metrics: [{ value: "24H", label: "build time" }, { value: "4", label: "team members" }],
-    accent: "bone",
-    buildMeta: "24H delivery / 4-person build cell",
   },
 ];

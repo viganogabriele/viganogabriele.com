@@ -1,5 +1,5 @@
 import { m, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Download, ExternalLink, FileText, Maximize2, Minus, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -90,7 +90,7 @@ function CvDocumentViewer({ onReady }: { onReady: () => void }) {
 export function CvPage() {
   const reduced = useReducedMotion();
   const { level } = useMotionProfile();
-  const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
+  const { active: systemActive, transitionId: systemTransitionId, webkitSafeMode, laserEnabled } = useSystemMode();
   const [downloading, setDownloading] = useState(false);
   const [documentReady, setDocumentReady] = useState(false);
   const entrance = reduced || level === "static" ? false : { opacity: 0, y: 16 };
@@ -133,13 +133,10 @@ export function CvPage() {
       <SystemModeOverlay active={systemActive} transitionId={systemTransitionId} safeMode={webkitSafeMode} laserEnabled={laserEnabled} />
       <SystemHUD active={systemActive} />
       <header className="safe-nav fixed left-1/2 top-3 z-[60] w-[calc(100%-1.25rem)] max-w-6xl -translate-x-1/2 sm:top-6 sm:w-[calc(100%-2rem)]">
-        <div className="flex items-center justify-between gap-3 border border-white/[0.09] bg-background/80 px-2 py-1.5 backdrop-blur-xl sm:px-4 sm:py-2">
+        <div className="flex items-center border border-white/[0.09] bg-background/80 px-2 py-1.5 backdrop-blur-xl sm:px-4 sm:py-2">
           <Link to="/" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 px-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:text-white">
             <ArrowLeft className="h-3.5 w-3.5" /> Back to home
           </Link>
-          <button type="button" onClick={toggleSystem} data-cursor="hover" className={`inline-flex h-11 min-w-[4.25rem] items-center justify-center gap-2 border px-2.5 font-mono text-[9px] uppercase tracking-[0.13em] transition-colors ${systemActive ? "border-accent/60 text-accent" : "border-white/[0.1] text-zinc-300"}`} aria-pressed={systemActive} aria-label="Toggle system mode" aria-keyshortcuts="Shift+S">
-            <Power className="h-3 w-3" /> SYS
-          </button>
         </div>
       </header>
 
