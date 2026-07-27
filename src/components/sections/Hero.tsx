@@ -23,7 +23,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
     </a>
   );
   return (
-    <section id="top" className="hero-grid relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/[0.07] pb-8 pt-24 sm:pt-28 lg:pt-32">
+    <section id="top" className="hero-grid hero-viewport relative flex items-center overflow-hidden border-b border-white/[0.07] pb-8 pt-24 sm:pt-28 lg:pt-32">
       <div className="hero-scanlines absolute inset-0 opacity-80" />
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-7 px-5 pb-12 sm:px-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-10 lg:px-10">

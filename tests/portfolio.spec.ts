@@ -574,13 +574,19 @@ test("touch hardware gets the mobile mitigations even when the browser reports a
     const noise = document.querySelector(".noise");
     const scanlines = document.querySelector(".hero-scanlines");
     return {
+      gridBackground: grid ? getComputedStyle(grid).backgroundImage : null,
       gridAnimation: grid ? getComputedStyle(grid, "::before").animationName : null,
+      gridPseudoContent: grid ? getComputedStyle(grid, "::before").content : null,
+      gridPseudoTransform: grid ? getComputedStyle(grid, "::before").transform : null,
       noiseAnimation: noise ? getComputedStyle(noise, "::before").animationName : null,
       noiseBlend: noise ? getComputedStyle(noise, "::before").mixBlendMode : null,
       scanlineAnimation: scanlines ? getComputedStyle(scanlines).animationName : null,
     };
   });
+  expect(ambient.gridBackground).toContain("linear-gradient");
   expect(ambient.gridAnimation).toBe("none");
+  expect(ambient.gridPseudoContent).toBe("none");
+  expect(ambient.gridPseudoTransform).toBe("none");
   expect(ambient.noiseAnimation).toBe("none");
   expect(ambient.noiseBlend).toBe("normal");
   expect(ambient.scanlineAnimation).toBe("none");
@@ -590,6 +596,43 @@ test("touch hardware gets the mobile mitigations even when the browser reports a
   await expect(page.locator(".ambient-blob")).toHaveCount(0);
   const navBlur = await page.evaluate(() => getComputedStyle(document.querySelector(".nav-panel")!).backdropFilter);
   expect(navBlur === "none" || navBlur === "").toBe(true);
+
+  await context.close();
+});
+
+test("mobile browser chrome height changes do not reflow the page", async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    reducedMotion: "reduce",
+    viewport: { width: 412, height: 700 },
+  });
+  const page = await context.newPage();
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo(0, 4000));
+
+  const measure = () => page.evaluate(() => {
+    const hero = document.querySelector<HTMLElement>("#top")!;
+    const title = hero.querySelector<HTMLElement>("h1")!;
+    return {
+      documentHeight: document.documentElement.scrollHeight,
+      heroHeight: hero.getBoundingClientRect().height,
+      scrollY: window.scrollY,
+      titleDocumentTop: title.getBoundingClientRect().top + window.scrollY,
+    };
+  });
+
+  const before = await measure();
+  await page.setViewportSize({ width: 412, height: 915 });
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+  const after = await measure();
+
+  expect(after.heroHeight).toBe(before.heroHeight);
+  expect(after.titleDocumentTop).toBe(before.titleDocumentTop);
+  expect(after.documentHeight).toBe(before.documentHeight);
+  expect(after.scrollY).toBe(before.scrollY);
 
   await context.close();
 });

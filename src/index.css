@@ -635,6 +635,14 @@ html[data-touch] body {
 }
 
 /* ─── Hero grid background ───────────────────────────────────────────────────── */
+.hero-viewport {
+  min-height: 100svh;
+}
+
+html[data-touch] .hero-viewport {
+  min-height: var(--stable-viewport-height, 100svh);
+}
+
 /* The drift is a desktop-only ambient effect: it lives on ::before (sized one
    tile period past every edge so the translation never exposes an edge) and
    animates `transform`, not `background-position`, which would repaint every
@@ -943,12 +951,37 @@ html[data-touch] body {
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 15%, transparent) !important;
 }
 
-/* No ambient motion on touch: the drifting grid was the "background keeps
-   moving" report on Brave and Telegram, and the scanline flicker repaints the
-   whole hero on the same devices. Both stay on desktop. */
-[data-touch] .hero-grid::before,
+/* Chromium-based mobile browsers can keep the oversized, transform-animated
+   pseudo-element in a compositor layer even after its animation is disabled.
+   During async scrolling Brave and Telegram's webview then re-anchor that
+   layer a frame late, which makes the grid visibly slide and janks the page.
+   Paint the static grid on the hero itself on touch hardware and remove the
+   pseudo-element from the render tree entirely. */
+html[data-touch] .hero-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-position: -1px -1px;
+  background-size: 64px 64px;
+}
+
+html[data-touch][data-system-mode="on"] .hero-grid {
+  background-image:
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--accent) 2.8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 2.8%, transparent) 1px, transparent 1px);
+  background-position: 10px 10px, -1px -1px, -1px -1px;
+  background-size: 20px 20px, 64px 64px, 64px 64px;
+}
+
+html[data-touch] .hero-grid::before,
 [data-touch] .hero-scanlines {
+  /* The scanline flicker repaints the whole hero on the same devices. */
   animation: none;
+}
+
+html[data-touch] .hero-grid::before {
+  content: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
