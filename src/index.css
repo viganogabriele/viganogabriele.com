@@ -1035,7 +1035,7 @@ html[data-touch] .hero-grid::before {
 
 /* ─── Cert strip row ─────────────────────────────────────────────────────────── */
 .cert-row {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 0;
 }
 .cert-row:first-child {
   border-top: 1px solid rgba(255, 255, 255, 0.04);
