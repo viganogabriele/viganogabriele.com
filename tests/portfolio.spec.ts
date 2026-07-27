@@ -574,13 +574,19 @@ test("touch hardware gets the mobile mitigations even when the browser reports a
     const noise = document.querySelector(".noise");
     const scanlines = document.querySelector(".hero-scanlines");
     return {
+      gridBackground: grid ? getComputedStyle(grid).backgroundImage : null,
       gridAnimation: grid ? getComputedStyle(grid, "::before").animationName : null,
+      gridPseudoContent: grid ? getComputedStyle(grid, "::before").content : null,
+      gridPseudoTransform: grid ? getComputedStyle(grid, "::before").transform : null,
       noiseAnimation: noise ? getComputedStyle(noise, "::before").animationName : null,
       noiseBlend: noise ? getComputedStyle(noise, "::before").mixBlendMode : null,
       scanlineAnimation: scanlines ? getComputedStyle(scanlines).animationName : null,
     };
   });
+  expect(ambient.gridBackground).toContain("linear-gradient");
   expect(ambient.gridAnimation).toBe("none");
+  expect(ambient.gridPseudoContent).toBe("none");
+  expect(ambient.gridPseudoTransform).toBe("none");
   expect(ambient.noiseAnimation).toBe("none");
   expect(ambient.noiseBlend).toBe("normal");
   expect(ambient.scanlineAnimation).toBe("none");
