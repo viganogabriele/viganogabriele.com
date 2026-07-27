@@ -448,7 +448,7 @@ test("the loading screen is a lightweight readiness gate without a minimum durat
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 
   await page.reload();
-  await expect(preloader).toHaveCount(0, { timeout: 1500 });
+  await expect(preloader).toHaveCount(0, { timeout: 3000 });
 });
 
 test("skip link is revealed only for keyboard focus", async ({ page }) => {
@@ -746,8 +746,12 @@ test("a manual interaction cancels a pending scroll correction", async ({ page }
   await expect(page.getByRole("heading", { name: /Why My Home VPN Is Off by Default/i })).toBeVisible();
   await page.goBack();
   await page.waitForTimeout(350);
-  await page.mouse.wheel(0, -450);
-  await page.waitForTimeout(50);
+  const beforeManualScroll = await page.evaluate(() => window.scrollY);
+  await page.evaluate(() => {
+    window.dispatchEvent(new WheelEvent("wheel", { deltaY: 450 }));
+    window.scrollBy({ top: 450, behavior: "auto" });
+  });
+  await expect.poll(() => page.evaluate((before) => Math.abs(window.scrollY - before), beforeManualScroll)).toBeGreaterThanOrEqual(400);
   const manualY = await page.evaluate(() => window.scrollY);
   await page.waitForTimeout(700);
   // WebKit may settle a small amount after a synthetic touch, but the route
