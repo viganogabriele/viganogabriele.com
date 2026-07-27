@@ -141,14 +141,14 @@ class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: stri
 
 function RouteScrollCommit({ location, positions, ready, onSettled }: { location: Location; positions: Map<string, ScrollSnapshot>; ready: boolean; onSettled: (key: string) => void }) {
   const userCancelledKey = useRef<string | null>(null);
-  const routeIntentStart = useRef({ key: location.key, version: userScrollIntentVersion });
-  if (routeIntentStart.current.key !== location.key) {
-    routeIntentStart.current = { key: location.key, version: userScrollIntentVersion };
+  const [routeIntentStart, setRouteIntentStart] = useState({ key: location.key, version: userScrollIntentVersion });
+  if (routeIntentStart.key !== location.key) {
+    setRouteIntentStart({ key: location.key, version: userScrollIntentVersion });
   }
 
   useLayoutEffect(() => {
     if (!ready) return;
-    if (userCancelledKey.current === location.key || userScrollIntentVersion !== routeIntentStart.current.version) {
+    if (userCancelledKey.current === location.key || userScrollIntentVersion !== routeIntentStart.version) {
       onSettled(location.key);
       return;
     }
@@ -218,7 +218,7 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
       window.removeEventListener("touchstart", cancelForUserInput);
       window.removeEventListener("pointerdown", cancelForUserInput);
     };
-  }, [location, positions, ready, onSettled]);
+  }, [location, positions, ready, onSettled, routeIntentStart.version]);
 
   return null;
 }
