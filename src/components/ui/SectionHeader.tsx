@@ -3,7 +3,13 @@ import { useMemo, useRef } from "react";
 import { ease } from "../../lib/motion";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 
-export function SectionHeader({ index, title, subtitle }: { index: string; title: string; subtitle?: string }) {
+interface SectionHeaderProps {
+  index: string;
+  title: string;
+  subtitle?: string;
+}
+
+export function SectionHeader({ index, title, subtitle }: SectionHeaderProps) {
   const { level } = useMotionProfile();
   const disableMotion = level === "static";
   const ref = useRef<HTMLDivElement>(null);
@@ -22,19 +28,18 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
   const wordShown = { opacity: 1, y: 0, filter: "blur(0px)" };
 
   return (
-    <div ref={ref} className="mb-12 md:mb-16">
+    <div ref={ref} className="mb-10 md:mb-14">
       <m.div
-        className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500"
+        className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500"
         initial={{ opacity: 0, y: 10 }}
         animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
         transition={{ duration: 0.5, ease: ease.softSettle }}
       >
         <span>{index}</span>
         <span className="h-px w-10 bg-zinc-700" />
-        <span className="section-anchor-label text-accent">GRID / {index}</span>
       </m.div>
 
-      <div className="relative mt-4 overflow-hidden pb-2">
+      <div className="relative mt-4 overflow-hidden">
         {disableMotion ? (
           // Reduced-motion: fade the whole title in on scroll (no per-word travel).
           <m.h2
@@ -67,16 +72,6 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
           </h2>
         )}
 
-        {/* Underline sweep */}
-        {!disableMotion && (
-          <m.span
-            className="absolute bottom-0 left-0 h-px bg-gradient-to-r from-accent/70 via-white/20 to-transparent"
-            style={{ width: "100%", transformOrigin: "left" }}
-            initial={{ scaleX: 0 }}
-            animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
-            transition={{ duration: 1.4, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          />
-        )}
       </div>
 
       {subtitle && (

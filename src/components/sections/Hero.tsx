@@ -23,18 +23,15 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
     </a>
   );
   return (
-    <section id="top" className="hero-grid hero-viewport relative flex items-center overflow-hidden border-b border-white/[0.07] pb-8 pt-24 sm:pt-28 lg:pt-32">
-      <div className="hero-scanlines absolute inset-0 opacity-80" />
-
-      <div className="relative mx-auto grid w-full max-w-7xl gap-7 px-5 pb-12 sm:px-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-10 lg:px-10">
+    <section id="top" className="hero-viewport relative flex items-center overflow-hidden border-b border-white/[0.07] pb-10 pt-24 sm:pt-28 lg:pt-32">
+      <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-5 pb-10 sm:px-8 lg:grid-cols-[1.12fr_0.88fr] lg:items-center lg:gap-16 lg:px-10">
         <div className="relative z-10">
           <m.p
             initial={reduced ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.16, duration: 0.6, ease: ease.cinematic }}
-            className="inline-flex items-center gap-2 font-mono text-sm uppercase tracking-[0.18em] text-accent/75"
+            className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.14em] text-zinc-500"
           >
-            <m.span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" animate={reduced || level !== "full" ? undefined : { opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} />
             {profile.location}
           </m.p>
           <m.h1
@@ -54,7 +51,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             transition={{ delay: 0.45, duration: 0.6, ease: ease.softSettle }}
             className="mt-7"
           >
-            <p className="max-w-xl text-xl font-medium leading-snug tracking-[-0.02em] text-zinc-300 sm:text-2xl">Ambitious about building products, teams and systems that hold up.</p>
+            <p className="max-w-xl text-xl font-medium leading-snug tracking-[-0.02em] text-zinc-300 sm:text-2xl">I turn complex projects into products people can use and teams can run.</p>
 
             {/* A recruiter-friendly profile snapshot, kept inside the cinematic hero. */}
             <m.dl
@@ -65,7 +62,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
                 show: { transition: { staggerChildren: 0.1, delayChildren: 0.55 } },
               }}
               aria-label="Professional profile"
-              className="hero-stat-grid mt-5 grid max-w-xl grid-cols-1 border-y border-white/[0.09] font-mono tracking-[0.03em] text-zinc-500 sm:grid-cols-2"
+              className="hero-stat-grid mt-6 grid max-w-xl grid-cols-1 border-y border-white/[0.09] text-zinc-500 sm:grid-cols-2"
             >
               {[
                 { label: "Current role", value: profile.currentRole },
@@ -80,8 +77,8 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
                   }}
                   className="hero-stat-cell flex min-w-0 flex-col justify-between border-b border-white/[0.07] py-4 last:border-b-0 sm:border-b-0 sm:px-4 sm:first:pl-0 sm:[&:not(:last-child)]:border-r"
                 >
-                  <dt className="text-[9px] uppercase tracking-[0.13em] leading-[1.35]">{s.label}</dt>
-                  <dd className="mt-2 text-xs font-normal leading-snug tracking-[0.01em] text-zinc-200">{s.value}</dd>
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.12em] leading-[1.35]">{s.label}</dt>
+                  <dd className="mt-2 text-sm font-normal leading-snug text-zinc-200">{s.value}</dd>
                 </m.div>
               ))}
             </m.dl>
@@ -97,12 +94,9 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
           initial={reduced ? false : { opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.34, duration: 1, ease: ease.cinematic }}
-          className="hero-visual-frame relative mx-auto hidden w-full max-w-[34rem] overflow-hidden sm:block sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem]"
+          className="hero-visual-frame relative mx-auto aspect-[4/5] w-full max-w-[31rem] overflow-hidden sm:min-h-[28rem] lg:min-h-[34rem]"
         >
           <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />
-          <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-accent/75">
-            Portrait / profile
-          </span>
         </m.div>
       </div>
 

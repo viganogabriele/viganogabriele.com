@@ -19,35 +19,35 @@
   src: url("@fontsource/space-mono/files/space-mono-latin-400-normal.woff2") format("woff2");
 }
 
-/* ── Blue & violet instrument ──────────────────────────────────────────── */
+/* ── Editorial dark palette ────────────────────────────────────────────── */
 @theme {
-  --color-background: #080b16;
-  --color-surface: #101427;
-  --color-foreground: #edf1ff;
-  --color-bone: #edf1ff;
-  --color-blue: #78a9ff;
-  --color-blue-soft: #b8d0ff;
+  --color-background: #0d0f13;
+  --color-surface: #15171b;
+  --color-foreground: #f1eee7;
+  --color-bone: #f1eee7;
+  --color-blue: #879dcf;
+  --color-blue-soft: #c2cce3;
   --color-violet: #a68bff;
   --color-violet-soft: #d0c4ff;
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   /* Warm-shifted neutrals replace the stock blue-gray zinc ramp. */
-  --color-zinc-100: #e8ecfa;
-  --color-zinc-200: #d2d8ec;
-  --color-zinc-300: #bcc4dc;
-  --color-zinc-400: #a8b0c8;
-  --color-zinc-500: #929bb5;
-  --color-zinc-600: #737d98;
-  --color-zinc-700: #444d67;
-  --color-zinc-800: #252c42;
-  --color-zinc-900: #151a2b;
+  --color-zinc-100: #e9e6df;
+  --color-zinc-200: #d2cfc8;
+  --color-zinc-300: #bab7b0;
+  --color-zinc-400: #9c9a95;
+  --color-zinc-500: #7e7d79;
+  --color-zinc-600: #62615e;
+  --color-zinc-700: #454541;
+  --color-zinc-800: #292a2c;
+  --color-zinc-900: #181a1e;
   --font-sans: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
   --font-mono: "Space Mono", ui-monospace, "SF Mono", "Cascadia Code", monospace;
 }
 
 html {
-  --accent: #78a9ff;
-  --accent-soft: #b8d0ff;
+  --accent: #879dcf;
+  --accent-soft: #c2cce3;
 }
 
 html[data-system-mode="on"],
@@ -64,7 +64,7 @@ html[data-system-mode="off"] {
 
 html,
 body {
-  background-color: #080b16;
+  background-color: #0d0f13;
   min-height: 100%;
 }
 
@@ -136,7 +136,7 @@ a {
 }
 
 body {
-  background-color: var(--color-background, #080b16);
+  background-color: var(--color-background, #0d0f13);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   margin: 0;
@@ -222,10 +222,8 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   width: 100%;
   min-height: 100%;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
-  background:
-    radial-gradient(circle at 55% 42%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 46%),
-    linear-gradient(145deg, rgba(21, 26, 52, 0.9), rgba(8, 11, 22, 0.5));
+  border: 1px solid rgba(241, 238, 231, 0.12);
+  background: #111318;
   color: inherit;
   touch-action: pan-y;
 }
@@ -251,7 +249,8 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   border-radius: 50%;
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   filter: blur(48px);
-  animation: hero-aura 7s ease-in-out infinite;
+  opacity: 0;
+  animation: none;
 }
 
 
@@ -273,7 +272,7 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
 }
 
 .hero-fallback img {
-  filter: grayscale(.18) contrast(1.08) saturate(.82);
+  filter: grayscale(.82) contrast(.94) saturate(.5);
   object-position: 50% 12%;
 }
 
@@ -285,7 +284,7 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
 }
 
 .hero-fallback-grid {
-  opacity: .4;
+  opacity: 0;
   background-image: linear-gradient(color-mix(in srgb, var(--accent) 11%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--accent) 11%, transparent) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: linear-gradient(135deg, transparent, #000 35%, transparent 80%);
@@ -294,7 +293,8 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
 .hero-fallback-scan {
   background: linear-gradient(to bottom, transparent 0 46%, color-mix(in srgb, var(--accent-soft) 42%, transparent) 50%, transparent 54%);
   translate: 0 -110%;
-  animation: hero-scan 5.8s ease-in-out infinite;
+  opacity: 0;
+  animation: none;
 }
 
 .hero-object-corner {
@@ -303,7 +303,7 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   width: 20px;
   height: 20px;
   pointer-events: none;
-  border-color: color-mix(in srgb, var(--accent-soft) 86%, transparent);
+  opacity: 0;
 }
 
 .hero-object-corner-tl { left: 10px; top: 10px; border-left: 1px solid; border-top: 1px solid; }
@@ -317,8 +317,21 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   font-family: var(--font-mono);
   font-size: 8px;
   letter-spacing: .14em;
-  color: color-mix(in srgb, var(--accent-soft) 72%, transparent);
+  color: rgba(241, 238, 231, 0.62);
+  opacity: 0;
+  transition: opacity 220ms ease;
 }
+
+.hero-object-button:hover .hero-object-label,
+.hero-object-button:focus-visible .hero-object-label {
+  opacity: 1;
+}
+
+[data-system-mode="on"] .hero-object-aura { opacity: 1; animation: hero-aura 7s ease-in-out infinite; }
+[data-system-mode="on"] .hero-fallback img { filter: grayscale(.18) contrast(1.08) saturate(.82); }
+[data-system-mode="on"] .hero-fallback-grid { opacity: .4; }
+[data-system-mode="on"] .hero-fallback-scan { opacity: 1; animation: hero-scan 5.8s ease-in-out infinite; }
+[data-system-mode="on"] .hero-object-corner { opacity: 1; }
 
 /* SYS mode lifts the hero button border */
 [data-system-mode="on"] .hero-object-button {

@@ -46,14 +46,15 @@ export function AdaptiveHeroObject({
   onToggleSystem: () => void;
 }) {
   const { level, isCompact } = useMotionProfile();
-  const label = systemActive ? "IDENTIFIED · TAP TO EXIT SYS" : "PORTRAIT · ENTER SYS";
+  const label = systemActive ? "Return to portrait" : "Alternate view";
 
   return (
     <div className="hero-object-shell">
       <button
         type="button"
         className="hero-object-button"
-        aria-label={label}
+        aria-label={systemActive ? "Disable alternate system view" : "Enable alternate system view"}
+        aria-keyshortcuts="Shift+S"
         aria-pressed={systemActive}
         onClick={onToggleSystem}
         data-cursor="hover"

@@ -42,7 +42,7 @@ export const HomePage = memo(function HomePage() {
       <PageMeta metadata={homeMetadata} />
       <JsonLd id="website-person" data={websitePersonJsonLd} />
       <ScrollBar />
-      <Navbar onNavigate={scrollToSection} systemActive={systemActive} onToggleSystem={toggleSystem} />
+      <Navbar onNavigate={scrollToSection} />
       <SystemModeOverlay active={systemActive} transitionId={systemTransitionId} safeMode={webkitSafeMode} laserEnabled={laserEnabled} />
       <SystemHUD active={systemActive} />
       <main id="main-content">
