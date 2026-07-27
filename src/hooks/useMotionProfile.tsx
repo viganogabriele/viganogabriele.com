@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { onViewportWidthChange } from "../lib/viewport";
 
 export type MotionLevel = "full" | "lite" | "static";
 
@@ -48,14 +49,19 @@ function readProfile(): MotionProfile {
   if (typeof window === "undefined") return defaultProfile;
   const nav = navigator as NavigatorWithHints;
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-  const isCompact = window.innerWidth < 768;
+  // A touch screen is authoritative over the pointer media queries: Brave with
+  // "Desktop site" and in-app webviews report hover/fine-pointer on phones,
+  // which used to hand them the full desktop treatment (custom cursor, WebGL
+  // hero, blurred ambient blobs) on mobile hardware.
+  const isTouch = "ontouchstart" in window || nav.maxTouchPoints > 0;
+  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches && !isTouch;
+  const isCompact = window.innerWidth < 768 || isTouch;
   const saveData = Boolean(nav.connection?.saveData);
   const isTelegram = /Telegram/i.test(nav.userAgent);
   const memory = nav.deviceMemory ?? 4;
   const cores = nav.hardwareConcurrency ?? 4;
   const capableHardware = memory >= 4 && cores >= 4;
-  const canUseWebGL = !prefersReducedMotion && !saveData && !isTelegram && capableHardware && supportsWebGL();
+  const canUseWebGL = !prefersReducedMotion && !saveData && !isTelegram && !isTouch && capableHardware && supportsWebGL();
   const level: MotionLevel = prefersReducedMotion ? "static" : canUseWebGL ? "full" : "lite";
 
   return {
@@ -80,11 +86,13 @@ export function MotionProfileProvider({ children }: { children: ReactNode }) {
     });
     reduced.addEventListener("change", refresh);
     pointer.addEventListener("change", refresh);
-    window.addEventListener("resize", refresh, { passive: true });
+    // Nothing this profile reads can change from a width-unchanged resize
+    // (the mobile URL bar collapsing) — skip the matchMedia work then.
+    const removeResizeListener = onViewportWidthChange(refresh);
     return () => {
       reduced.removeEventListener("change", refresh);
       pointer.removeEventListener("change", refresh);
-      window.removeEventListener("resize", refresh);
+      removeResizeListener();
     };
   }, []);
 

@@ -2,6 +2,7 @@ import { m, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { activities } from "../../data/activities";
 import { dur, ease } from "../../lib/motion";
+import { onViewportWidthChange } from "../../lib/viewport";
 import { ArtifactSVG } from "../ui/ArtifactSVG";
 import { SectionHeader } from "../ui/SectionHeader";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -40,7 +41,7 @@ function ExpertiseItem({
       </div>
       <div>
         <m.p
-          className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500"
+          className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-400"
           initial={staticMotion ? false : { opacity: 0, y: 8 }}
           animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
           transition={{ duration: 0.4, delay: 0.05, ease: ease.softSettle }}
@@ -119,14 +120,14 @@ export function Expertise() {
     });
     updateActive();
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
-    window.addEventListener("resize", scheduleUpdate, { passive: true });
+    const removeResizeListener = onViewportWidthChange(scheduleUpdate);
     window.addEventListener("hashchange", scheduleUpdate);
     return () => {
       if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
       window.removeEventListener("scroll", scheduleUpdate);
-      window.removeEventListener("resize", scheduleUpdate);
+      removeResizeListener();
       window.removeEventListener("hashchange", scheduleUpdate);
     };
   }, []);

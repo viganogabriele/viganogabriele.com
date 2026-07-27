@@ -21,6 +21,8 @@ export interface CircularCarouselProps<T> {
 }
 
 const normalizeAngle = (angle: number) => ((angle + 180) % 360 + 360) % 360 - 180;
+const easeOutQuart = (t: number) => 1 - (1 - t) ** 4;
+const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 
 /**
  * A deliberately DOM-driven 3D ring. React only tracks the active card for
@@ -52,6 +54,7 @@ export function CircularCarousel<T>({
   const frameRef = useRef<number | null>(null);
   const lastFrame = useRef<number | null>(null);
   const velocity = useRef(0);
+  const selectionTarget = useRef<number | null>(null);
   const pauseUntil = useRef(0);
   const dragging = useRef(false);
   const moved = useRef(false);
@@ -74,6 +77,7 @@ export function CircularCarousel<T>({
     const nearest = items.reduce((best, _item, index) => (
       Math.abs(normalizeAngle(rotation.current + index * step)) < Math.abs(normalizeAngle(rotation.current + best * step)) ? index : best
     ), 0);
+    const selected = selectionTarget.current ?? nearest;
 
     cardRefs.current.forEach((card, index) => {
       if (!card) return;
@@ -97,14 +101,14 @@ export function CircularCarousel<T>({
 
     cardRefs.current.forEach((card, index) => {
       if (!card) return;
-      const active = index === nearest;
+      const active = index === selected;
       card.dataset.active = String(active);
       card.setAttribute("aria-current", active ? "true" : "false");
     });
-    if (activeRef.current !== nearest) {
-      activeRef.current = nearest;
-      setActiveIndex(nearest);
-      onActiveIndexChange?.(nearest);
+    if (activeRef.current !== selected) {
+      activeRef.current = selected;
+      setActiveIndex(selected);
+      onActiveIndexChange?.(selected);
     }
   }, [items, onActiveIndexChange, radiusScale]);
 
@@ -114,24 +118,30 @@ export function CircularCarousel<T>({
     lastFrame.current = null;
   }, []);
 
-  const animateTo = useCallback((target: number, duration = reducedMotion ? 180 : 540) => {
+  const animateTo = useCallback((target: number, duration = reducedMotion ? 180 : 540, onComplete?: () => void, easing: (t: number) => number = easeOutQuart) => {
     stopAnimation();
     if (duration === 0) {
       rotation.current = target;
       updateCards();
       velocity.current = 0;
       setTickerRevision((revision) => revision + 1);
+      onComplete?.();
       return;
     }
     const start = rotation.current;
     const startedAt = performance.now();
     const tick = (now: number) => {
       const progress = Math.min(1, (now - startedAt) / duration);
-      const eased = 1 - (1 - progress) ** 4;
+      const eased = easing(progress);
       rotation.current = start + (target - start) * eased;
       updateCards();
       if (progress < 1) frameRef.current = window.requestAnimationFrame(tick);
-      else { frameRef.current = null; velocity.current = 0; setTickerRevision((revision) => revision + 1); }
+      else {
+        frameRef.current = null;
+        velocity.current = 0;
+        setTickerRevision((revision) => revision + 1);
+        onComplete?.();
+      }
     };
     frameRef.current = window.requestAnimationFrame(tick);
   }, [reducedMotion, stopAnimation, updateCards]);
@@ -140,7 +150,11 @@ export function CircularCarousel<T>({
     if (!snap || !items.length) return;
     const step = 360 / items.length;
     const target = Math.round(rotation.current / step) * step;
-    animateTo(target);
+    // Momentum has already decayed to a near-zero velocity by the time this
+    // runs, so the handoff needs a curve that also starts at zero velocity
+    // (ease-in-out) instead of the snappy ease-out used for explicit
+    // selection — otherwise the carousel visibly lurches right as it settles.
+    animateTo(target, undefined, undefined, easeInOutQuad);
   }, [animateTo, items.length, snap]);
 
   const pause = useCallback(() => { pauseUntil.current = performance.now() + pauseDuration; }, [pauseDuration]);
@@ -195,17 +209,25 @@ export function CircularCarousel<T>({
     pause();
     velocity.current = 0;
     const step = 360 / items.length;
-    animateTo(rotation.current - normalizeAngle(rotation.current + index * step));
-  }, [animateTo, items.length, pause]);
+    selectionTarget.current = index;
+    updateCards();
+    animateTo(rotation.current - normalizeAngle(rotation.current + index * step), undefined, () => {
+      selectionTarget.current = null;
+    });
+  }, [animateTo, items.length, pause, updateCards]);
 
   const navigate = useCallback((direction: 1 | -1) => {
-    const next = (activeRef.current + direction + items.length) % items.length;
+    const current = selectionTarget.current ?? activeRef.current;
+    const next = (current + direction + items.length) % items.length;
     select(next);
   }, [items.length, select]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.target instanceof Element && event.target.closest(".circular-carousel__controls")) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     stopAnimation();
+    selectionTarget.current = null;
+    updateCards();
     pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: performance.now(), horizontal: event.pointerType !== "touch" };
     dragging.current = true;
     moved.current = false;
@@ -222,6 +244,13 @@ export function CircularCarousel<T>({
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
       if (Math.abs(dx) <= Math.abs(dy)) { dragging.current = false; return; }
       point.horizontal = true;
+      // Direction just locked in: rebase the tracking point to this event
+      // instead of applying the whole dead-zone distance as one delta —
+      // otherwise touch drags snap the carousel the instant the axis locks.
+      point.x = event.clientX;
+      point.y = event.clientY;
+      point.time = performance.now();
+      return;
     }
     const now = performance.now();
     const delta = dx * dragSensitivity;

@@ -1,85 +1,58 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { BrowserRouter, Route, Routes, useLocation, useNavigationType, type Location } from "react-router-dom";
 import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, m } from "framer-motion";
-import { HomePage } from "./pages/HomePage";
+import { BrowserRouter, Route, Routes, useLocation, type Location } from "react-router-dom";
+import { Preloader } from "./components/layout/Preloader";
+import { RouteReadyContext } from "./hooks/useRouteReady";
 import { useMotionProfile } from "./hooks/useMotionProfile";
 import { findScrollAnchor, getRegisteredNoteReturn, getScrollSnapshot, readNoteNavigationState, takeQueuedNoteReturn, type ScrollSnapshot } from "./lib/navigationState";
-import { usePreloader } from "./hooks/usePreloader";
-import { Preloader } from "./components/layout/Preloader";
+import { loadCvPage, loadNotFoundPage, loadNotePage, prefetchRoute } from "./lib/routePrefetch";
+import { HOME_PATHS } from "./lib/routes";
+import { HomePage } from "./pages/HomePage";
 
-const NotePage = lazy(() => import("./pages/NotePage").then((module) => ({ default: module.NotePage })));
-const CvPage = lazy(() => import("./pages/CvPage").then((module) => ({ default: module.CvPage })));
-const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
-const HOME_PATHS = new Set(["/", "/index.html", "/viganogabriele.com", "/viganogabriele.com/", "/viganogabriele.com/index.html"]);
-
-function InitialHomePreloader({ enabled }: { enabled: boolean }) {
-  const { prefersReducedMotion } = useMotionProfile();
-  const { loading, progress } = usePreloader(enabled, prefersReducedMotion);
-
+const NotePage = lazy(() => loadNotePage().then((module) => ({ default: module.NotePage })));
+const CvPage = lazy(() => loadCvPage().then((module) => ({ default: module.CvPage })));
+const NotFoundPage = lazy(() => loadNotFoundPage().then((module) => ({ default: module.NotFoundPage })));
+function useRoutePrefetching() {
   useEffect(() => {
-    if (!loading) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = previousOverflow; };
-  }, [loading]);
-
-  // Gates the hero wordmark's CSS reveal (see index.css) so it plays after
-  // the preloader is gone instead of finishing underneath it, unseen.
-  useEffect(() => {
-    if (!loading) document.documentElement.setAttribute("data-hero-reveal", "true");
-  }, [loading]);
-
-  return <AnimatePresence>{loading && <Preloader progress={progress} reducedMotion={prefersReducedMotion} />}</AnimatePresence>;
-}
-
-// Fake-ramp progress for subsequent SPA navigations — there's no real asset
-// list to track here (unlike the first load), so this exists purely to keep
-// the same calibration visual instead of a static/frozen bar.
-function useRouteTransitionProgress(active: boolean, reducedMotion: boolean) {
-  const [rampProgress, setRampProgress] = useState(0);
-  const animate = active && !reducedMotion;
-
-  useEffect(() => {
-    if (!animate) return;
-    let frame = 0;
-    let amount = 0;
-    const tick = () => {
-      amount = Math.min(92, amount + (92 - amount) * 0.12 + 1.5);
-      setRampProgress(amount);
-      if (amount < 91.5) frame = requestAnimationFrame(tick);
+    const prefetch = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || anchor.origin !== window.location.origin) return;
+      prefetchRoute(anchor.pathname);
     };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [animate]);
-
-  if (reducedMotion) return active ? 60 : 100;
-  if (!active) return 100;
-  return rampProgress;
-}
-
-// Reuses the same Preloader that covers the first load, so clicking into a
-// note or the CV page (and returning) reads as one consistent instrument
-// rather than a branded intro followed by plain "Loading route…" text.
-function RouteTransitionCover({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
-  const progress = useRouteTransitionProgress(active, reducedMotion);
-  return <AnimatePresence>{active && <Preloader progress={progress} reducedMotion={reducedMotion} />}</AnimatePresence>;
+    document.addEventListener("pointerover", prefetch, { passive: true });
+    document.addEventListener("focusin", prefetch);
+    return () => {
+      document.removeEventListener("pointerover", prefetch);
+      document.removeEventListener("focusin", prefetch);
+    };
+  }, []);
 }
 
 function RouteScrollManager() {
   const location = useLocation();
   const { prefersReducedMotion } = useMotionProfile();
-  const [showInitialPreloader] = useState(() => HOME_PATHS.has(location.pathname));
   const [positions, setPositions] = useState(() => new Map<string, ScrollSnapshot>());
-  const [transitioning, setTransitioning] = useState(false);
-  const [previousKey, setPreviousKey] = useState(location.key);
+  const [readyKey, setReadyKey] = useState<string | null>(null);
+  const [settledKey, setSettledKey] = useState<string | null>(null);
   const previousLocation = useRef<Location>(location);
-  // Derive the cover synchronously from the incoming location as well as the
-  // settled transition state. Effects run after React has committed the next
-  // route; deriving it here ensures the first commit already contains the
-  // opaque cover, so there is never a one-frame content flash on mobile.
-  const routeChanged = previousKey !== location.key;
+  const routeReady = readyKey === location.key;
+  const routeSettled = settledKey === location.key;
+  const loading = !routeReady || !routeSettled;
+  // Kept mounted a little past `loading` going false so Preloader can finish
+  // its own bar-to-100%-then-fade animation instead of being yanked away.
+  // Adjusted during render (React's documented pattern for state derived from
+  // a prop change) rather than in an effect, to avoid an extra commit.
+  const [previousLoading, setPreviousLoading] = useState(loading);
+  const [preloaderVisible, setPreloaderVisible] = useState(loading);
+  if (loading !== previousLoading) {
+    setPreviousLoading(loading);
+    if (loading) setPreloaderVisible(true);
+  }
+  const hidePreloader = useCallback(() => setPreloaderVisible(false), []);
+  useRoutePrefetching();
 
   useEffect(() => {
     const previous = window.history.scrollRestoration;
@@ -89,26 +62,49 @@ function RouteScrollManager() {
 
   useLayoutEffect(() => {
     const previous = previousLocation.current;
-    if (previous.key !== location.key) {
-      const snapshot = getScrollSnapshot();
-      setPositions((current) => {
-        const next = new Map(current);
-        next.set(previous.key, snapshot);
-        return next;
-      });
-      previousLocation.current = location;
-      setPreviousKey(location.key);
-      setTransitioning(true);
-    }
+    if (previous.key === location.key) return;
+    const snapshot = getScrollSnapshot();
+    setPositions((current) => {
+      const next = new Map(current);
+      next.set(previous.key, snapshot);
+      return next;
+    });
+    previousLocation.current = location;
   }, [location]);
 
-  const onSettled = useCallback(() => setTransitioning(false), []);
+  useLayoutEffect(() => {
+    if (HOME_PATHS.has(location.pathname) && routeReady) {
+      document.documentElement.setAttribute("data-hero-reveal", "true");
+    }
+  }, [location.pathname, routeReady]);
 
-  return <>
-    <AnimatedRoutes positions={positions} onSettled={onSettled} />
-    <InitialHomePreloader enabled={showInitialPreloader} />
-    <RouteTransitionCover active={routeChanged || transitioning} reducedMotion={prefersReducedMotion} />
-  </>;
+  useEffect(() => {
+    if (!loading) return;
+    const preventScroll = (event: Event) => event.preventDefault();
+    window.addEventListener("wheel", preventScroll, { passive: false });
+    window.addEventListener("touchmove", preventScroll, { passive: false });
+    return () => {
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("touchmove", preventScroll);
+    };
+  }, [loading]);
+
+  const markReady = useCallback((key: string) => {
+    const fonts = document.fonts?.ready ?? Promise.resolve();
+    void fonts.then(() => setReadyKey(key), () => setReadyKey(key));
+  }, []);
+  const onSettled = useCallback((key: string) => setSettledKey(key), []);
+  const onRouteError = useCallback((key: string) => {
+    setReadyKey(key);
+    setSettledKey(key);
+  }, []);
+
+  return (
+    <RouteReadyContext.Provider value={markReady}>
+      <RenderedRoutes positions={positions} ready={routeReady} onSettled={onSettled} onRouteError={onRouteError} />
+      {preloaderVisible && <Preloader reducedMotion={prefersReducedMotion} active={loading} onHidden={hidePreloader} />}
+    </RouteReadyContext.Provider>
+  );
 }
 
 export default function App() {
@@ -116,11 +112,11 @@ export default function App() {
   return <BrowserRouter><RouteScrollManager />{analyticsEnabled && <Analytics />}{analyticsEnabled && <SpeedInsights />}</BrowserRouter>;
 }
 
-class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: string }, { failed: boolean }> {
+class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: string; onError: () => void }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch() { /* route-level recovery UI is intentional */ }
-  componentDidUpdate(previousProps: Readonly<{ children: ReactNode; resetKey: string }>) {
+  componentDidCatch() { this.props.onError(); }
+  componentDidUpdate(previousProps: Readonly<{ children: ReactNode; resetKey: string; onError: () => void }>) {
     if (this.state.failed && previousProps.resetKey !== this.props.resetKey) this.setState({ failed: false });
   }
   render() {
@@ -129,67 +125,99 @@ class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: stri
   }
 }
 
-function RouteScrollCommit({ location, navigationType, positions, onSettled }: { location: Location; navigationType: ReturnType<typeof useNavigationType>; positions: Map<string, ScrollSnapshot>; onSettled: () => void }) {
+function RouteScrollCommit({ location, positions, ready, onSettled }: { location: Location; positions: Map<string, ScrollSnapshot>; ready: boolean; onSettled: (key: string) => void }) {
   useLayoutEffect(() => {
-    let firstFrame = 0;
-    let secondFrame = 0;
-    let settleTimer = 0;
+    if (!ready) return;
+    if (location.pathname.startsWith("/notes/")) {
+      onSettled(location.key);
+      return;
+    }
+    let frame = 0;
     let cancelled = false;
-    let interacted = false;
-    const markInteracted = () => { interacted = true; };
-    const interactionEvents: Array<keyof WindowEventMap> = ["wheel", "touchstart", "pointerdown", "keydown"];
-    interactionEvents.forEach((event) => window.addEventListener(event, markInteracted, { passive: true }));
+    const noteReturn = readNoteNavigationState(location.state)?.noteReturn.snapshot;
+    const queuedReturn = location.pathname === "/" ? takeQueuedNoteReturn() : null;
+    const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.get(location.key);
+    if (!snapshot && location.hash) {
+      document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
+      onSettled(location.key);
+      return;
+    }
+    if (!snapshot) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+      onSettled(location.key);
+      return;
+    }
 
-    const restore = (correctAnchor = false) => {
-      if (cancelled || interacted) return;
-      const noteReturn = readNoteNavigationState(location.state)?.noteReturn.snapshot;
-      const queuedReturn = location.pathname === "/" ? takeQueuedNoteReturn() : null;
-      const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.get(location.key);
-      if (!snapshot && location.hash) {
-        document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
+    let stableFrames = 0;
+    let previousHeight = 0;
+    let previousAnchorTop: number | null = null;
+    const settle = () => {
+      if (cancelled) return;
+      const height = document.documentElement.scrollHeight;
+      const anchor = snapshot.anchor ? findScrollAnchor(snapshot.anchor.id) : null;
+      const anchorDocumentTop = anchor ? window.scrollY + anchor.getBoundingClientRect().top : null;
+      const target = anchor
+        ? window.scrollY + anchor.getBoundingClientRect().top - snapshot.anchor!.offset
+        : snapshot.y;
+      const canReach = height - window.innerHeight + 1 >= target;
+      if (canReach) window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
+      const exact = anchor
+        ? Math.abs(anchor.getBoundingClientRect().top - snapshot.anchor!.offset) <= 1
+        : Math.abs(window.scrollY - snapshot.y) <= 1;
+      const anchorAnimating = anchor ? hasRunningAncestorAnimation(anchor) : false;
+      const anchorStable = anchorDocumentTop === null || (previousAnchorTop !== null && Math.abs(anchorDocumentTop - previousAnchorTop) <= 0.1);
+      stableFrames = canReach && exact && height === previousHeight && anchorStable && !anchorAnimating ? stableFrames + 1 : 0;
+      previousHeight = height;
+      previousAnchorTop = anchorDocumentTop;
+      if (stableFrames >= 2) {
+        onSettled(location.key);
         return;
       }
-      if (!snapshot) {
-        window.scrollTo({ top: 0, behavior: "auto" });
-        return;
-      }
-      const anchor = correctAnchor && snapshot.anchor ? findScrollAnchor(snapshot.anchor.id) : null;
-      const top = anchor ? window.scrollY + anchor.getBoundingClientRect().top - snapshot.anchor!.offset : snapshot.y;
-      window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
-      if (!correctAnchor && snapshot.anchor) {
-        const snapshotAnchor = snapshot.anchor;
-        settleTimer = window.setTimeout(() => {
-          if (cancelled || interacted) return;
-          const settledAnchor = findScrollAnchor(snapshotAnchor.id);
-          if (!settledAnchor) return;
-          const top = window.scrollY + settledAnchor.getBoundingClientRect().top - snapshotAnchor.offset;
-          window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
-        }, 60);
-      }
+      frame = requestAnimationFrame(settle);
     };
-
-    firstFrame = requestAnimationFrame(() => {
-      secondFrame = requestAnimationFrame(() => {
-        restore();
-        onSettled();
-      });
-    });
+    frame = requestAnimationFrame(settle);
 
     return () => {
       cancelled = true;
-      cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
-      window.clearTimeout(settleTimer);
-      interactionEvents.forEach((event) => window.removeEventListener(event, markInteracted));
+      cancelAnimationFrame(frame);
     };
-  }, [location, navigationType, positions, onSettled]);
+  }, [location, positions, ready, onSettled]);
 
   return null;
 }
 
-function AnimatedRoutes({ positions, onSettled }: { positions: Map<string, ScrollSnapshot>; onSettled: () => void }) {
+function hasRunningAncestorAnimation(element: HTMLElement) {
+  let current: HTMLElement | null = element;
+  while (current) {
+    if (current.getAnimations().some((animation) => animation.playState === "running")) return true;
+    if (current.classList.contains("route-home")) return false;
+    current = current.parentElement;
+  }
+  return false;
+}
+
+function RenderedRoutes({ positions, ready, onSettled, onRouteError }: { positions: Map<string, ScrollSnapshot>; ready: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
   const location = useLocation();
-  const navigationType = useNavigationType();
-  const { prefersReducedMotion } = useMotionProfile();
-  return <RouteErrorBoundary resetKey={location.key}><AnimatePresence mode="wait" initial={false}><m.div className="relative" key={location.key} initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }} transition={{ duration: prefersReducedMotion ? 0 : 0.24 }}><Suspense fallback={<span className="sr-only" role="status">Loading…</span>}><RouteScrollCommit location={location} navigationType={navigationType} positions={positions} onSettled={onSettled} /><Routes location={location}><Route path="/" element={<HomePage />} /><Route path="/index.html" element={<HomePage />} /><Route path="/viganogabriele.com" element={<HomePage />} /><Route path="/viganogabriele.com/" element={<HomePage />} /><Route path="/viganogabriele.com/index.html" element={<HomePage />} /><Route path="/cv" element={<CvPage />} /><Route path="/cv/" element={<CvPage />} /><Route path="/notes/:slug" element={<NotePage />} /><Route path="*" element={<NotFoundPage />} /></Routes></Suspense></m.div></AnimatePresence></RouteErrorBoundary>;
+  const homeRoute = HOME_PATHS.has(location.pathname);
+  return (
+    <RouteErrorBoundary resetKey={location.key} onError={() => onRouteError(location.key)}>
+      <div data-route-content className="relative" aria-hidden={!ready || undefined} inert={!ready || undefined}>
+        <RouteScrollCommit location={location} positions={positions} ready={ready} onSettled={onSettled} />
+        {homeRoute && <div className="route-home"><HomePage /></div>}
+        <Suspense fallback={<span className="sr-only" role="status">Loading…</span>}>
+          <Routes location={location}>
+            <Route path="/" element={null} />
+            <Route path="/index.html" element={null} />
+            <Route path="/viganogabriele.com" element={null} />
+            <Route path="/viganogabriele.com/" element={null} />
+            <Route path="/viganogabriele.com/index.html" element={null} />
+            <Route path="/cv" element={<CvPage />} />
+            <Route path="/cv/" element={<CvPage />} />
+            <Route path="/notes/:slug" element={<NotePage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Suspense>
+      </div>
+    </RouteErrorBoundary>
+  );
 }

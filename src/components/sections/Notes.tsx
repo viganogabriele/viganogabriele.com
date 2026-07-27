@@ -26,7 +26,7 @@ export function Notes() {
                 onClick={(event) => {
                   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                   event.preventDefault();
-                  navigate(to, { state: createNoteNavigationState(location), viewTransition: true });
+                  navigate(to, { state: createNoteNavigationState(location, event.currentTarget) });
                 }}
                 data-scroll-anchor={`note-${note.slug}`}
                 data-cursor="hover"
@@ -34,7 +34,7 @@ export function Notes() {
               >
                 <span className="font-mono text-[10px] text-zinc-600">0{index + 1}</span>
                 <div>
-                  <h3 className="text-2xl tracking-[-0.045em] text-zinc-200 transition-colors group-hover:text-accent md:text-3xl" style={{ viewTransitionName: `note-title-${note.slug}` }}>
+                  <h3 className="text-2xl tracking-[-0.045em] text-zinc-200 transition-colors group-hover:text-accent md:text-3xl">
                     {note.title}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-zinc-500 md:hidden">{note.preview}</p>

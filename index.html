@@ -16,6 +16,22 @@
     <link rel="preload" as="image" href="/src/assets/image-face.avif" type="image/avif" fetchpriority="high" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <script>
+      /* Every mobile performance mitigation in index.css hangs off this
+         attribute instead of `(hover: none) and (pointer: coarse)`. That media
+         query is not reliable on the browsers that need the mitigations most:
+         in-app webviews (Telegram) and Brave — especially with "Desktop site"
+         on — report hover/fine-pointer despite being touch-only, so the media
+         query silently skipped every mitigation there while Safari got them
+         all. That is why the hero grid kept animating (and the site kept
+         stuttering) on Brave and Telegram but never on Safari.
+         Runs before first paint so there is no flash of the desktop treatment. */
+      try {
+        if ("ontouchstart" in window || navigator.maxTouchPoints > 0) {
+          document.documentElement.setAttribute("data-touch", "true");
+        }
+      } catch (error) { /* attribute is an optimisation, never block boot */ }
+    </script>
     <title>Gabriele Viganò</title>
     <meta name="description" content="Computer Engineering student building products, teams, events, and resilient systems for a 45,000+ student community." />
     <meta name="robots" content="index, follow, max-image-preview:large" />

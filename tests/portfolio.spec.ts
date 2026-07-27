@@ -202,8 +202,15 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
 
 test("SYS mode starts clean, then activates only after an explicit control interaction", async ({ page }) => {
   await page.addInitScript(() => {
-    Object.defineProperty(navigator, "deviceMemory", { configurable: true, get: () => 2 });
-    Object.defineProperty(navigator, "hardwareConcurrency", { configurable: true, get: () => 2 });
+    Object.defineProperties(navigator, {
+      deviceMemory: { configurable: true, get: () => 2 },
+      hardwareConcurrency: { configurable: true, get: () => 2 },
+      userAgent: {
+        configurable: true,
+        get: () => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36",
+      },
+      vendor: { configurable: true, get: () => "Google Inc." },
+    });
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -215,8 +222,17 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect(system).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator("html")).not.toHaveAttribute("data-system-mode", "on");
   await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
+  await page.evaluate(() => {
+    document.documentElement.dataset.testSystemWipeObserved = "false";
+    const observer = new MutationObserver(() => {
+      if (!document.querySelector("[data-system-wipe]")) return;
+      document.documentElement.dataset.testSystemWipeObserved = "true";
+      observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
   await system.click();
-  await expect(page.locator("[data-system-wipe]")).toBeVisible();
+  await expect.poll(() => page.locator("html").getAttribute("data-test-system-wipe-observed")).toBe("true");
   await expect(system).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
   await expect(page.getByText("SYS / violet trace")).toBeVisible();
@@ -298,6 +314,10 @@ test("mobile SYS toggle keeps the hero copy geometry stable", async ({ page }) =
     };
   });
 
+  await expect.poll(() => page.locator(".hero-stat-grid").evaluate((stats) => {
+    const transform = getComputedStyle(stats.parentElement!).transform;
+    return Math.abs(new DOMMatrixReadOnly(transform).m42);
+  })).toBeLessThanOrEqual(0.1);
   const baseline = await readGeometry();
   await page.getByRole("button", { name: "Toggle system mode" }).click();
   const samples = await page.evaluate(async () => {
@@ -421,18 +441,24 @@ test("SYS laser never changes page or viewport dimensions", async ({ page }) => 
   }
 });
 
-test("preloader appears on every full home load and stays deterministic with cached assets", async ({ page }) => {
-  await page.goto("/");
+test("the loading screen is a lightweight readiness gate without a minimum duration", async ({ page }) => {
+  let releasePortrait!: () => void;
+  const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
+  await page.route("**/*image-face*", async (route) => {
+    await portraitReleased;
+    await route.continue();
+  });
+  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
   const preloader = page.locator("[data-preloader]");
   await expect(preloader).toBeVisible();
-  await page.waitForTimeout(250);
-  await expect(preloader).toBeVisible();
+  await expect(preloader.getByRole("progressbar", { name: "Loading page" })).toHaveCount(1);
+  releasePortrait();
+  await navigation;
   await expect(preloader).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 
   await page.reload();
-  await expect(preloader).toBeVisible();
-  await expect(preloader).toHaveCount(0, { timeout: 1000 });
+  await expect(preloader).toHaveCount(0, { timeout: 1500 });
 });
 
 test("skip link is revealed only for keyboard focus", async ({ page }) => {
@@ -440,25 +466,81 @@ test("skip link is revealed only for keyboard focus", async ({ page }) => {
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const skipLink = page.getByRole("link", { name: "Skip to content" });
 
-  expect(await skipLink.evaluate((node) => getComputedStyle(node).transform)).not.toBe("none");
+  expect(await skipLink.evaluate((node) => Number.parseFloat(getComputedStyle(node).top))).toBeLessThan(0);
   await page.keyboard.press("Tab");
   await expect(skipLink).toBeFocused();
   await expect.poll(() => skipLink.evaluate((node) => node.matches(":focus-visible"))).toBe(true);
-  await expect.poll(() => skipLink.evaluate((node) => getComputedStyle(node).transform)).toBe("matrix(1, 0, 0, 1, 0, 0)");
+  await expect.poll(() => skipLink.evaluate((node) => Number.parseFloat(getComputedStyle(node).top))).toBeGreaterThanOrEqual(0);
 });
 
-test("preloader remains static with reduced motion and is absent on direct secondary routes", async ({ page }) => {
+test("preloader remains static with reduced motion and secondary routes dismiss it as soon as ready", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  let releasePortrait!: () => void;
+  const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
+  await page.route("**/*image-face*", async (route) => {
+    await portraitReleased;
+    await route.continue();
+  });
+  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
   const preloader = page.locator("[data-preloader]");
   await expect(preloader).toBeVisible();
   await expect(preloader).toHaveAttribute("data-reduced-motion", "true");
+  releasePortrait();
+  await navigation;
   await expect(preloader).toHaveCount(0);
 
   await page.goto("/notes/noticing-what-the-association-wasnt-using");
   await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.goto("/does-not-exist");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+});
+
+test("CV stays covered until the first PDF page and its annotations are rendered", async ({ page }) => {
+  let releasePdf!: () => void;
+  const pdfReleased = new Promise<void>((resolve) => { releasePdf = resolve; });
+  let markPdfRequested!: () => void;
+  const pdfRequested = new Promise<void>((resolve) => { markPdfRequested = resolve; });
+  await page.route("**/cv/Vigano_Gabriele_CV.pdf", async (route) => {
+    markPdfRequested();
+    await pdfReleased;
+    await route.continue();
+  });
+
+  await page.goto("/cv", { waitUntil: "domcontentloaded" });
+  await pdfRequested;
+  await expect(page.locator("[data-preloader]")).toBeVisible();
+  await expect(page.locator("[data-route-content]")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("canvas")).toHaveCount(0);
+
+  releasePdf();
+  await expect(page.locator("canvas").first()).toBeVisible();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+});
+
+test("likely internal destinations prefetch on intent", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const cvRequest = page.waitForRequest((request) => request.url().includes("CvPage-") && request.url().endsWith(".js"));
+  const pdfRequest = page.waitForRequest((request) => request.url().endsWith("/cv/Vigano_Gabriele_CV.pdf"));
+  await page.locator("#top").getByRole("link", { name: "View CV" }).hover();
+  await Promise.all([cvRequest, pdfRequest]);
+});
+
+test("mobile Home does not wait for the hidden desktop portrait", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("**/*image-face*", (route) => route.abort());
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: /GABRIELE VIGANÒ/i })).toBeVisible();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+});
+
+test("legacy note redirects stay covered until the canonical note is ready", async ({ page }) => {
+  await page.goto("/notes/homelab-security-first", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/notes\/vpn-off-by-default$/);
+  await expect(page.getByRole("heading", { name: /Why My Home VPN Is Off by Default/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Not here." })).toHaveCount(0);
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 });
 
@@ -472,6 +554,44 @@ test("fine-pointer cursor works at compact desktop width and is absent on touch"
   await target.dispatchEvent("mouseover");
   await expect(page.locator("[data-custom-cursor]")).toHaveAttribute("data-visible", "true");
   await expect(page.locator("[data-custom-cursor]")).toHaveAttribute("data-active", "true");
+});
+
+// Regression: Brave with "Desktop site" and in-app webviews (Telegram) expose
+// a touch screen while still reporting hover/fine-pointer, so every mitigation
+// gated purely on (hover: none) and (pointer: coarse) was skipped there —
+// leaving the hero grid drifting and the blended full-viewport grain layer
+// live, which stuttered the whole site on Brave but never on Safari.
+test("touch hardware gets the mobile mitigations even when the browser reports a fine pointer", async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, viewport: { width: 412, height: 915 } });
+  const page = await context.newPage();
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  await expect(page.locator("html")).toHaveAttribute("data-touch", "true");
+
+  const ambient = await page.evaluate(() => {
+    const grid = document.querySelector(".hero-grid");
+    const noise = document.querySelector(".noise");
+    const scanlines = document.querySelector(".hero-scanlines");
+    return {
+      gridAnimation: grid ? getComputedStyle(grid, "::before").animationName : null,
+      noiseAnimation: noise ? getComputedStyle(noise, "::before").animationName : null,
+      noiseBlend: noise ? getComputedStyle(noise, "::before").mixBlendMode : null,
+      scanlineAnimation: scanlines ? getComputedStyle(scanlines).animationName : null,
+    };
+  });
+  expect(ambient.gridAnimation).toBe("none");
+  expect(ambient.noiseAnimation).toBe("none");
+  expect(ambient.noiseBlend).toBe("normal");
+  expect(ambient.scanlineAnimation).toBe("none");
+
+  // The expensive desktop-only treatments must stay off on touch hardware.
+  await expect(page.locator("[data-custom-cursor]")).toHaveCount(0);
+  await expect(page.locator(".ambient-blob")).toHaveCount(0);
+  const navBlur = await page.evaluate(() => getComputedStyle(document.querySelector(".nav-panel")!).backdropFilter);
+  expect(navBlur === "none" || navBlur === "").toBe(true);
+
+  await context.close();
 });
 
 test("capability selection and journey axis stay deterministic while scrolling", async ({ page }) => {
@@ -538,6 +658,8 @@ test("notes expose accurate article metadata and missing notes render a 404", as
   await page.goto("/notes/does-not-exist");
   await expect(page).toHaveURL(/does-not-exist/);
   await expect(page.getByRole("heading", { name: "Not here." })).toBeVisible();
+  await page.goto("/notes/toString");
+  await expect(page.getByRole("heading", { name: "Not here." })).toBeVisible();
 });
 
 test("closing a note restores its exact position on desktop and iPhone", async ({ page }) => {
@@ -548,18 +670,23 @@ test("closing a note restores its exact position on desktop and iPhone", async (
     const note = page.locator('[data-scroll-anchor="note-the-prompt-was-never-the-hard-part"]');
     await note.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 240, behavior: "auto" }));
     await expect(note).toBeInViewport();
-    const expectedY = await page.evaluate(() => window.scrollY);
+    await expect.poll(() => note.evaluate((element) => {
+      const transform = getComputedStyle(element.parentElement!).transform;
+      return transform === "none" ? 0 : Math.abs(new DOMMatrixReadOnly(transform).m42);
+    })).toBeLessThanOrEqual(0.1);
+    const expectedOffset = await note.evaluate((element) => element.getBoundingClientRect().top);
 
-    await note.click();
+    // The row is already in view. A DOM click models the browser interaction
+    // without Playwright's locator auto-scroll changing the captured offset.
+    await note.evaluate((element) => element.click());
     await expect(page.getByRole("heading", { name: /The Prompt Was Never the Hard Part/i })).toBeVisible();
     await page.getByRole("button", { name: "Close note and return to notes" }).click();
     await expect(note).toBeVisible();
     await expect(page.locator("[data-preloader]")).toHaveCount(0);
-
     for (const delay of [100, 600, 2500]) {
       await page.waitForTimeout(delay);
-      const actualY = await page.evaluate(() => window.scrollY);
-      expect(Math.abs(actualY - expectedY), `scroll drift at ${viewport.width}px after ${delay}ms`).toBeLessThanOrEqual(2);
+      const actualOffset = await note.evaluate((element) => element.getBoundingClientRect().top);
+      expect(Math.abs(actualOffset - expectedOffset), `scroll drift at ${viewport.width}px after ${delay}ms`).toBeLessThanOrEqual(2);
     }
   }
 });

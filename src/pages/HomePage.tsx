@@ -1,5 +1,5 @@
 import { useReducedMotion } from "framer-motion";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { About } from "../components/sections/About";
 import { Certifications } from "../components/sections/Certifications";
 import { Expertise } from "../components/sections/Expertise";
@@ -17,11 +17,13 @@ import { SystemHUD } from "../components/motion/SystemHUD";
 import { useSystemMode } from "../hooks/useSystemMode";
 import { homeMetadata, websitePersonJsonLd } from "../data/site";
 import { JsonLd, PageMeta } from "../lib/seo";
-import { withDeferredSectionsVisible } from "../lib/navigationState";
+import { useRouteReadyAfterImage } from "../hooks/useRouteReady";
 
-export function HomePage() {
+export const HomePage = memo(function HomePage() {
   const reduced = useReducedMotion();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
+  const portraitVisible = window.matchMedia("(min-width: 640px)").matches;
+  useRouteReadyAfterImage("[data-hero-portrait]", portraitVisible);
 
   const scrollToSection = useCallback((target: string) => {
     const selector = target === "body" ? "body" : target;
@@ -31,7 +33,7 @@ export function HomePage() {
       window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
       return;
     }
-    const y = withDeferredSectionsVisible(() => element.getBoundingClientRect().top + window.scrollY) - 92;
+    const y = element.getBoundingClientRect().top + window.scrollY - 92;
     window.scrollTo({ top: y, behavior: reduced ? "auto" : "smooth" });
   }, [reduced]);
 
@@ -58,4 +60,4 @@ export function HomePage() {
       </main>
     </AppShell>
   );
-}
+});

@@ -1,91 +1,52 @@
-import { m } from "framer-motion";
-import { ease } from "../../lib/motion";
+import { useEffect, useState } from "react";
 
-const year = new Date().getFullYear();
+const FINISH_MS = 260;
 
-export function Preloader({ progress, reducedMotion }: { progress: number; reducedMotion: boolean }) {
-  const transition = reducedMotion ? { duration: 0 } : { duration: 0.35, ease: ease.cinematic };
+export function Preloader({ reducedMotion, active, onHidden }: { reducedMotion: boolean; active: boolean; onHidden: () => void }) {
+  const [phase, setPhase] = useState<"growing" | "completing">("growing");
+  const [runId, setRunId] = useState(0);
+  const [previousActive, setPreviousActive] = useState(active);
+
+  // Adjusted during render (React's documented pattern for state derived from
+  // a prop change) rather than in an effect, to avoid an extra commit.
+  if (active !== previousActive) {
+    setPreviousActive(active);
+    if (active) {
+      setRunId((id) => id + 1);
+      setPhase("growing");
+    } else if (!reducedMotion) {
+      // The route is ready, but the bar may only be partway through its
+      // approach animation — snap it to the end instead of just vanishing
+      // mid-motion; the effect below removes the overlay once that's
+      // visibly finished.
+      setPhase("completing");
+    }
+  }
+
+  useEffect(() => {
+    if (active) return;
+    if (reducedMotion) {
+      onHidden();
+      return;
+    }
+    const timeout = window.setTimeout(onHidden, FINISH_MS);
+    return () => window.clearTimeout(timeout);
+  }, [active, reducedMotion, onHidden]);
+
   return (
-    <m.div
-      initial={reducedMotion ? false : { opacity: 1 }}
-      exit={reducedMotion ? { opacity: 0 } : { clipPath: "inset(0 50% 0 50%)" }}
-      transition={transition}
+    <div
       data-preloader
+      data-phase={phase}
       data-reduced-motion={reducedMotion}
-      aria-busy="true"
-      className="fixed inset-0 z-[100] min-h-[100dvh] bg-background"
+      aria-busy={phase === "growing"}
+      role="status"
+      className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-background px-6"
     >
-      {/* Scan lines overlay */}
-      <div className="hero-scanlines pointer-events-none absolute inset-0 z-10" />
-
-      {/* Top-left: coordinates */}
-      <div className="absolute left-6 top-6 font-mono text-[10px] tracking-[0.18em] text-zinc-600">
-        45.4642 N · 9.1900 E
+      <div className="w-[min(26rem,82vw)]">
+        <div className="h-px overflow-hidden bg-white/10" role="progressbar" aria-label="Loading page">
+          <div key={runId} data-phase={phase} className="route-progress-bar h-full w-full origin-left bg-gradient-to-r from-accent to-violet" />
+        </div>
       </div>
-
-      {/* Top-right: system label */}
-      <div className="absolute right-6 top-6 font-mono text-[10px] tracking-[0.18em] uppercase text-zinc-600">
-        INSTRUMENT CALIBRATION
-      </div>
-
-      {/* Center content */}
-      <div className="flex h-full flex-col items-center justify-center">
-        {/* Name block */}
-        <m.div
-          initial={reducedMotion ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={reducedMotion ? { duration: 0 } : { duration: 0.45, ease: ease.cinematic }}
-          className="flex flex-col items-center text-center"
-        >
-          <div className="text-5xl font-medium uppercase tracking-tight text-white">GABRIELE</div>
-          <div className="text-5xl font-medium uppercase tracking-tight text-zinc-500">VIGANÒ</div>
-          <div className="mt-4 font-mono text-[10px] tracking-[0.18em] text-zinc-600">
-            signal calibration / {year}
-          </div>
-        </m.div>
-
-        {/* Progress area */}
-        <m.div
-          initial={reducedMotion ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={reducedMotion ? { duration: 0 } : { duration: 0.45, delay: 0.08, ease: ease.cinematic }}
-          className="mt-16 w-[min(28rem,82vw)]"
-        >
-          {/* Loading label + counter */}
-          <div className="mb-2 flex justify-between font-mono text-[10px] tracking-[0.18em] uppercase">
-            <span className="text-zinc-500">CALIBRATING</span>
-            <span className="text-accent">{String(Math.round(progress)).padStart(3, "0")}</span>
-          </div>
-
-          {/* Progress bar */}
-          <div className="h-px w-full overflow-hidden bg-white/10">
-            <m.div
-              className="h-full bg-gradient-to-r from-accent to-violet"
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: reducedMotion ? 0 : 0.2 }}
-            />
-          </div>
-
-          {/* Segment ticks */}
-          <div className="mt-3 flex w-full gap-px">
-            {Array.from({ length: 20 }, (_, i) => (
-              <div
-                key={i}
-                className="h-[3px] flex-1"
-                style={{
-                  backgroundColor:
-                    (i + 1) * 5 <= progress ? "var(--accent)" : "rgba(255,255,255,0.08)",
-                }}
-              />
-            ))}
-          </div>
-        </m.div>
-      </div>
-
-      {/* Bottom-right: version */}
-      <div className="absolute bottom-6 right-6 font-mono text-[10px] tracking-[0.18em] text-zinc-600">
-        v1.0
-      </div>
-    </m.div>
+    </div>
   );
 }

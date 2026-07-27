@@ -18,22 +18,6 @@ export interface NoteNavigationState {
 const noteReturnSnapshots = new Map<string, ScrollSnapshot>();
 let pendingNoteReturn: ScrollSnapshot | null = null;
 
-// Must match the content-visibility:auto selector in index.css.
-export const DEFERRED_SECTION_SELECTOR = "#about, #projects, #stack, #journey, #notes, #certifications";
-
-// content-visibility:auto sections report a placeholder size until they've
-// actually been laid out, which can throw off a measurement spanning one of
-// these boundaries. Forcing them visible just long enough to measure keeps
-// it accurate; content-visibility remembers the resolved size once
-// reverted, so nothing visibly changes.
-export function withDeferredSectionsVisible<T>(fn: () => T): T {
-  const deferred = Array.from(document.querySelectorAll<HTMLElement>(DEFERRED_SECTION_SELECTOR));
-  deferred.forEach((node) => { node.style.contentVisibility = "visible"; });
-  const result = fn();
-  deferred.forEach((node) => { node.style.contentVisibility = ""; });
-  return result;
-}
-
 export function getScrollSnapshot(): ScrollSnapshot {
   const anchors = Array.from(document.querySelectorAll<HTMLElement>("main section[id], [data-scroll-anchor]"));
   const closest = anchors.reduce<HTMLElement | null>((candidate, element) => {
@@ -48,14 +32,17 @@ export function getScrollSnapshot(): ScrollSnapshot {
   };
 }
 
-export function createNoteNavigationState(location: Location): NoteNavigationState {
+export function createNoteNavigationState(location: Location, anchor?: HTMLElement): NoteNavigationState {
+  const snapshot = getScrollSnapshot();
+  const anchorId = anchor?.dataset.scrollAnchor ?? anchor?.id;
+  if (anchor && anchorId) snapshot.anchor = { id: anchorId, offset: anchor.getBoundingClientRect().top };
   return {
     noteReturn: {
       key: location.key,
       pathname: location.pathname,
       search: location.search,
       hash: location.hash,
-      snapshot: getScrollSnapshot(),
+      snapshot,
     },
   };
 }

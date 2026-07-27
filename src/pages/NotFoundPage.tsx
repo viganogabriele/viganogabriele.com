@@ -7,11 +7,13 @@ import { useMotionProfile } from "../hooks/useMotionProfile";
 import { ease } from "../lib/motion";
 import { PageMeta } from "../lib/seo";
 import { notFoundMetadata } from "../data/site";
+import { useRouteReady } from "../hooks/useRouteReady";
 
 export function NotFoundPage() {
   const { level, prefersReducedMotion, isCompact } = useMotionProfile();
   const { pathname } = useLocation();
   const motion = !prefersReducedMotion && level !== "static" && !isCompact;
+  useRouteReady();
 
   return (
     <AppShell>
