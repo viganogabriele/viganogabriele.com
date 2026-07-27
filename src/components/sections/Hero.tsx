@@ -2,7 +2,6 @@ import { m, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, FileText, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { profile } from "../../data/profile";
-import { useFeatureDetect } from "../../hooks/useFeatureDetect";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ease } from "../../lib/motion";
 import { Magnetic } from "../motion/Magnetic";
@@ -10,7 +9,6 @@ import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 
 export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; onToggleSystem: () => void }) {
   const reduced = useReducedMotion();
-  const { isTouch } = useFeatureDetect();
   const { level } = useMotionProfile();
   const ctaButton = (
     <a
@@ -25,8 +23,8 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
     </a>
   );
   return (
-    <section id="top" className={`${isTouch ? "" : "hero-grid"} relative flex min-h-[100svh] items-center overflow-hidden border-b border-white/[0.07] pb-8 pt-24 sm:pt-28 lg:pt-32`}>
-      {!isTouch && <div className="hero-scanlines absolute inset-0 opacity-80" />}
+    <section id="top" className="hero-grid hero-viewport relative flex items-center overflow-hidden border-b border-white/[0.07] pb-8 pt-24 sm:pt-28 lg:pt-32">
+      <div className="hero-scanlines absolute inset-0 opacity-80" />
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-7 px-5 pb-12 sm:px-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-10 lg:px-10">
         <div className="relative z-10">

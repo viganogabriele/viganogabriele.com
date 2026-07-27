@@ -4,6 +4,9 @@ import { LazyMotion, domAnimation } from 'framer-motion'
 import './index.css'
 import App from './App.tsx'
 import { MotionProfileProvider } from './hooks/useMotionProfile.tsx'
+import { installStableTouchViewport } from './lib/viewport.ts'
+
+installStableTouchViewport()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

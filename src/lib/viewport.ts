@@ -14,3 +14,15 @@ export function onViewportWidthChange(handler: () => void) {
   window.addEventListener("resize", listener, { passive: true });
   return () => window.removeEventListener("resize", listener);
 }
+
+function setStableViewportHeight() {
+  const height = window.visualViewport?.height ?? window.innerHeight;
+  document.documentElement.style.setProperty("--stable-viewport-height", `${Math.round(height)}px`);
+}
+
+export function installStableTouchViewport() {
+  const root = document.documentElement;
+  if (!root.hasAttribute("data-touch")) return;
+  if (!root.style.getPropertyValue("--stable-viewport-height")) setStableViewportHeight();
+  onViewportWidthChange(setStableViewportHeight);
+}

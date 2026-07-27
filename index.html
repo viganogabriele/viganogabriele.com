@@ -28,7 +28,14 @@
          Runs before first paint so there is no flash of the desktop treatment. */
       try {
         if ("ontouchstart" in window || navigator.maxTouchPoints > 0) {
-          document.documentElement.setAttribute("data-touch", "true");
+          const root = document.documentElement;
+          root.setAttribute("data-touch", "true");
+          /* Brave and embedded Chromium webviews can recalculate `svh` while
+             their browser chrome collapses. Capture the initially visible
+             height before first paint; runtime code refreshes it only when
+             the viewport width changes (for example, on rotation). */
+          const height = window.visualViewport?.height || window.innerHeight;
+          root.style.setProperty("--stable-viewport-height", `${Math.round(height)}px`);
         }
       } catch (error) { /* attribute is an optimisation, never block boot */ }
     </script>
