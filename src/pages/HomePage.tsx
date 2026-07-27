@@ -22,8 +22,7 @@ import { useRouteReadyAfterImage } from "../hooks/useRouteReady";
 export const HomePage = memo(function HomePage() {
   const reduced = useReducedMotion();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
-  const portraitVisible = window.matchMedia("(min-width: 640px)").matches;
-  useRouteReadyAfterImage("[data-hero-portrait]", portraitVisible);
+  useRouteReadyAfterImage("[data-hero-portrait]");
 
   const scrollToSection = useCallback((target: string) => {
     const selector = target === "body" ? "body" : target;

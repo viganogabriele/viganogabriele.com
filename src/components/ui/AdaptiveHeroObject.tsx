@@ -57,6 +57,7 @@ export function AdaptiveHeroObject({
         aria-keyshortcuts="Shift+S"
         aria-pressed={systemActive}
         onClick={onToggleSystem}
+        onPointerUp={(event) => { if (event.pointerType !== "mouse") event.currentTarget.blur(); }}
         data-cursor="hover"
       >
         <span className="hero-object-aura" aria-hidden="true" />

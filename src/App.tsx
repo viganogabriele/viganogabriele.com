@@ -13,6 +13,8 @@ import { HomePage } from "./pages/HomePage";
 const NotePage = lazy(() => loadNotePage().then((module) => ({ default: module.NotePage })));
 const CvPage = lazy(() => loadCvPage().then((module) => ({ default: module.CvPage })));
 const NotFoundPage = lazy(() => loadNotFoundPage().then((module) => ({ default: module.NotFoundPage })));
+let userScrollIntentVersion = 0;
+
 function useRoutePrefetching() {
   useEffect(() => {
     const prefetch = (event: Event) => {
@@ -58,6 +60,18 @@ function RouteScrollManager() {
     const previous = window.history.scrollRestoration;
     window.history.scrollRestoration = "manual";
     return () => { window.history.scrollRestoration = previous; };
+  }, []);
+
+  useEffect(() => {
+    const recordIntent = () => { userScrollIntentVersion += 1; };
+    window.addEventListener("wheel", recordIntent, { passive: true });
+    window.addEventListener("touchstart", recordIntent, { passive: true });
+    window.addEventListener("pointerdown", recordIntent, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", recordIntent);
+      window.removeEventListener("touchstart", recordIntent);
+      window.removeEventListener("pointerdown", recordIntent);
+    };
   }, []);
 
   useLayoutEffect(() => {
@@ -126,8 +140,18 @@ class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: stri
 }
 
 function RouteScrollCommit({ location, positions, ready, onSettled }: { location: Location; positions: Map<string, ScrollSnapshot>; ready: boolean; onSettled: (key: string) => void }) {
+  const userCancelledKey = useRef<string | null>(null);
+  const routeIntentStart = useRef({ key: location.key, version: userScrollIntentVersion });
+  if (routeIntentStart.current.key !== location.key) {
+    routeIntentStart.current = { key: location.key, version: userScrollIntentVersion };
+  }
+
   useLayoutEffect(() => {
     if (!ready) return;
+    if (userCancelledKey.current === location.key || userScrollIntentVersion !== routeIntentStart.current.version) {
+      onSettled(location.key);
+      return;
+    }
     if (location.pathname.startsWith("/notes/")) {
       onSettled(location.key);
       return;
@@ -151,6 +175,16 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
     let stableFrames = 0;
     let previousHeight = 0;
     let previousAnchorTop: number | null = null;
+    const cancelForUserInput = () => {
+      if (cancelled) return;
+      cancelled = true;
+      userCancelledKey.current = location.key;
+      cancelAnimationFrame(frame);
+      onSettled(location.key);
+    };
+    window.addEventListener("wheel", cancelForUserInput, { passive: true });
+    window.addEventListener("touchstart", cancelForUserInput, { passive: true });
+    window.addEventListener("pointerdown", cancelForUserInput, { passive: true });
     const settle = () => {
       if (cancelled) return;
       const height = document.documentElement.scrollHeight;
@@ -180,6 +214,9 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
     return () => {
       cancelled = true;
       cancelAnimationFrame(frame);
+      window.removeEventListener("wheel", cancelForUserInput);
+      window.removeEventListener("touchstart", cancelForUserInput);
+      window.removeEventListener("pointerdown", cancelForUserInput);
     };
   }, [location, positions, ready, onSettled]);
 

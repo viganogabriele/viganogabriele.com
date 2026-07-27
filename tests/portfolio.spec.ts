@@ -38,24 +38,22 @@ test("mobile navigation is keyboard-safe and anchors projects", async ({ page })
   const menu = page.getByRole("button", { name: "Toggle navigation" });
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByRole("link", { name: "Projects", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Work", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(menu).toHaveAttribute("aria-expanded", "false");
   await menu.click();
-  await page.getByRole("link", { name: "Projects", exact: true }).click();
+  await page.getByRole("link", { name: "Work", exact: true }).click();
   await expect(page.locator("#projects")).toBeInViewport();
 });
 
 test("projects contain the three real case studies", async ({ page }) => {
   await page.goto("/");
-  const projectsCarousel = page.getByRole("region", { name: "Selected projects" });
-  await expect(projectsCarousel.locator("[data-carousel-card]")).toHaveCount(3);
-  await expect(projectsCarousel.getByText("PoliNetwork", { exact: false }).first()).toBeVisible();
-  await projectsCarousel.getByRole("button", { name: "Show next project" }).click();
-  await expect(projectsCarousel.getByRole("button", { name: /Bring Interactive Portfolio project to the front/ })).toHaveAttribute("data-active", "true");
-  await expect(page.locator("[data-project-detail]")).toContainText("Interactive Portfolio");
-  await projectsCarousel.getByRole("button", { name: "Show next project" }).click();
-  await expect(page.locator("[data-project-detail]")).toContainText("Study Quest");
+  const projects = page.locator("#projects article");
+  await expect(projects).toHaveCount(3);
+  await expect(projects.nth(0)).toContainText("PoliNetwork");
+  await expect(projects.nth(1)).toContainText("Interactive Portfolio");
+  await expect(projects.nth(2)).toContainText("Study Quest");
+  await expect(page.locator("#projects").getByRole("link", { name: "View project" })).toHaveCount(3);
   await expect(page.getByText("Next Build", { exact: false })).toHaveCount(0);
 });
 
@@ -65,46 +63,39 @@ test("notes and certifications expose their destinations without relying on hove
   await expect(page.getByText("View credential").first()).toBeVisible();
 });
 
-test("skills carousel keeps a single readable active card and supports controls", async ({ page }) => {
+test("skills remain readable without interaction on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".tool-carousel");
-  await carousel.scrollIntoViewIfNeeded();
-  await expect(carousel.locator("[data-carousel-card]")).toHaveCount(4);
-  await expect(carousel.locator('[data-carousel-card][data-active="true"]')).toHaveCount(1);
+  const toolkit = page.locator("#stack");
+  await toolkit.scrollIntoViewIfNeeded();
+  await expect(toolkit.locator("article")).toHaveCount(4);
+  await expect(toolkit.getByRole("heading", { name: "Frontend & web" })).toBeVisible();
+  await expect(toolkit.getByRole("heading", { name: "Infrastructure & self-hosting" })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
-  await page.getByRole("button", { name: "Show next skill group" }).click();
-  await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
-  await carousel.focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(carousel.getByRole("button", { name: /Bring Product & collaboration to the front/ })).toHaveAttribute("data-active", "true");
 });
 
-test("skills carousel retains manual navigation with reduced motion", async ({ page }) => {
+test("skills remain visible with reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".tool-carousel");
-  await carousel.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(800);
-  await expect(carousel.getByRole("button", { name: /Bring Frontend & web to the front/ })).toHaveAttribute("data-active", "true");
-  await page.getByRole("button", { name: "Show next skill group" }).click();
-  await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
+  const toolkit = page.locator("#stack");
+  await toolkit.scrollIntoViewIfNeeded();
+  await expect(toolkit.getByText("Codex", { exact: true })).toBeVisible();
+  await expect(toolkit.getByText("Figma", { exact: true })).toBeVisible();
 });
 
-test("mobile hero omits the portrait while preserving the SYS control", async ({ page }) => {
+test("mobile hero keeps the portrait and exposes SYS only through the easter egg", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const portrait = page.locator(".hero-object-button");
-  await expect(portrait).toBeHidden();
-  const system = page.getByRole("button", { name: "Toggle system mode" });
-  await expect(system).toBeVisible();
-  await system.click();
-  await expect(system).toHaveAttribute("aria-pressed", "true");
+  await expect(portrait).toBeVisible();
+  await expect(page.getByRole("button", { name: "Toggle system mode" })).toHaveCount(0);
+  await portrait.click();
+  await expect(portrait).toHaveAttribute("aria-pressed", "true");
 });
 
 test("hero portrait stays crisp while scrolling and the surname keeps its accent", async ({ page }) => {
@@ -138,7 +129,7 @@ test("CV page keeps the document primary and gives mobile users a full-screen do
   await expect(page.locator("canvas").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Explore further." })).toHaveCount(0);
   await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
-  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await page.keyboard.press("Shift+S");
   await expect(page.getByLabel("System mode discovery")).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore selected work" })).toHaveAttribute("href", "/#projects");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -216,9 +207,8 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await page.goto("/");
   await page.evaluate(() => { localStorage.setItem("gv-system-mode", "on"); });
   await page.reload();
-  const system = page.getByRole("button", { name: "Toggle system mode" });
+  const system = page.locator(".hero-object-button");
   await expect(system).toBeVisible();
-  await expect(system).toHaveText("SYS");
   await expect(system).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator("html")).not.toHaveAttribute("data-system-mode", "on");
   await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
@@ -253,7 +243,7 @@ test("SYS keyboard shortcut is resilient and ignores editable or repeated keys",
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
-  const system = page.getByRole("button", { name: "Toggle system mode" });
+  const system = page.locator(".hero-object-button");
   await expect(system).toHaveAttribute("aria-keyshortcuts", "Shift+S");
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
@@ -286,7 +276,7 @@ test("SYS keeps the safe rendering path and enables the laser on iPhone", async 
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   await expect(page.locator("html")).toHaveAttribute("data-webkit-safe", "");
-  const system = page.getByRole("button", { name: "Toggle system mode" });
+  const system = page.locator(".hero-object-button");
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".system-overlay-safe")).toBeVisible();
@@ -304,7 +294,7 @@ test("mobile SYS toggle keeps the hero copy geometry stable", async ({ page }) =
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   const readGeometry = () => page.evaluate(() => {
-    const tagline = document.querySelector<HTMLElement>('span[aria-label="I build products, teams and systems that hold up."]')?.getBoundingClientRect();
+    const tagline = document.querySelector<HTMLElement>("[data-hero-intro]")?.getBoundingClientRect();
     const stats = document.querySelector<HTMLElement>(".hero-stat-grid")?.getBoundingClientRect();
     return {
       taglineTop: tagline?.top ?? 0,
@@ -319,11 +309,11 @@ test("mobile SYS toggle keeps the hero copy geometry stable", async ({ page }) =
     return Math.abs(new DOMMatrixReadOnly(transform).m42);
   })).toBeLessThanOrEqual(0.1);
   const baseline = await readGeometry();
-  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await page.keyboard.press("Shift+S");
   const samples = await page.evaluate(async () => {
     const values: Array<Record<string, number>> = [];
     const read = () => {
-      const tagline = document.querySelector<HTMLElement>('span[aria-label="I build products, teams and systems that hold up."]')?.getBoundingClientRect();
+      const tagline = document.querySelector<HTMLElement>("[data-hero-intro]")?.getBoundingClientRect();
       const stats = document.querySelector<HTMLElement>(".hero-stat-grid")?.getBoundingClientRect();
       values.push({
         taglineTop: tagline?.top ?? 0,
@@ -363,7 +353,7 @@ test("SYS disables only the laser on desktop Safari", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
-  const system = page.getByRole("button", { name: "Toggle system mode" });
+  const system = page.locator(".hero-object-button");
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".system-overlay-safe")).toBeVisible();
@@ -385,7 +375,7 @@ test("SYS keeps the laser enabled on Brave", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
-  const system = page.getByRole("button", { name: "Toggle system mode" });
+  const system = page.locator(".hero-object-button");
   await system.click();
   await expect(page.locator("[data-system-wipe]")).toBeVisible();
   await expect(page.locator(".system-overlay-safe")).toHaveCount(0);
@@ -411,7 +401,7 @@ test("SYS laser never changes page or viewport dimensions", async ({ page }) => 
     };
   });
   const baseline = await readDimensions();
-  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await page.keyboard.press("Shift+S");
   const samples = await page.evaluate(async () => {
     const values: Array<Record<string, number>> = [];
     const read = () => {
@@ -527,7 +517,7 @@ test("likely internal destinations prefetch on intent", async ({ page }) => {
   await Promise.all([cvRequest, pdfRequest]);
 });
 
-test("mobile Home does not wait for the hidden desktop portrait", async ({ page }) => {
+test("mobile Home remains usable if the portrait fails to load", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/*image-face*", (route) => route.abort());
 
@@ -559,8 +549,8 @@ test("fine-pointer cursor works at compact desktop width and is absent on touch"
 // Regression: Brave with "Desktop site" and in-app webviews (Telegram) expose
 // a touch screen while still reporting hover/fine-pointer, so every mitigation
 // gated purely on (hover: none) and (pointer: coarse) was skipped there —
-// leaving the hero grid drifting and the blended full-viewport grain layer
-// live, which stuttered the whole site on Brave but never on Safari.
+// leaving blended full-viewport treatments live, which stuttered the whole
+// site on Brave but never on Safari.
 test("touch hardware gets the mobile mitigations even when the browser reports a fine pointer", async ({ browser }) => {
   const context = await browser.newContext({ hasTouch: true, viewport: { width: 412, height: 915 } });
   const page = await context.newPage();
@@ -570,26 +560,15 @@ test("touch hardware gets the mobile mitigations even when the browser reports a
   await expect(page.locator("html")).toHaveAttribute("data-touch", "true");
 
   const ambient = await page.evaluate(() => {
-    const grid = document.querySelector(".hero-grid");
     const noise = document.querySelector(".noise");
-    const scanlines = document.querySelector(".hero-scanlines");
     return {
-      gridBackground: grid ? getComputedStyle(grid).backgroundImage : null,
-      gridAnimation: grid ? getComputedStyle(grid, "::before").animationName : null,
-      gridPseudoContent: grid ? getComputedStyle(grid, "::before").content : null,
-      gridPseudoTransform: grid ? getComputedStyle(grid, "::before").transform : null,
       noiseAnimation: noise ? getComputedStyle(noise, "::before").animationName : null,
       noiseBlend: noise ? getComputedStyle(noise, "::before").mixBlendMode : null,
-      scanlineAnimation: scanlines ? getComputedStyle(scanlines).animationName : null,
     };
   });
-  expect(ambient.gridBackground).toContain("linear-gradient");
-  expect(ambient.gridAnimation).toBe("none");
-  expect(ambient.gridPseudoContent).toBe("none");
-  expect(ambient.gridPseudoTransform).toBe("none");
   expect(ambient.noiseAnimation).toBe("none");
   expect(ambient.noiseBlend).toBe("normal");
-  expect(ambient.scanlineAnimation).toBe("none");
+  await expect(page.locator(".hero-grid, .hero-scanlines")).toHaveCount(0);
 
   // The expensive desktop-only treatments must stay off on touch hardware.
   await expect(page.locator("[data-custom-cursor]")).toHaveCount(0);
@@ -637,15 +616,14 @@ test("mobile browser chrome height changes do not reflow the page", async ({ bro
   await context.close();
 });
 
-test("capability selection and journey axis stay deterministic while scrolling", async ({ page }) => {
+test("capabilities remain readable and journey axis stays deterministic while scrolling", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await page.locator('[data-index="4"]').evaluate((node) => {
-    window.scrollTo({ top: node.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.42 + 48, behavior: "auto" });
-    window.dispatchEvent(new Event("scroll"));
-  });
-  await expect(page.locator('[data-index="4"]')).toHaveAttribute("data-active", "true");
+  const capabilities = page.locator("#expertise article");
+  await expect(capabilities).toHaveCount(5);
+  await capabilities.last().scrollIntoViewIfNeeded();
+  await expect(capabilities.last()).toContainText("AI-Assisted Development & Automation");
   await page.locator("[data-journey-rail]").scrollIntoViewIfNeeded();
   const alignment = await page.evaluate(() => {
     const axis = document.querySelector<HTMLElement>("[data-journey-axis]")?.getBoundingClientRect();
@@ -767,13 +745,13 @@ test("a manual interaction cancels a pending scroll correction", async ({ page }
   await expect(page.getByRole("heading", { name: /Why My Home VPN Is Off by Default/i })).toBeVisible();
   await page.goBack();
   await page.waitForTimeout(350);
-  await page.evaluate(() => {
-    window.dispatchEvent(new WheelEvent("wheel", { deltaY: -450 }));
-    window.scrollBy({ top: -450, behavior: "auto" });
-  });
+  await page.mouse.wheel(0, -450);
+  await page.waitForTimeout(50);
   const manualY = await page.evaluate(() => window.scrollY);
   await page.waitForTimeout(700);
-  expect(await page.evaluate(() => window.scrollY)).toBe(manualY);
+  // WebKit may settle a small amount after a synthetic touch, but the route
+  // restore must not pull the viewport hundreds of pixels back to its snapshot.
+  expect(Math.abs(await page.evaluate(() => window.scrollY) - manualY)).toBeLessThanOrEqual(24);
 });
 
 test("404 remains contained and reachable across compact viewports", async ({ page }) => {
@@ -801,8 +779,8 @@ test("reduced motion preserves content and accessibility", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await expect(page.getByText("Ambitious about building products, teams and systems that hold up.")).toBeVisible();
-  const system = page.getByRole("button", { name: "Toggle system mode" });
+  await expect(page.getByText("I turn complex projects into products people can use and teams can run.")).toBeVisible();
+  const system = page.locator(".hero-object-button");
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
@@ -874,19 +852,19 @@ test("count-up renders final values immediately with reduced motion", async ({ p
   expect(await page.locator(".proof-grid .sr-only").count()).toBe(0);
 });
 
-test("SYS button releases focus after touch pointer-up", async ({ page }) => {
+test("portrait easter egg releases focus after touch pointer-up", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   // Focus the button (keyboard-style), then dispatch a touch pointerup
-  const system = page.getByRole("button", { name: "Toggle system mode" });
+  const system = page.locator(".hero-object-button");
   await system.focus();
   await expect(system).toBeFocused();
 
   // The onPointerUp handler calls blur() for pointerType !== "mouse"
   const blurred = await page.evaluate(() => {
-    const btn = document.querySelector<HTMLElement>('button[aria-label="Toggle system mode"]');
+    const btn = document.querySelector<HTMLElement>(".hero-object-button");
     if (!btn) return false;
     btn.dispatchEvent(new PointerEvent("pointerup", { pointerType: "touch", bubbles: true, cancelable: true }));
     return document.activeElement !== btn;
@@ -894,18 +872,18 @@ test("SYS button releases focus after touch pointer-up", async ({ page }) => {
   expect(blurred).toBe(true);
 });
 
-test("SYS button does not release focus after mouse pointer-up", async ({ page }) => {
+test("portrait easter egg keeps focus after mouse pointer-up", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
-  const system = page.getByRole("button", { name: "Toggle system mode" });
+  const system = page.locator(".hero-object-button");
   await system.focus();
   await expect(system).toBeFocused();
 
   // Mouse pointer-up must leave focus intact for keyboard users
   const stillFocused = await page.evaluate(() => {
-    const btn = document.querySelector<HTMLElement>('button[aria-label="Toggle system mode"]');
+    const btn = document.querySelector<HTMLElement>(".hero-object-button");
     if (!btn) return false;
     btn.dispatchEvent(new PointerEvent("pointerup", { pointerType: "mouse", bubbles: true, cancelable: true }));
     return document.activeElement === btn;
