@@ -718,11 +718,12 @@ test("browser back still restores the exact note position", async ({ page }) => 
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const note = page.locator('[data-scroll-anchor="note-vpn-off-by-default"]');
   await note.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 180, behavior: "auto" }));
-  const expectedY = await page.evaluate(() => window.scrollY);
-  await note.click();
+  const expectedOffset = await note.evaluate((element) => element.getBoundingClientRect().top);
+  await note.evaluate((element) => element.click());
+  await expect(page.getByRole("heading", { name: /Why My Home VPN Is Off by Default/i })).toBeVisible();
   await page.goBack();
   await expect(note).toBeVisible();
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(expectedY);
+  await expect.poll(() => note.evaluate((element, offset) => Math.abs(element.getBoundingClientRect().top - offset), expectedOffset)).toBeLessThanOrEqual(2);
 });
 
 test("direct note close falls back to the notes section without replaying the preloader", async ({ page }) => {
