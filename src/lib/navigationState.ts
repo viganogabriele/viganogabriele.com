@@ -18,24 +18,49 @@ export interface NoteNavigationState {
 const noteReturnSnapshots = new Map<string, ScrollSnapshot>();
 let pendingNoteReturn: ScrollSnapshot | null = null;
 
+/**
+ * Document-space top of an element, from layout boxes only.
+ *
+ * getBoundingClientRect() folds in ancestor transforms, and the entrance
+ * animations are transforms: FadeIn translates 16px (10px on the lite motion
+ * profile). So a snapshot captured after a reveal had finished and a restore
+ * measured while one was still pending described the same element 16px apart,
+ * and the page settled that far from where it was left. offsetTop ignores
+ * transforms, so both ends of the comparison talk about the same layout.
+ */
+export function layoutTop(element: HTMLElement) {
+  let top = 0;
+  let current: HTMLElement | null = element;
+  while (current) {
+    top += current.offsetTop;
+    current = current.offsetParent as HTMLElement | null;
+  }
+  return top;
+}
+
+/** Where the anchor sits relative to the current scroll offset, transform-free. */
+export function anchorViewportOffset(element: HTMLElement) {
+  return layoutTop(element) - window.scrollY;
+}
+
 export function getScrollSnapshot(): ScrollSnapshot {
   const anchors = Array.from(document.querySelectorAll<HTMLElement>("main section[id], [data-scroll-anchor]"));
   const closest = anchors.reduce<HTMLElement | null>((candidate, element) => {
     if (!candidate) return element;
-    return Math.abs(element.getBoundingClientRect().top) < Math.abs(candidate.getBoundingClientRect().top) ? element : candidate;
+    return Math.abs(anchorViewportOffset(element)) < Math.abs(anchorViewportOffset(candidate)) ? element : candidate;
   }, null);
   const anchorId = closest?.dataset.scrollAnchor ?? closest?.id;
 
   return {
     y: window.scrollY,
-    anchor: closest && anchorId ? { id: anchorId, offset: closest.getBoundingClientRect().top } : undefined,
+    anchor: closest && anchorId ? { id: anchorId, offset: anchorViewportOffset(closest) } : undefined,
   };
 }
 
 export function createNoteNavigationState(location: Location, anchor?: HTMLElement): NoteNavigationState {
   const snapshot = getScrollSnapshot();
   const anchorId = anchor?.dataset.scrollAnchor ?? anchor?.id;
-  if (anchor && anchorId) snapshot.anchor = { id: anchorId, offset: anchor.getBoundingClientRect().top };
+  if (anchor && anchorId) snapshot.anchor = { id: anchorId, offset: anchorViewportOffset(anchor) };
   return {
     noteReturn: {
       key: location.key,

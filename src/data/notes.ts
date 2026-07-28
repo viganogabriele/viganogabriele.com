@@ -12,7 +12,7 @@ export interface NoteItem {
 export const notes: NoteItem[] = [
   {
     slug: "noticing-what-the-association-wasnt-using",
-    title: "Noticing What the Association Wasn't Using",
+    title: "Noticing what the association wasn't using",
     date: "Apr 2026",
     datePublished: "2026-04-01",
     readingTime: "3 min",
@@ -21,13 +21,13 @@ export const notes: NoteItem[] = [
     tags: ["Events", "Operations", "Leadership"],
     body: [
       "My first event happened on my second day at Politecnico. I asked older PoliNetwork members whether I could run a meetup for incoming Computer Engineering students, put together an invite, and somewhere between 150 and 200 people showed up through Google Calendar RSVPs. What I took from it wasn't that I could pull a crowd. It was that the association had a whole dimension, events, that nobody was really touching.",
-      "The next year I ran it wider, opening it to all freshmen and partnering with a bar near Piazza Leonardo, and roughly a thousand people came. Lines down the street, the place full. It was still essentially a one-person operation on the organizing side, and that was the ceiling I'd hit: a thing that works once because I carried it isn't a thing that repeats.",
+      "The next year I ran it wider, opening it to all freshmen and partnering with a pizzeria near Piazza Leonardo, and roughly a thousand people came. Lines down the street, the place full. It was still essentially a one-person operation on the organizing side, and that was the ceiling I'd hit: a thing that works once because I carried it isn't a thing that repeats.",
       "So I stopped running them alone. I built a team and ran two more that year, smaller by design at around 400 people each, but with structure underneath: a second venue partnership, and feedback collected systematically instead of judged by feel, so I had real numbers instead of a guess about whether it went well. I also built an ongoing partnership with University Network that got us a stand at their student festival, and I brought four other associations along with us. The honest tension through all of it was never a crisis to fix. It was the plainer discomfort of promoting something and not knowing if anyone would come, and the work was turning a thing that happened to work into a thing built to.",
     ],
   },
   {
     slug: "the-prompt-was-never-the-hard-part",
-    title: "The Prompt Was Never the Hard Part",
+    title: "The prompt was never the hard part",
     date: "Mar 2026",
     datePublished: "2026-03-01",
     readingTime: "3 min",
@@ -42,7 +42,7 @@ export const notes: NoteItem[] = [
   },
   {
     slug: "vpn-off-by-default",
-    title: "Why My Home VPN Is Off by Default",
+    title: "Why my home VPN is off by default",
     date: "Feb 2026",
     datePublished: "2026-02-01",
     readingTime: "2 min",
@@ -51,22 +51,22 @@ export const notes: NoteItem[] = [
     tags: ["Homelab", "Security", "Infrastructure"],
     body: [
       "Remote access to my home network runs over a WireGuard tunnel, and my one firm decision about it was that it stays closed. A tunnel left running is an open door whether or not anyone is walking through it, so I don't leave it running. I toggle it from a small Telegram bot I wrote, which means the tunnel only exists as an attack surface for the few minutes I actually need it. It's a modest piece of engineering, but it changed how I think about exposure: the safest service is the one that isn't listening.",
-      "Storage is a TrueNAS box, four 4TB drives in a parity setup so a single drive failure costs me nothing. A separate mini PC runs the things that shouldn't share fate with the storage: printers, a handful of Telegram bots, including the one that controls the VPN. I'm now building a second TrueNAS box to physically replicate the main pool. For now non-critical data just goes to encrypted cloud backup, because I don't yet keep anything sensitive enough to justify the cost of full local replication. That part matters to me. I'd rather size the redundancy to the actual data than build a mirror because a mirror looks serious.",
+      "Storage is a TrueNAS box, four 4TB drives with one disk of parity, so a dead drive means a degraded pool and a replacement rather than a restore from backup. A separate mini PC runs the things that shouldn't share fate with the storage: the printers, Home Assistant, and the bot that controls the VPN. I'm now building a second TrueNAS box to physically replicate the main pool. For now non-critical data just goes to encrypted cloud backup, because I don't yet keep anything sensitive enough to justify the cost of full local replication. That part matters to me. I'd rather size the redundancy to the actual data than build a mirror because a mirror looks serious.",
     ],
   },
   {
     slug: "the-part-of-the-hackathon-we-got-wrong",
-    title: "The Part of the Hackathon We Got Wrong",
+    title: "The part of the hackathon we got wrong",
     date: "Jan 2026",
     datePublished: "2026-01-01",
     readingTime: "3 min",
     preview:
-      "We built something better than the teams that beat us. What I learned from losing a judged hackathon while building the more interesting product.",
+      "We didn't place. The build drifted from the challenge track, and the hour that would have caught it was the one we skipped.",
     tags: ["Hackathon", "AI", "Team"],
     body: [
       "StudyQuest was a 24-hour build: an AI study planner with spaced repetition and gamification, on React Native with Expo, the Gemini API, and Zustand for state. Four of us, and only one had done a hackathon before. We picked React Native even though our shared background was React on the web, so we knew going in it would cost us time on unfamiliar problems. I still think choosing it on purpose beat defaulting to what we already knew, and I'd defend the time we lost to it as tuition.",
       "The mistake that actually mattered was cheaper to avoid, and I made it anyway. We didn't read the challenge track closely enough, and the project drifted from the brief. Teams that stayed tight to the track scored better with less interesting builds than ours. That's the real lesson of a judged hackathon, and it's an uncomfortable one for anyone who likes building: the score rewards fit to the brief before it rewards the strongest thing you can make.",
-      "My own role wasn't writing the code. I wrote less of it than anyone and let the others use AI freely on their parts. What I held was the order of work, the timeline, and the conversations with the judges and with other teams. I'd rather say that plainly than call it full-stack. If I ran it again I'd spend the first hour re-reading the track out loud with the whole team before a line of code, because that hour was the cheapest leverage we had and we skipped it.",
+      "What I held was the order of work, the timeline, and the conversations with the judges and with other teams. The others used AI freely on their own parts and I kept the shape of the thing. If I ran it again I'd spend the first hour re-reading the track out loud with the whole team before a line of code, because that hour was the cheapest leverage we had and we skipped it.",
     ],
   },
 ];

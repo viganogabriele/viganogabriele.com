@@ -5,10 +5,11 @@ import { Magnetic } from "../motion/Magnetic";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { Link } from "react-router-dom";
+import { footerCopy } from "../../data/sections";
 
 const EMAIL = "info@viganogabriele.com";
 
-const HEADING = "Let's build something that holds up.";
+const HEADING = footerCopy.heading;
 
 const GitHubIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -56,12 +57,12 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
               animate={disableMotion ? undefined : headingInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              End of transmission / start a conversation
+              {footerCopy.eyebrow}
             </m.p>
 
             {disableMotion ? (
               <m.h2
-                className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl"
+                className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl lg:text-8xl"
                 initial={{ opacity: 0 }}
                 animate={headingInView ? { opacity: 1 } : { opacity: 0 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
@@ -69,7 +70,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                 {HEADING}
               </m.h2>
             ) : (
-              <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl">
+              <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl lg:text-8xl">
                 {words.map((word, i) =>
                   word.trim().length === 0 ? (
                     <span key={i}>{word}</span>

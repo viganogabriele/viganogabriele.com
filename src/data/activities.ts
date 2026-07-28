@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, Network, Orbit, Users } from "lucide-react";
+import { Bot, CheckCircle2, Code2, Server, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type ExpertiseArtifact = "network" | "checklist" | "scale" | "constellation";
@@ -16,52 +16,52 @@ export interface Activity {
 export const activities: Activity[] = [
   {
     index: "01",
-    title: "Product & UX Direction",
-    role: "PoliNetwork web ecosystem",
+    title: "Self-Hosting & Infrastructure",
+    role: "My homelab, since December 2025",
     description:
-      "I led a full platform redesign, defining information architecture and user flows to connect existing services into a coherent product.",
-    tags: ["UX strategy", "Information architecture", "Product"],
-    icon: Network,
+      "Six people keep their data on a box I administer, and that changes which decisions are worth making. Parity for the disk that dies, scheduled scrubs for the corruption you can't see yet, an encrypted off-site copy for the house itself. The next layer is a second node for local replication.",
+    tags: ["Proxmox", "ZFS", "WireGuard", "Linux"],
+    icon: Server,
     artifact: "network",
   },
   {
     index: "02",
-    title: "Quality & Testing",
-    role: "Design quality / bug hunting",
+    title: "AI-Assisted Development",
+    role: "Agents that don't run on my laptop",
     description:
-      "I own end-to-end QA across web, bot, and internal tools: finding edge cases, specifying fixes, and tracking them through release.",
-    tags: ["QA", "UX review", "Debugging"],
+      "Claude Code and Codex run on an Oracle VPS I reach over Tailscale from my desktop, a browser or my phone. They open the pull requests and run the deploys; I review the previews on Vercel. Models don't do what you ask a good fraction of the time, so the part that matters is clicking through the output and catching what's subtly wrong.",
+    tags: ["Claude Code", "Codex", "Tailscale", "Verification"],
+    icon: Bot,
+    artifact: "constellation",
+  },
+  {
+    index: "03",
+    title: "Front-End & Interaction Design",
+    role: "This site, screen by screen",
+    description:
+      "I designed the layout and the motion here, specified both down to the easing, and reviewed every screen until it matched the intent. The reason I go this deep on the front-end is upstream of the design: a bug report is only worth filing if you can name what's actually broken.",
+    tags: ["HTML", "CSS", "Figma", "Motion design"],
+    icon: Code2,
+    artifact: "network",
+  },
+  {
+    index: "04",
+    title: "Product & Quality",
+    role: "polinetwork.org and the services around it",
+    description:
+      "I'm the product manager for a rebuild scoped to feature parity plus the services that had gone dead, with every new idea written down and deferred, because a rebuild that grows while it rebuilds never ships. I also own the testing across the site, the bot, the shortener and the dashboard, from filing the issue to following the fix to release.",
+    tags: ["Product scoping", "Information architecture", "QA"],
     icon: CheckCircle2,
     artifact: "checklist",
   },
   {
-    index: "03",
-    title: "Event-Scale Operations",
-    role: "Plans that hold under pressure",
-    description:
-      "I build event operations from scratch: planning, logistics, on-site execution, and structured feedback at every edition.",
-    tags: ["Event ops", "Execution", "Governance"],
-    icon: Orbit,
-    artifact: "scale",
-  },
-  {
-    index: "04",
-    title: "Cross-Team Coordination",
-    role: "People, process, momentum",
-    description:
-      "I build lean high-output teams from scratch: multi-stage interviews, appointed leads, and coaching toward autonomous delivery.",
-    tags: ["Leadership", "Delivery", "Teams"],
-    icon: Users,
-    artifact: "constellation",
-  },
-  {
     index: "05",
-    title: "AI-Assisted Development & Automation",
-    role: "Practical workflows with agents and self-hosted tools",
+    title: "Teams & Events",
+    role: "From 150 people to 1,000",
     description:
-      "I build and evaluate AI-assisted development workflows with coding agents, self-hosted OpenClaw, Codex, Claude Code, and tool integrations. I focus on orchestration, repeatable automation, and verifying outputs so speed does not come at the cost of control or reliability.",
-    tags: ["Coding agents", "OpenClaw", "Automation", "Verification"],
-    icon: Bot,
-    artifact: "network",
+      "On my second day at university I asked to run a meetup for Computer Engineering freshmen and 150 to 200 came. The year after, about 1,000. Then I built a team, designed a multi-stage interview process in Italian and English, and recruited 30+ volunteers into 5 teams, because one person carrying an event can't run the next one.",
+    tags: ["Event ops", "Recruitment", "Coaching"],
+    icon: Users,
+    artifact: "scale",
   },
 ];

@@ -5,7 +5,7 @@ import { BrowserRouter, Route, Routes, useLocation, type Location } from "react-
 import { Preloader } from "./components/layout/Preloader";
 import { RouteReadyContext } from "./hooks/useRouteReady";
 import { useMotionProfile } from "./hooks/useMotionProfile";
-import { findScrollAnchor, getRegisteredNoteReturn, getScrollSnapshot, readNoteNavigationState, takeQueuedNoteReturn, type ScrollSnapshot } from "./lib/navigationState";
+import { findScrollAnchor, getRegisteredNoteReturn, getScrollSnapshot, layoutTop, readNoteNavigationState, takeQueuedNoteReturn, type ScrollSnapshot } from "./lib/navigationState";
 import { loadCvPage, loadNotFoundPage, loadNotePage, prefetchRoute } from "./lib/routePrefetch";
 import { HOME_PATHS } from "./lib/routes";
 import { HomePage } from "./pages/HomePage";
@@ -155,14 +155,19 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
       if (cancelled) return;
       const height = document.documentElement.scrollHeight;
       const anchor = snapshot.anchor ? findScrollAnchor(snapshot.anchor.id) : null;
-      const anchorDocumentTop = anchor ? window.scrollY + anchor.getBoundingClientRect().top : null;
-      const target = anchor
-        ? window.scrollY + anchor.getBoundingClientRect().top - snapshot.anchor!.offset
-        : snapshot.y;
+      // Measured from layout boxes, not getBoundingClientRect: the reveal
+      // animations are transforms, and comparing a rect captured after one
+      // finished against a rect measured while another was still pending put the
+      // restore up to 16px out. See layoutTop in lib/navigationState.
+      const anchorDocumentTop = anchor ? layoutTop(anchor) : null;
+      const target = anchorDocumentTop !== null ? anchorDocumentTop - snapshot.anchor!.offset : snapshot.y;
       const canReach = height - window.innerHeight + 1 >= target;
       if (canReach) window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
-      const exact = anchor
-        ? Math.abs(anchor.getBoundingClientRect().top - snapshot.anchor!.offset) <= 1
+      // Reuses anchorDocumentTop rather than walking offsetParent a second time:
+      // layoutTop is scroll-independent, so subtracting the post-scroll scrollY
+      // gives the same viewport offset for one forced reflow instead of two.
+      const exact = anchorDocumentTop !== null
+        ? Math.abs(anchorDocumentTop - window.scrollY - snapshot.anchor!.offset) <= 1
         : Math.abs(window.scrollY - snapshot.y) <= 1;
       const anchorAnimating = anchor ? hasRunningAncestorAnimation(anchor) : false;
       const anchorStable = anchorDocumentTop === null || (previousAnchorTop !== null && Math.abs(anchorDocumentTop - previousAnchorTop) <= 0.1);
@@ -177,9 +182,25 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
     };
     frame = requestAnimationFrame(settle);
 
+    // Hand control to the reader the moment they touch the page. Until now the
+    // loop re-scrolled to its target every frame with no way out, so a scroll
+    // made while a restore was still converging got yanked back. `scroll` is not
+    // in this list on purpose: the loop's own scrollTo fires it, so listening for
+    // it would abort the restore instantly. Settle on abort too, otherwise the
+    // route stays flagged as loading and the preloader never lifts.
+    const takeOver = () => {
+      if (cancelled) return;
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      onSettled(location.key);
+    };
+    const takeOverEvents = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+    for (const event of takeOverEvents) window.addEventListener(event, takeOver, { passive: true });
+
     return () => {
       cancelled = true;
       cancelAnimationFrame(frame);
+      for (const event of takeOverEvents) window.removeEventListener(event, takeOver);
     };
   }, [location, positions, ready, onSettled]);
 

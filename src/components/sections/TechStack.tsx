@@ -1,5 +1,6 @@
 import { Bot, Code2, PanelsTopLeft, Server } from "lucide-react";
 import { toolGroups } from "../../data/techStack";
+import { techStackSection } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { CircularCarousel } from "../ui/CircularCarousel";
@@ -36,9 +37,9 @@ export function TechStack() {
   return (
     <section id="stack" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <SectionHeader
-        index="04 / TOOLKIT"
-        title="The workshop bench."
-        subtitle="Tools I use to build interfaces, run systems, collaborate clearly, and explore practical AI workflows."
+        index={techStackSection.index}
+        title={techStackSection.title}
+        subtitle={techStackSection.subtitle}
       />
       <ScrollReveal>
         <div className="tool-workbench border border-white/[0.1] bg-surface/80">

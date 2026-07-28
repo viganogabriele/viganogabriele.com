@@ -1,4 +1,4 @@
-import { Code2, Mic2, Network, Server } from "lucide-react";
+import { Code2, GraduationCap, Network, Server } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface TimelineItem {
@@ -12,33 +12,34 @@ export interface TimelineItem {
 
 export const timelineItems: TimelineItem[] = [
   {
-    year: "CURRENT",
+    year: "12/2025 – PRESENT",
+    title: "Homelab Infrastructure",
+    subtitle: "Two machines and a VPS",
+    description: "Built for my family, which is what makes the redundancy boring and the attack surface small on purpose.",
+    icon: Server,
+    current: true,
+  },
+  {
+    year: "09/2024 – PRESENT",
     title: "Politecnico di Milano",
-    subtitle: "Computer engineering",
-    description: "Turning theory into practical systems and better decisions.",
+    subtitle: "B.Sc. Computer engineering",
+    description: "The coursework is C and systems. Everything past that I've picked up because something already running needed it.",
     icon: Code2,
     current: true,
   },
   {
-    year: "09/2024 — PRESENT",
+    year: "08/2024 – PRESENT",
     title: "PoliNetwork",
-    subtitle: "Product, leadership & operations",
-    description: "Board Member & Treasurer, leading product direction, QA, operations, and cross-team execution.",
+    subtitle: "Board member & treasurer",
+    description: "The members' assembly elected me in November of my first year, when most of the board were master's students with years in the network behind them.",
     icon: Network,
     current: true,
   },
   {
-    year: "ONGOING",
-    title: "Homelab Infrastructure",
-    subtitle: "Reliability mindset",
-    description: "Proxmox and TrueNAS with LXC containers, VMs, local redundancy, and encrypted cloud backup.",
-    icon: Server,
-  },
-  {
-    year: "ALWAYS",
-    title: "Communication & leadership",
-    subtitle: "Public speaking · people · clarity",
-    description: "Making complex decisions clearer in Italian and English, on stage and across teams.",
-    icon: Mic2,
+    year: "07/2022 – 09/2024",
+    title: "Private tutoring, Modena",
+    subtitle: "C & computer fundamentals",
+    description: "Three students, while I was in secondary school myself. All three passed. Explaining how a computer goes together was the easy part, because I'd been building them for years.",
+    icon: GraduationCap,
   },
 ];

@@ -1,6 +1,7 @@
 import { m, useInView, useScroll, useTransform } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { timelineItems } from "../../data/timeline";
+import { journeySection } from "../../data/sections";
 import { ease } from "../../lib/motion";
 import { onViewportWidthChange } from "../../lib/viewport";
 import { SectionHeader } from "../ui/SectionHeader";
@@ -118,9 +119,9 @@ export function Journey() {
   return (
     <section id="journey" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <SectionHeader
-        index="05 / SYSTEM TRACE"
-        title="A path with branches."
-        subtitle="A few live threads: what I'm learning, leading, and building next."
+        index={journeySection.index}
+        title={journeySection.title}
+        subtitle={journeySection.subtitle}
       />
       <div
         ref={railRef}

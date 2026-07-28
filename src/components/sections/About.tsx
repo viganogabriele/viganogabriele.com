@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { CountUp } from "../motion/CountUp";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { SectionHeader } from "../ui/SectionHeader";
+import { aboutSection } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ease } from "../../lib/motion";
 
@@ -14,24 +15,20 @@ export function About() {
   const principlesRef = useRef<HTMLDivElement>(null);
   const principlesInView = useInView(principlesRef, { once: true, margin: "-60px" });
 
-  const lines = [
-    "Make the complex legible.",
-    "Give teams a path, not another meeting.",
-    "Polish the details that build trust.",
-  ];
+  const lines = aboutSection.principles;
 
   return (
     <section id="about" className="relative mx-auto mt-28 max-w-7xl px-5 sm:px-8 lg:px-10">
-      <SectionHeader index="01 / ABOUT" title={"Serious work.\nHuman energy."} />
+      <SectionHeader index={aboutSection.header.index} title={aboutSection.header.title} />
       <ScrollReveal>
         <div className="grid gap-12 border-l border-white/[0.1] pl-5 md:grid-cols-[1.2fr_0.8fr] md:pl-8">
           <p className="max-w-2xl text-xl leading-[1.45] tracking-[-0.025em] text-zinc-300 md:text-2xl">
-            I’m ambitious about making complex work useful: turning fragmented requirements into products, teams, and operations that people can actually rely on.
+            {aboutSection.body}
           </p>
           <div className="border-t border-white/[0.1] pt-4 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
-            <span className="text-blue-soft">Current curiosity</span>
+            <span className="text-blue-soft">{aboutSection.curiosity.label}</span>
             <p className="mt-3 max-w-xs leading-relaxed text-zinc-400">
-              I’m most interested in practical AI: applying coding agents, self-hosted tools, and automation to real workflows—then verifying that the result is actually useful and reliable.
+              {aboutSection.curiosity.text}
             </p>
           </div>
         </div>
@@ -39,12 +36,7 @@ export function About() {
 
       <ScrollReveal className="mt-14">
         <div ref={statsRef} className="proof-grid grid grid-cols-2 border-y border-white/[0.09] lg:grid-cols-4">
-          {[
-            { value: "30+", label: "people recruited through a structured process" },
-            { value: "5", label: "teams built toward autonomous delivery" },
-            { value: "1,000+", label: "people brought together at one event" },
-            { value: "Education", label: "Computer Engineering student at Politecnico di Milano", link: "https://www.polimi.it/en" },
-          ].map((item, index) => (
+          {aboutSection.stats.map((item, index) => (
             <m.div
               key={item.label}
               initial={disableMotion ? false : { opacity: 0, y: 16 }}

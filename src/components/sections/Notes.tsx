@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { notes } from "../../data/notes";
+import { notesSection } from "../../data/sections";
 import { createNoteNavigationState } from "../../lib/navigationState";
 import { FadeIn } from "../motion/FadeIn";
 import { SectionHeader } from "../ui/SectionHeader";
@@ -12,9 +13,9 @@ export function Notes() {
   return (
     <section id="notes" data-scroll-anchor="notes" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <SectionHeader
-        index="06 / FIELD NOTES"
-        title="Notes from the build."
-        subtitle="Compact thoughts on operations, interfaces, and resilient systems."
+        index={notesSection.index}
+        title={notesSection.title}
+        subtitle={notesSection.subtitle}
       />
       <div className="note-row">
         {notes.map((note, index) => {

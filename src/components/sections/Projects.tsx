@@ -2,6 +2,7 @@ import { m } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { useState } from "react";
 import { projects } from "../../data/projects";
+import { projectsSection } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { CircularCarousel } from "../ui/CircularCarousel";
 import { SectionHeader } from "../ui/SectionHeader";
@@ -75,7 +76,7 @@ export function Projects() {
 
   return (
     <section id="projects" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
-      <SectionHeader index="03 / SELECTED WORK" title="Proof, not just presentation." />
+      <SectionHeader index={projectsSection.index} title={projectsSection.title} />
       <div className="mt-7 border border-white/[0.1] bg-surface/80">
         <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-500">
           <span>Browse / selected work</span>

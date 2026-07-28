@@ -46,16 +46,18 @@ test("mobile navigation is keyboard-safe and anchors projects", async ({ page })
   await expect(page.locator("#projects")).toBeInViewport();
 });
 
-test("projects contain the three real case studies", async ({ page }) => {
+test("projects contain the four real case studies", async ({ page }) => {
   await page.goto("/");
   const projectsCarousel = page.getByRole("region", { name: "Selected projects" });
-  await expect(projectsCarousel.locator("[data-carousel-card]")).toHaveCount(3);
-  await expect(projectsCarousel.getByText("PoliNetwork", { exact: false }).first()).toBeVisible();
+  await expect(projectsCarousel.locator("[data-carousel-card]")).toHaveCount(4);
+  await expect(page.locator("[data-project-detail]")).toContainText("Homelab & Remote Dev");
   await projectsCarousel.getByRole("button", { name: "Show next project" }).click();
   await expect(projectsCarousel.getByRole("button", { name: /Bring Interactive Portfolio project to the front/ })).toHaveAttribute("data-active", "true");
   await expect(page.locator("[data-project-detail]")).toContainText("Interactive Portfolio");
   await projectsCarousel.getByRole("button", { name: "Show next project" }).click();
   await expect(page.locator("[data-project-detail]")).toContainText("Study Quest");
+  await projectsCarousel.getByRole("button", { name: "Show next project" }).click();
+  await expect(page.locator("[data-project-detail]")).toContainText("PoliNetwork Ecosystem");
   await expect(page.getByText("Next Build", { exact: false })).toHaveCount(0);
 });
 
@@ -90,7 +92,7 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   const carousel = page.locator(".tool-carousel");
   await carousel.scrollIntoViewIfNeeded();
   await page.waitForTimeout(800);
-  await expect(carousel.getByRole("button", { name: /Bring Frontend & web to the front/ })).toHaveAttribute("data-active", "true");
+  await expect(carousel.getByRole("button", { name: /Bring Code & markup to the front/ })).toHaveAttribute("data-active", "true");
   await page.getByRole("button", { name: "Show next skill group" }).click();
   await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
 });
@@ -119,7 +121,7 @@ test("hero makes Gabriele's current profile and contact path immediately availab
   await page.goto("/");
   const hero = page.locator("#top");
   await expect(hero.getByLabel("Professional profile")).toContainText("Board Member & Treasurer at PoliNetwork");
-  await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering student at Politecnico di Milano");
+  await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering, Politecnico di Milano");
   await expect(hero).toContainText("Milan, Italy");
   await expect(hero.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "mailto:info@viganogabriele.com");
   await expect(hero.getByRole("link", { name: "View CV" })).toHaveAttribute("href", "/cv");
@@ -129,7 +131,7 @@ test("hero makes Gabriele's current profile and contact path immediately availab
 test("CV page keeps the document primary and gives mobile users a full-screen document path", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/cv");
-  await expect(page).toHaveTitle("Gabriele Viganò — CV");
+  await expect(page).toHaveTitle("Gabriele Viganò · CV");
   await expect(page.getByRole("heading", { name: "Curriculum Vitae." })).toBeVisible();
   await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
   await expect(page.getByRole("button", { name: "Download CV" })).toBeEnabled();
@@ -171,8 +173,8 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
   ];
   const expected = [
     { path: "/", title: "Gabriele Viganò", canonical: "https://www.viganogabriele.com/", type: "website" },
-    { path: "/cv", title: "Gabriele Viganò — CV", canonical: "https://www.viganogabriele.com/cv", type: "website" },
-    { path: "/notes/noticing-what-the-association-wasnt-using", title: "Noticing What the Association Wasn't Using | Gabriele Viganò", canonical: "https://www.viganogabriele.com/notes/noticing-what-the-association-wasnt-using", type: "article" },
+    { path: "/cv", title: "Gabriele Viganò · CV", canonical: "https://www.viganogabriele.com/cv", type: "website" },
+    { path: "/notes/noticing-what-the-association-wasnt-using", title: "Noticing what the association wasn't using | Gabriele Viganò", canonical: "https://www.viganogabriele.com/notes/noticing-what-the-association-wasnt-using", type: "article" },
   ];
 
   for (const route of expected) {
@@ -239,6 +241,28 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect(page.locator("[data-system-wipe]")).toHaveCount(1);
   await page.reload();
   await expect(system).toHaveAttribute("aria-pressed", "false");
+});
+
+test("hero keeps the photograph visible until the SYS portrait is ready", async ({ page }) => {
+  let releaseSystemPortrait!: () => void;
+  const systemPortraitReleased = new Promise<void>((resolve) => { releaseSystemPortrait = resolve; });
+  await page.route("**/*image-face*", async (route) => {
+    await systemPortraitReleased;
+    await route.continue();
+  });
+
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const photo = page.locator('[data-hero-portrait-layer="photo"]');
+  const systemPortrait = page.locator('[data-hero-portrait-layer="system"]');
+
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(photo).toHaveAttribute("data-visible", "true");
+  await expect(systemPortrait).toHaveAttribute("data-visible", "false");
+
+  releaseSystemPortrait();
+  await expect(systemPortrait).toHaveAttribute("data-visible", "true");
+  await expect(photo).toHaveAttribute("data-visible", "false");
 });
 
 test("SYS keyboard shortcut is resilient and ignores editable or repeated keys", async ({ page }) => {
@@ -442,9 +466,11 @@ test("SYS laser never changes page or viewport dimensions", async ({ page }) => 
 });
 
 test("the loading screen is a lightweight readiness gate without a minimum duration", async ({ page }) => {
+  // These routes must match whatever [data-hero-portrait] loads, because that is
+  // the image the readiness gate waits on: the photograph, not the SYS wireframe.
   let releasePortrait!: () => void;
   const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
-  await page.route("**/*image-face*", async (route) => {
+  await page.route("**/*gabriele-photo*", async (route) => {
     await portraitReleased;
     await route.continue();
   });
@@ -477,7 +503,7 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
   await page.emulateMedia({ reducedMotion: "reduce" });
   let releasePortrait!: () => void;
   const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
-  await page.route("**/*image-face*", async (route) => {
+  await page.route("**/*gabriele-photo*", async (route) => {
     await portraitReleased;
     await route.continue();
   });
@@ -529,7 +555,7 @@ test("likely internal destinations prefetch on intent", async ({ page }) => {
 
 test("mobile Home does not wait for the hidden desktop portrait", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("**/*image-face*", (route) => route.abort());
+  await page.route("**/*gabriele-photo*", (route) => route.abort());
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /GABRIELE VIGANÒ/i })).toBeVisible();
@@ -717,7 +743,17 @@ test("closing a note restores its exact position on desktop and iPhone", async (
       const transform = getComputedStyle(element.parentElement!).transform;
       return transform === "none" ? 0 : Math.abs(new DOMMatrixReadOnly(transform).m42);
     })).toBeLessThanOrEqual(0.1);
-    const expectedOffset = await note.evaluate((element) => element.getBoundingClientRect().top);
+    // Layout offset, measured the same transform-free way the restore does, so a
+    // reveal animation replaying on return can't read as scroll drift. The last
+    // sample also checks the painted rect, by which point transforms have ended.
+    const LAYOUT_OFFSET = (element: Element) => {
+      let top = 0;
+      let current: HTMLElement | null = element as HTMLElement;
+      while (current) { top += current.offsetTop; current = current.offsetParent as HTMLElement | null; }
+      return top - window.scrollY;
+    };
+    const expectedOffset = await note.evaluate(LAYOUT_OFFSET);
+    const expectedRect = await note.evaluate((element) => element.getBoundingClientRect().top);
 
     // The row is already in view. A DOM click models the browser interaction
     // without Playwright's locator auto-scroll changing the captured offset.
@@ -728,9 +764,11 @@ test("closing a note restores its exact position on desktop and iPhone", async (
     await expect(page.locator("[data-preloader]")).toHaveCount(0);
     for (const delay of [100, 600, 2500]) {
       await page.waitForTimeout(delay);
-      const actualOffset = await note.evaluate((element) => element.getBoundingClientRect().top);
+      const actualOffset = await note.evaluate(LAYOUT_OFFSET);
       expect(Math.abs(actualOffset - expectedOffset), `scroll drift at ${viewport.width}px after ${delay}ms`).toBeLessThanOrEqual(2);
     }
+    const settledRect = await note.evaluate((element) => element.getBoundingClientRect().top);
+    expect(Math.abs(settledRect - expectedRect), `painted drift at ${viewport.width}px`).toBeLessThanOrEqual(2);
   }
 });
 
@@ -740,11 +778,20 @@ test("browser back still restores the exact note position", async ({ page }) => 
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const note = page.locator('[data-scroll-anchor="note-vpn-off-by-default"]');
   await note.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 180, behavior: "auto" }));
+  // Same two guards as "closing a note restores its exact position": let the
+  // row's FadeIn transform reach 0 before capturing, and click through the DOM.
+  // A Playwright click auto-scrolls the row into view first, which moves the
+  // page after expectedY is captured, so the restore target is a position the
+  // assertion never saw.
+  await expect.poll(() => note.evaluate((element) => {
+    const transform = getComputedStyle(element.parentElement!).transform;
+    return transform === "none" ? 0 : Math.abs(new DOMMatrixReadOnly(transform).m42);
+  })).toBeLessThanOrEqual(0.1);
   const expectedY = await page.evaluate(() => window.scrollY);
-  await note.click();
+  await note.evaluate((element) => element.click());
   await page.goBack();
   await expect(note).toBeVisible();
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(expectedY);
+  await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(2);
 });
 
 test("direct note close falls back to the notes section without replaying the preloader", async ({ page }) => {
@@ -766,14 +813,30 @@ test("a manual interaction cancels a pending scroll correction", async ({ page }
   await note.click();
   await expect(page.getByRole("heading", { name: /Why My Home VPN Is Off by Default/i })).toBeVisible();
   await page.goBack();
-  await page.waitForTimeout(350);
+  // Wait until the restore actually stops moving the page, rather than a fixed
+  // delay. RouteScrollCommit re-scrolls every frame until the height and the
+  // anchor hold still, and how long that takes scales with page length, so a
+  // fixed 350ms was really asserting "this page is short enough to settle by
+  // then" — it goes red on content growth rather than on a behaviour change.
+  let previousY = Number.NaN;
+  let stablePolls = 0;
+  for (let poll = 0; poll < 60 && stablePolls < 4; poll += 1) {
+    const y = await page.evaluate(() => window.scrollY);
+    stablePolls = Math.abs(y - previousY) <= 0.5 ? stablePolls + 1 : 0;
+    previousY = y;
+    await page.waitForTimeout(80);
+  }
+  expect(stablePolls, "scroll restore never settled").toBeGreaterThanOrEqual(4);
   await page.evaluate(() => {
     window.dispatchEvent(new WheelEvent("wheel", { deltaY: -450 }));
     window.scrollBy({ top: -450, behavior: "auto" });
   });
   const manualY = await page.evaluate(() => window.scrollY);
   await page.waitForTimeout(700);
-  expect(await page.evaluate(() => window.scrollY)).toBe(manualY);
+  // Nothing may drag the position back afterwards. 1px of slack because scrollY
+  // is fractional whenever the page height is.
+  const settledY = await page.evaluate(() => window.scrollY);
+  expect(Math.abs(settledY - manualY)).toBeLessThanOrEqual(1);
 });
 
 test("404 remains contained and reachable across compact viewports", async ({ page }) => {
@@ -801,7 +864,7 @@ test("reduced motion preserves content and accessibility", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await expect(page.getByText("Ambitious about building products, teams and systems that hold up.")).toBeVisible();
+  await expect(page.getByText("I run my own infrastructure", { exact: false }).first()).toBeVisible();
   const system = page.getByRole("button", { name: "Toggle system mode" });
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
@@ -833,7 +896,7 @@ test("count-up stats animate to their final values after scroll-in", async ({ pa
 
   // sr-only spans hold the exact final string for each animated count
   const srValues = await page.locator(".proof-grid .sr-only").allTextContents();
-  expect(srValues).toEqual(["30+", "5", "1,000+"]);
+  expect(srValues).toEqual(["16TB", "500+", "1,000"]);
 
   // Non-numeric "Education" is rendered as plain text — no sr-only wrapper
   await expect(page.locator(".proof-grid").getByText("Education")).toBeVisible();
@@ -848,7 +911,7 @@ test("count-up does not replay when scrolled away and back", async ({ page }) =>
   await page.locator(".proof-grid").scrollIntoViewIfNeeded();
   await page.waitForTimeout(2200);
   const after = await page.locator(".proof-grid .sr-only").allTextContents();
-  expect(after).toEqual(["30+", "5", "1,000+"]);
+  expect(after).toEqual(["16TB", "500+", "1,000"]);
 
   // Scroll away and back
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "auto" }));
@@ -857,7 +920,7 @@ test("count-up does not replay when scrolled away and back", async ({ page }) =>
   await page.waitForTimeout(300); // No replay — values should still be final immediately
 
   const recheck = await page.locator(".proof-grid .sr-only").allTextContents();
-  expect(recheck).toEqual(["30+", "5", "1,000+"]);
+  expect(recheck).toEqual(["16TB", "500+", "1,000"]);
 });
 
 test("count-up renders final values immediately with reduced motion", async ({ page }) => {
@@ -868,8 +931,8 @@ test("count-up renders final values immediately with reduced motion", async ({ p
 
   await page.locator(".proof-grid").scrollIntoViewIfNeeded();
   // With reduced motion, CountUp renders a plain span — no animation, no sr-only
-  await expect(page.locator(".proof-grid").getByText("30+")).toBeVisible();
-  await expect(page.locator(".proof-grid").getByText("1,000+")).toBeVisible();
+  await expect(page.locator(".proof-grid").getByText("16TB")).toBeVisible();
+  await expect(page.locator(".proof-grid").getByText("500+")).toBeVisible();
   await expect(page.locator(".proof-grid").getByText("Education")).toBeVisible();
   expect(await page.locator(".proof-grid .sr-only").count()).toBe(0);
 });
