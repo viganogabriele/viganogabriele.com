@@ -61,7 +61,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
 
             {disableMotion ? (
               <m.h2
-                className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl"
+                className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl lg:text-8xl"
                 initial={{ opacity: 0 }}
                 animate={headingInView ? { opacity: 1 } : { opacity: 0 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
@@ -69,7 +69,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                 {HEADING}
               </m.h2>
             ) : (
-              <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl md:text-8xl">
+              <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl lg:text-8xl">
                 {words.map((word, i) =>
                   word.trim().length === 0 ? (
                     <span key={i}>{word}</span>

@@ -26,7 +26,7 @@ export function About() {
       <ScrollReveal>
         <div className="grid gap-12 border-l border-white/[0.1] pl-5 md:grid-cols-[1.2fr_0.8fr] md:pl-8">
           <p className="max-w-2xl text-xl leading-[1.45] tracking-[-0.025em] text-zinc-300 md:text-2xl">
-            I keep 16TB of storage alive for six people who would notice inside an hour if it stopped. I write the specs and the bug reports for a student network of 18,000, and I chair the assembly that signs off its budget. My desktop is Arch and Hyprland, picked against the default on purpose.
+            I keep 16TB of storage alive for six people who would notice inside an hour if it stopped. I write the specs and the bug reports for a student network of 500+ group chats, one per course and programme across a 45,000-student university. My desktop is Arch and Hyprland, picked against the default on purpose.
           </p>
           <div className="border-t border-white/[0.1] pt-4 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
             <span className="text-blue-soft">Current curiosity</span>
@@ -41,7 +41,7 @@ export function About() {
         <div ref={statsRef} className="proof-grid grid grid-cols-2 border-y border-white/[0.09] lg:grid-cols-4">
           {[
             { value: "16TB", label: "of RAIDZ1 storage I keep alive for 6 people" },
-            { value: "18,000", label: "students in the network whose product I own" },
+            { value: "500+", label: "group chats in the network whose product I own" },
             { value: "1,000", label: "people at the freshman event I organised" },
             { value: "Education", label: "Computer Engineering at Politecnico di Milano", link: "https://www.polimi.it/en" },
           ].map((item, index) => (

@@ -83,7 +83,7 @@ export const projects: Project[] = [
     status: "In build · launch 09/2026",
     link: "https://github.com/PoliNetworkOrg",
     artifact: "network",
-    metrics: [{ value: "18,000", label: "members in the main group" }, { value: "6.7K", label: "monthly clicks from Google" }],
+    metrics: [{ value: "500+", label: "group chats across Telegram and WhatsApp" }, { value: "6.7K", label: "monthly clicks from Google" }],
     accent: "violet",
     buildMeta: "500+ groups / 5 volunteer teams",
   },
