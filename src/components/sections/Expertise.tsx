@@ -139,7 +139,7 @@ export function Expertise() {
           <SectionHeader
             index="02 / CAPABILITIES"
             title="What I'm responsible for."
-            subtitle="Five things I own at PoliNetwork and in my own infrastructure, with the decisions that came with them."
+            subtitle="Five things I own, and the decisions that came with them."
           />
           <p data-sys-reveal className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-accent">
             02.{String(activeIndex + 1).padStart(2, "0")} / active capability trace

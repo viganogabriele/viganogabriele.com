@@ -22,11 +22,11 @@ export function About() {
 
   return (
     <section id="about" className="relative mx-auto mt-28 max-w-7xl px-5 sm:px-8 lg:px-10">
-      <SectionHeader index="01 / ABOUT" title={"Product, QA,\nand the books."} />
+      <SectionHeader index="01 / ABOUT" title={"I learn it\nby running it."} />
       <ScrollReveal>
         <div className="grid gap-12 border-l border-white/[0.1] pl-5 md:grid-cols-[1.2fr_0.8fr] md:pl-8">
           <p className="max-w-2xl text-xl leading-[1.45] tracking-[-0.025em] text-zinc-300 md:text-2xl">
-            PoliNetwork is 500+ group chats for Politecnico students, 18,000 of them in the main one, kept running by around 200 volunteers. I own the product, the testing and the treasury: I write the specs, break the services on purpose, and follow the fixes to release.
+            Computer Engineering at Politecnico di Milano, two years in. I keep 16TB of storage alive for my family, I write the specs and the bug reports for a student network of 18,000, and so far I&rsquo;ve shipped software I could test but not write. That&rsquo;s the part I&rsquo;m fixing: JavaScript now, React after it, and the next project is mine end to end.
           </p>
           <div className="border-t border-white/[0.1] pt-4 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
             <span className="text-blue-soft">Current curiosity</span>
@@ -40,9 +40,9 @@ export function About() {
       <ScrollReveal className="mt-14">
         <div ref={statsRef} className="proof-grid grid grid-cols-2 border-y border-white/[0.09] lg:grid-cols-4">
           {[
-            { value: "18,000", label: "members in the network's main Telegram group" },
-            { value: "6.7K", label: "monthly clicks from Google on the site I run" },
-            { value: "30+", label: "volunteers recruited across 5 teams" },
+            { value: "16TB", label: "of RAIDZ1 storage I keep alive for 6 people" },
+            { value: "18,000", label: "students in the network whose product I own" },
+            { value: "1,000", label: "people at the freshman event I organised" },
             { value: "Education", label: "Computer Engineering at Politecnico di Milano", link: "https://www.polimi.it/en" },
           ].map((item, index) => (
             <m.div

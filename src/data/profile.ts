@@ -4,5 +4,5 @@ export const profile = {
   linkedIn: "https://linkedin.com/in/viganogabriele",
   location: "Milan, Italy",
   education: "B.Sc. Computer Engineering, Politecnico di Milano, graduating 2028",
-  currentRole: "Board Member & Treasurer at PoliNetwork · Product, QA & operations",
+  currentRole: "Board Member & Treasurer at PoliNetwork",
 } as const;
