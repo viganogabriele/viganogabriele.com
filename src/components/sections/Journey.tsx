@@ -119,8 +119,8 @@ export function Journey() {
     <section id="journey" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <SectionHeader
         index="05 / SYSTEM TRACE"
-        title="A path with branches."
-        subtitle="A few live threads: what I'm learning, leading, and building next."
+        title="Everything running at once."
+        subtitle="What I'm doing right now, and since when."
       />
       <div
         ref={railRef}

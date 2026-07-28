@@ -6,23 +6,23 @@ export interface ToolGroup {
 
 export const toolGroups: ToolGroup[] = [
   {
-    label: "Frontend & web",
-    description: "Interfaces, foundations, and implementation detail.",
-    tools: ["JavaScript", "HTML", "CSS", "C"],
+    label: "Code & markup",
+    description: "C at the level the coursework has taken me. JavaScript is in progress, and it goes on this list properly once there's a project of mine behind it.",
+    tools: ["C", "HTML", "CSS", "JavaScript (learning)"],
   },
   {
     label: "Infrastructure & self-hosting",
-    description: "Systems I run, maintain, and learn from directly.",
-    tools: ["Linux", "Proxmox", "TrueNAS", "Git"],
+    description: "Two machines at home plus a cloud VPS, tied together over Tailscale. Six people keep their data on the storage, so downtime is a family problem.",
+    tools: ["Linux", "Proxmox", "TrueNAS / ZFS", "WireGuard"],
   },
   {
     label: "Product & collaboration",
-    description: "Tools for design, decisions, and clear handoffs.",
+    description: "Every design output for the rebuild gets reviewed and edited by me directly in Figma. The rest is where specs, budgets and assets get made.",
     tools: ["Figma", "Notion", "Excel", "Photoshop"],
   },
   {
     label: "AI-assisted workflows",
-    description: "Coding agents, orchestration, automation, and verification in practice.",
-    tools: ["Codex", "Claude Code", "OpenClaw (self-hosted)", "Agent workflows"],
+    description: "I pay for all three and use all three, mostly as a tutor that explains and refactors rather than a vending machine for code.",
+    tools: ["Claude Code", "Codex", "Gemini", "Prompt design"],
   },
 ];

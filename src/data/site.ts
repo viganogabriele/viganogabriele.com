@@ -6,13 +6,13 @@ export const site = {
   locale: "en_US",
   language: "en",
   title: "Gabriele Viganò",
-  description: "Computer Engineering student building products, teams, events, and resilient systems for a 45,000+ student community.",
+  description: "Computer Engineering student at Politecnico di Milano. I run product and QA at PoliNetwork, the student network behind 500+ group chats and 18,000 members.",
   socialImage: {
     path: "/og-cover-v3.png",
     width: 1200,
     height: 630,
     type: "image/png",
-    alt: "Gabriele Viganò — product, operations, and systems.",
+    alt: "Gabriele Viganò · product, QA and infrastructure.",
   },
   updatedAt: "2026-07-13",
 } as const;
@@ -44,8 +44,8 @@ export const homeMetadata: PageMetadata = {
 };
 
 export const cvMetadata: PageMetadata = {
-  title: `${site.name} — CV`,
-  description: "Curriculum vitae of Gabriele Viganò — product, operations, and technical systems.",
+  title: `${site.name} · CV`,
+  description: "Curriculum vitae of Gabriele Viganò: product, QA and treasury at PoliNetwork, self-hosted infrastructure, Computer Engineering at Politecnico di Milano.",
   path: "/cv",
   canonical: true,
   robots: "index, follow, max-image-preview:large",
@@ -84,7 +84,7 @@ export const websitePersonJsonLd = {
       "@id": `${site.url}/#website`,
       name: site.name,
       url: pageUrl("/"),
-      description: "Portfolio focused on product, operations, and technical systems.",
+      description: "Portfolio of Gabriele Viganò: product and QA work, self-hosted infrastructure, and notes on the decisions behind both.",
       inLanguage: site.language,
     },
     {

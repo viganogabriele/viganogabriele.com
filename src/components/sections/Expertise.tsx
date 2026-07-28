@@ -138,8 +138,8 @@ export function Expertise() {
         <div className="lg:sticky lg:top-28 lg:h-fit">
           <SectionHeader
             index="02 / CAPABILITIES"
-            title="What I bring to the table."
-            subtitle="A practice across product, quality, people, operations, and practical AI workflows."
+            title="What I'm responsible for."
+            subtitle="Five things I own at PoliNetwork and in my own infrastructure, with the decisions that came with them."
           />
           <p data-sys-reveal className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-accent">
             02.{String(activeIndex + 1).padStart(2, "0")} / active capability trace

@@ -14,7 +14,7 @@ export function Notes() {
       <SectionHeader
         index="06 / FIELD NOTES"
         title="Notes from the build."
-        subtitle="Compact thoughts on operations, interfaces, and resilient systems."
+        subtitle="Four decisions I made and why, written short."
       />
       <div className="note-row">
         {notes.map((note, index) => {

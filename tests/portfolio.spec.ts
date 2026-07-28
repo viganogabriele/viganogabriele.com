@@ -119,7 +119,7 @@ test("hero makes Gabriele's current profile and contact path immediately availab
   await page.goto("/");
   const hero = page.locator("#top");
   await expect(hero.getByLabel("Professional profile")).toContainText("Board Member & Treasurer at PoliNetwork");
-  await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering student at Politecnico di Milano");
+  await expect(hero.getByLabel("Professional profile")).toContainText("Computer Engineering, Politecnico di Milano");
   await expect(hero).toContainText("Milan, Italy");
   await expect(hero.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "mailto:info@viganogabriele.com");
   await expect(hero.getByRole("link", { name: "View CV" })).toHaveAttribute("href", "/cv");
@@ -801,7 +801,7 @@ test("reduced motion preserves content and accessibility", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await expect(page.getByText("Ambitious about building products, teams and systems that hold up.")).toBeVisible();
+  await expect(page.getByText("I run product and QA for the software behind an 18,000-member student network.", { exact: false })).toBeVisible();
   const system = page.getByRole("button", { name: "Toggle system mode" });
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
@@ -869,7 +869,7 @@ test("count-up renders final values immediately with reduced motion", async ({ p
   await page.locator(".proof-grid").scrollIntoViewIfNeeded();
   // With reduced motion, CountUp renders a plain span — no animation, no sr-only
   await expect(page.locator(".proof-grid").getByText("30+")).toBeVisible();
-  await expect(page.locator(".proof-grid").getByText("1,000+")).toBeVisible();
+  await expect(page.locator(".proof-grid").getByText("18,000")).toBeVisible();
   await expect(page.locator(".proof-grid").getByText("Education")).toBeVisible();
   expect(await page.locator(".proof-grid .sr-only").count()).toBe(0);
 });

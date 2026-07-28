@@ -15,23 +15,23 @@ export function About() {
   const principlesInView = useInView(principlesRef, { once: true, margin: "-60px" });
 
   const lines = [
-    "Make the complex legible.",
-    "Give teams a path, not another meeting.",
-    "Polish the details that build trust.",
+    "A rebuild that grows while it rebuilds never ships.",
+    "The safest service is the one that isn’t listening.",
+    "Verifying the output is the job.",
   ];
 
   return (
     <section id="about" className="relative mx-auto mt-28 max-w-7xl px-5 sm:px-8 lg:px-10">
-      <SectionHeader index="01 / ABOUT" title={"Serious work.\nHuman energy."} />
+      <SectionHeader index="01 / ABOUT" title={"Product, QA,\nand the books."} />
       <ScrollReveal>
         <div className="grid gap-12 border-l border-white/[0.1] pl-5 md:grid-cols-[1.2fr_0.8fr] md:pl-8">
           <p className="max-w-2xl text-xl leading-[1.45] tracking-[-0.025em] text-zinc-300 md:text-2xl">
-            I’m ambitious about making complex work useful: turning fragmented requirements into products, teams, and operations that people can actually rely on.
+            PoliNetwork is 500+ group chats for Politecnico students, 18,000 of them in the main one, kept running by around 200 volunteers. I own the product, the testing and the treasury: I write the specs, break the services on purpose, and follow the fixes to release.
           </p>
           <div className="border-t border-white/[0.1] pt-4 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
             <span className="text-blue-soft">Current curiosity</span>
             <p className="mt-3 max-w-xs leading-relaxed text-zinc-400">
-              I’m most interested in practical AI: applying coding agents, self-hosted tools, and automation to real workflows—then verifying that the result is actually useful and reliable.
+              Coding agents that run somewhere other than my laptop. Claude Code and Codex live on a VPS I reach over Tailscale; they open the pull requests, I review the previews.
             </p>
           </div>
         </div>
@@ -40,10 +40,10 @@ export function About() {
       <ScrollReveal className="mt-14">
         <div ref={statsRef} className="proof-grid grid grid-cols-2 border-y border-white/[0.09] lg:grid-cols-4">
           {[
-            { value: "30+", label: "people recruited through a structured process" },
-            { value: "5", label: "teams built toward autonomous delivery" },
-            { value: "1,000+", label: "people brought together at one event" },
-            { value: "Education", label: "Computer Engineering student at Politecnico di Milano", link: "https://www.polimi.it/en" },
+            { value: "18,000", label: "members in the network's main Telegram group" },
+            { value: "6.7K", label: "monthly clicks from Google on the site I run" },
+            { value: "30+", label: "volunteers recruited across 5 teams" },
+            { value: "Education", label: "Computer Engineering at Politecnico di Milano", link: "https://www.polimi.it/en" },
           ].map((item, index) => (
             <m.div
               key={item.label}

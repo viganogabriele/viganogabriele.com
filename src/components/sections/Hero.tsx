@@ -54,7 +54,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             transition={{ delay: 0.45, duration: 0.6, ease: ease.softSettle }}
             className="mt-7"
           >
-            <p className="max-w-xl text-xl font-medium leading-snug tracking-[-0.02em] text-zinc-300 sm:text-2xl">Ambitious about building products, teams and systems that hold up.</p>
+            <p className="max-w-xl text-xl font-medium leading-snug tracking-[-0.02em] text-zinc-300 sm:text-2xl">I run product and QA for the software behind an 18,000-member student network. Now I&rsquo;m learning to write it.</p>
 
             {/* A recruiter-friendly profile snapshot, kept inside the cinematic hero. */}
             <m.dl
