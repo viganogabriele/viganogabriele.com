@@ -819,7 +819,7 @@ test("reduced motion preserves content and accessibility", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await expect(page.getByText("I run my own servers and I", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText("I run my own infrastructure", { exact: false }).first()).toBeVisible();
   const system = page.getByRole("button", { name: "Toggle system mode" });
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");

@@ -26,7 +26,7 @@ export function About() {
       <ScrollReveal>
         <div className="grid gap-12 border-l border-white/[0.1] pl-5 md:grid-cols-[1.2fr_0.8fr] md:pl-8">
           <p className="max-w-2xl text-xl leading-[1.45] tracking-[-0.025em] text-zinc-300 md:text-2xl">
-            Computer Engineering at Politecnico di Milano, two years in. I keep 16TB of storage alive for my family, I write the specs and the bug reports for a student network of 18,000, and so far I&rsquo;ve shipped software I could test but not write. That&rsquo;s the part I&rsquo;m fixing: JavaScript now, React after it, and the next project is mine end to end.
+            I keep 16TB of storage alive for six people who would notice inside an hour if it stopped. I write the specs and the bug reports for a student network of 18,000, and I chair the assembly that signs off its budget. My desktop is Arch and Hyprland, picked against the default on purpose.
           </p>
           <div className="border-t border-white/[0.1] pt-4 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
             <span className="text-blue-soft">Current curiosity</span>

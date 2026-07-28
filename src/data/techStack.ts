@@ -7,8 +7,8 @@ export interface ToolGroup {
 export const toolGroups: ToolGroup[] = [
   {
     label: "Code & markup",
-    description: "C at the level the coursework has taken me. JavaScript is in progress, and it goes on this list properly once there's a project of mine behind it.",
-    tools: ["C", "HTML", "CSS", "JavaScript (learning)"],
+    description: "C from the coursework, HTML and CSS from building things with them. JavaScript is what I'm adding now.",
+    tools: ["C", "HTML", "CSS", "JavaScript (in progress)"],
   },
   {
     label: "Infrastructure & self-hosting",

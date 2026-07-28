@@ -19,7 +19,7 @@ export const activities: Activity[] = [
     title: "Self-Hosting & Infrastructure",
     role: "My homelab, since December 2025",
     description:
-      "TrueNAS with 4x4TB in RAIDZ1, scrubbed on a schedule and backed up encrypted off-site. Proxmox runs the rest in LXC. The WireGuard container stays stopped until a Telegram bot locked to my account starts it, so the tunnel only exists while I'm using it.",
+      "Six people keep their data on a box I administer, and that changes which decisions are worth making. Parity for the disk that dies, scheduled scrubs for the corruption you can't see yet, an encrypted off-site copy for the house itself. The next layer is a second node for local replication.",
     tags: ["Proxmox", "ZFS", "WireGuard", "Linux"],
     icon: Server,
     artifact: "network",
@@ -39,7 +39,7 @@ export const activities: Activity[] = [
     title: "Front-End & Interaction Design",
     role: "This site, screen by screen",
     description:
-      "I designed the layout and the motion, then specified both precisely enough for a model to build, and reviewed the output until it matched. JavaScript is in progress and React comes after it, so the next one is written by me. I study the front-end because I can't spec a fix for something I don't understand.",
+      "I designed the layout and the motion here, specified both down to the easing, and reviewed every screen until it matched the intent. The reason I go this deep on the front-end is upstream of the design: a bug report is only worth filing if you can name what's actually broken.",
     tags: ["HTML", "CSS", "Figma", "Motion design"],
     icon: Code2,
     artifact: "network",

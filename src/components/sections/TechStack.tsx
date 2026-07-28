@@ -38,7 +38,7 @@ export function TechStack() {
       <SectionHeader
         index="04 / TOOLKIT"
         title="The workshop bench."
-        subtitle="If it's on this list I can defend it in an interview. What I'm still learning says so."
+        subtitle="If it's on this list, I can defend it in an interview."
       />
       <ScrollReveal>
         <div className="tool-workbench border border-white/[0.1] bg-surface/80">
