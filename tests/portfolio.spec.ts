@@ -444,9 +444,11 @@ test("SYS laser never changes page or viewport dimensions", async ({ page }) => 
 });
 
 test("the loading screen is a lightweight readiness gate without a minimum duration", async ({ page }) => {
+  // These routes must match whatever [data-hero-portrait] loads, because that is
+  // the image the readiness gate waits on: the photograph, not the SYS wireframe.
   let releasePortrait!: () => void;
   const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
-  await page.route("**/*image-face*", async (route) => {
+  await page.route("**/*gabriele-photo*", async (route) => {
     await portraitReleased;
     await route.continue();
   });
@@ -479,7 +481,7 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
   await page.emulateMedia({ reducedMotion: "reduce" });
   let releasePortrait!: () => void;
   const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
-  await page.route("**/*image-face*", async (route) => {
+  await page.route("**/*gabriele-photo*", async (route) => {
     await portraitReleased;
     await route.continue();
   });
@@ -531,7 +533,7 @@ test("likely internal destinations prefetch on intent", async ({ page }) => {
 
 test("mobile Home does not wait for the hidden desktop portrait", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("**/*image-face*", (route) => route.abort());
+  await page.route("**/*gabriele-photo*", (route) => route.abort());
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: /GABRIELE VIGANÒ/i })).toBeVisible();

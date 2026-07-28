@@ -5,10 +5,11 @@ import { Magnetic } from "../motion/Magnetic";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { Link } from "react-router-dom";
+import { footerCopy } from "../../data/sections";
 
 const EMAIL = "info@viganogabriele.com";
 
-const HEADING = "Write to me. I'll write back.";
+const HEADING = footerCopy.heading;
 
 const GitHubIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -56,7 +57,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
               animate={disableMotion ? undefined : headingInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              End of transmission / start a conversation
+              {footerCopy.eyebrow}
             </m.p>
 
             {disableMotion ? (

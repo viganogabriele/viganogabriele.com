@@ -6,7 +6,7 @@ export const site = {
   locale: "en_US",
   language: "en",
   title: "Gabriele Viganò",
-  description: "Computer Engineering student at Politecnico di Milano. I run my own self-hosted infrastructure, and product and QA for a student network of 500+ group chats.",
+  description: "Computer Engineering student at Politecnico di Milano. I run self-hosted infrastructure and own product and QA for a student network of 500+ group chats.",
   socialImage: {
     path: "/og-cover-v3.png",
     width: 1200,

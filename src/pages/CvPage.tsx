@@ -11,6 +11,7 @@ import { SystemModeOverlay } from "../components/layout/SystemModeOverlay";
 import { SystemHUD } from "../components/motion/SystemHUD";
 import { profile } from "../data/profile";
 import { cvMetadata } from "../data/site";
+import { cvPageCopy } from "../data/sections";
 import { useMotionProfile } from "../hooks/useMotionProfile";
 import { useSystemMode } from "../hooks/useSystemMode";
 import { ease } from "../lib/motion";
@@ -153,11 +154,11 @@ export function CvPage() {
 
       <main id="main-content" className="relative mx-auto max-w-7xl px-5 pb-16 pt-28 sm:px-8 sm:pt-36 lg:px-10 lg:pt-40">
         <m.section initial={entrance} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.6, ease: ease.cinematic }} aria-labelledby="cv-title">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">Document / CV</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">{cvPageCopy.eyebrow}</p>
           <div className="mt-4 flex flex-col gap-6 border-b border-white/[0.09] pb-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 id="cv-title" className="text-5xl font-medium leading-[0.88] tracking-[-0.07em] text-bone sm:text-7xl">Curriculum<br />Vitae.</h1>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400">One page, because a CV has to be one page. The detail it had to cut is on the rest of this site.</p>
+              <h1 id="cv-title" className="text-5xl font-medium leading-[0.88] tracking-[-0.07em] whitespace-pre-line text-bone sm:text-7xl">{cvPageCopy.title}</h1>
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400">{cvPageCopy.summary}</p>
             </div>
             <div className="flex flex-wrap gap-3" aria-label="CV actions">
               <button type="button" onClick={() => void downloadCv()} disabled={downloading} data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft disabled:cursor-wait disabled:opacity-70"><Download className="h-4 w-4" /> {downloading ? "Preparing…" : "Download CV"}</button>
@@ -171,8 +172,8 @@ export function CvPage() {
         </m.section>
 
         {systemActive && <m.aside initial={reduced ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.35, ease: ease.cinematic }} className="mt-8 border border-accent/30 bg-accent/[0.05] px-5 py-4 sm:mt-10 sm:flex sm:items-center sm:justify-between sm:gap-6" aria-label="System mode discovery">
-          <div><p className="font-mono text-[9px] uppercase tracking-[0.17em] text-accent">SYS / trace available</p><p className="mt-2 text-sm text-zinc-300">Every line on that page has a longer version. Here are three of them.</p></div>
-          <Link to="/#projects" data-cursor="hover" className="mt-4 inline-flex min-h-11 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-bone transition-colors hover:text-accent sm:mt-0">Explore selected work <ArrowUpRight className="h-3.5 w-3.5" /></Link>
+          <div><p className="font-mono text-[9px] uppercase tracking-[0.17em] text-accent">{cvPageCopy.systemAside.eyebrow}</p><p className="mt-2 text-sm text-zinc-300">{cvPageCopy.systemAside.text}</p></div>
+          <Link to="/#projects" data-cursor="hover" className="mt-4 inline-flex min-h-11 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-bone transition-colors hover:text-accent sm:mt-0">{cvPageCopy.systemAside.link} <ArrowUpRight className="h-3.5 w-3.5" /></Link>
         </m.aside>}
 
         <Footer context="cv" />

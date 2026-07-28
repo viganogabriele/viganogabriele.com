@@ -1,9 +1,12 @@
 import { m } from "framer-motion";
+import photoAvif from "../../assets/gabriele-photo.avif";
+import photoWebp from "../../assets/gabriele-photo.webp";
 import imageAvif from "../../assets/image-face.avif";
 import imageWebp from "../../assets/image-face.webp";
+import { heroCopy } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 
-function PortraitFallback({ staticMode }: { staticMode: boolean }) {
+function PortraitFallback({ staticMode, systemActive }: { staticMode: boolean; systemActive: boolean }) {
   return (
     <div className="hero-fallback">
       <m.div
@@ -11,16 +14,32 @@ function PortraitFallback({ staticMode }: { staticMode: boolean }) {
         animate={staticMode ? undefined : { y: [0, -7, 0], rotate: [0, 0.25, 0] }}
         transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
       >
-        <picture>
-          <source srcSet={imageAvif} type="image/avif" />
+        {/* The photograph rests here and SYS swaps in the wireframe render. Both
+            layers stay mounted: toggling would otherwise show a gap while the
+            second image decodes. Only the photo gets high fetch priority, since
+            it is the one the hero is measured on. */}
+        <picture className="hero-portrait-layer" data-visible={!systemActive}>
+          <source srcSet={photoAvif} type="image/avif" />
           <img
             data-hero-portrait
+            src={photoWebp}
+            alt=""
+            width="1200"
+            height="1200"
+            decoding="async"
+            fetchPriority="high"
+            className="h-full w-full object-cover object-top"
+          />
+        </picture>
+        <picture className="hero-portrait-layer" data-visible={systemActive}>
+          <source srcSet={imageAvif} type="image/avif" />
+          <img
             src={imageWebp}
             alt=""
             width="900"
             height="900"
             decoding="async"
-            fetchPriority="high"
+            fetchPriority="low"
             className="h-full w-full object-cover object-top"
           />
         </picture>
@@ -46,7 +65,7 @@ export function AdaptiveHeroObject({
   onToggleSystem: () => void;
 }) {
   const { level, isCompact } = useMotionProfile();
-  const label = systemActive ? "IDENTIFIED · TAP TO EXIT SYS" : "PORTRAIT · ENTER SYS";
+  const label = systemActive ? heroCopy.portraitLabel.active : heroCopy.portraitLabel.idle;
 
   return (
     <div className="hero-object-shell">
@@ -59,7 +78,7 @@ export function AdaptiveHeroObject({
         data-cursor="hover"
       >
         <span className="hero-object-aura" aria-hidden="true" />
-        <PortraitFallback staticMode={level !== "full" || isCompact} />
+        <PortraitFallback staticMode={level !== "full" || isCompact} systemActive={systemActive} />
         <span className="hero-object-corner hero-object-corner-tl" aria-hidden="true" />
         <span className="hero-object-corner hero-object-corner-br" aria-hidden="true" />
         <span className="hero-object-label" aria-hidden="true">{label}</span>

@@ -5,7 +5,7 @@ import { BrowserRouter, Route, Routes, useLocation, type Location } from "react-
 import { Preloader } from "./components/layout/Preloader";
 import { RouteReadyContext } from "./hooks/useRouteReady";
 import { useMotionProfile } from "./hooks/useMotionProfile";
-import { anchorViewportOffset, findScrollAnchor, getRegisteredNoteReturn, getScrollSnapshot, layoutTop, readNoteNavigationState, takeQueuedNoteReturn, type ScrollSnapshot } from "./lib/navigationState";
+import { findScrollAnchor, getRegisteredNoteReturn, getScrollSnapshot, layoutTop, readNoteNavigationState, takeQueuedNoteReturn, type ScrollSnapshot } from "./lib/navigationState";
 import { loadCvPage, loadNotFoundPage, loadNotePage, prefetchRoute } from "./lib/routePrefetch";
 import { HOME_PATHS } from "./lib/routes";
 import { HomePage } from "./pages/HomePage";
@@ -163,8 +163,11 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
       const target = anchorDocumentTop !== null ? anchorDocumentTop - snapshot.anchor!.offset : snapshot.y;
       const canReach = height - window.innerHeight + 1 >= target;
       if (canReach) window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
-      const exact = anchor
-        ? Math.abs(anchorViewportOffset(anchor) - snapshot.anchor!.offset) <= 1
+      // Reuses anchorDocumentTop rather than walking offsetParent a second time:
+      // layoutTop is scroll-independent, so subtracting the post-scroll scrollY
+      // gives the same viewport offset for one forced reflow instead of two.
+      const exact = anchorDocumentTop !== null
+        ? Math.abs(anchorDocumentTop - window.scrollY - snapshot.anchor!.offset) <= 1
         : Math.abs(window.scrollY - snapshot.y) <= 1;
       const anchorAnimating = anchor ? hasRunningAncestorAnimation(anchor) : false;
       const anchorStable = anchorDocumentTop === null || (previousAnchorTop !== null && Math.abs(anchorDocumentTop - previousAnchorTop) <= 0.1);

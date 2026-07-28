@@ -263,7 +263,7 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   transition: opacity 400ms ease;
 }
 
-.hero-fallback-motion { overflow: hidden; }
+.hero-fallback-motion { overflow: hidden; position: relative; }
 
 .hero-fallback picture,
 .hero-fallback img {
@@ -271,6 +271,17 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   height: 100%;
   width: 100%;
 }
+
+/* The photo and the wireframe render share the frame, stacked. Both stay in the
+   DOM so SYS can cross-fade between them instead of waiting on a decode. */
+.hero-portrait-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+.hero-portrait-layer[data-visible="true"] { opacity: 1; }
 
 .hero-fallback img {
   filter: grayscale(.18) contrast(1.08) saturate(.82);
@@ -456,6 +467,7 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   .artifact-svg path {
     animation: none !important;
   }
+  .hero-portrait-layer { transition: none; }
   .note-row a::before { display: none; }
 }
 

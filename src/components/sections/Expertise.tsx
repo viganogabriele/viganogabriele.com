@@ -1,6 +1,7 @@
 import { m, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { activities } from "../../data/activities";
+import { expertiseSection } from "../../data/sections";
 import { dur, ease } from "../../lib/motion";
 import { onViewportWidthChange } from "../../lib/viewport";
 import { ArtifactSVG } from "../ui/ArtifactSVG";
@@ -137,9 +138,9 @@ export function Expertise() {
       <div className="lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
         <div className="lg:sticky lg:top-28 lg:h-fit">
           <SectionHeader
-            index="02 / CAPABILITIES"
-            title="What I'm responsible for."
-            subtitle="Five things I own, and the decisions that came with them."
+            index={expertiseSection.index}
+            title={expertiseSection.title}
+            subtitle={expertiseSection.subtitle}
           />
           <p data-sys-reveal className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-accent">
             02.{String(activeIndex + 1).padStart(2, "0")} / active capability trace
