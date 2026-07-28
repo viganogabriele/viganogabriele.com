@@ -22,7 +22,7 @@ export const toolGroups: ToolGroup[] = [
   },
   {
     label: "AI-assisted workflows",
-    description: "I pay for all three and use all three, mostly as a tutor that explains and refactors rather than a vending machine for code.",
+    description: "I pay for and use all three assistants; prompt design is the practice around them. Mostly they act as a tutor that explains and refactors, not a vending machine for code.",
     tools: ["Claude Code", "Codex", "Gemini", "Prompt design"],
   },
 ];

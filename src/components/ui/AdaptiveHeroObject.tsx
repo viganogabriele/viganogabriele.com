@@ -5,6 +5,9 @@ import imageWebp from "../../assets/image-face.webp";
 import { heroCopy } from "../../data/sections";
 
 function PortraitFallback({ systemActive }: { systemActive: boolean }) {
+  const [systemPortraitReady, setSystemPortraitReady] = useState(false);
+  const showSystemPortrait = systemActive && systemPortraitReady;
+
   return (
     <div className="hero-fallback">
       <div className="hero-fallback-motion h-full w-full">
@@ -12,7 +15,7 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
             layers stay mounted: toggling would otherwise show a gap while the
             second image decodes. Only the photo gets high fetch priority, since
             it is the one the hero is measured on. */}
-        <picture className="hero-portrait-layer" data-visible={!systemActive}>
+        <picture className="hero-portrait-layer" data-hero-portrait-layer="photo" data-visible={!showSystemPortrait}>
           <source srcSet={photoAvif} type="image/avif" />
           <img
             data-hero-portrait
@@ -25,7 +28,7 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
             className="h-full w-full object-cover object-top"
           />
         </picture>
-        <picture className="hero-portrait-layer" data-visible={systemActive}>
+        <picture className="hero-portrait-layer" data-hero-portrait-layer="system" data-visible={showSystemPortrait}>
           <source srcSet={imageAvif} type="image/avif" />
           <img
             src={imageWebp}
@@ -34,6 +37,7 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
             height="900"
             decoding="async"
             fetchPriority="low"
+            onLoad={() => setSystemPortraitReady(true)}
             className="h-full w-full object-cover object-top"
           />
         </picture>
@@ -79,3 +83,4 @@ export function AdaptiveHeroObject({
     </div>
   );
 }
+import { useState } from "react";

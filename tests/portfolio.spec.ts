@@ -243,6 +243,28 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect(system).toHaveAttribute("aria-pressed", "false");
 });
 
+test("hero keeps the photograph visible until the SYS portrait is ready", async ({ page }) => {
+  let releaseSystemPortrait!: () => void;
+  const systemPortraitReleased = new Promise<void>((resolve) => { releaseSystemPortrait = resolve; });
+  await page.route("**/*image-face*", async (route) => {
+    await systemPortraitReleased;
+    await route.continue();
+  });
+
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const photo = page.locator('[data-hero-portrait-layer="photo"]');
+  const systemPortrait = page.locator('[data-hero-portrait-layer="system"]');
+
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(photo).toHaveAttribute("data-visible", "true");
+  await expect(systemPortrait).toHaveAttribute("data-visible", "false");
+
+  releaseSystemPortrait();
+  await expect(systemPortrait).toHaveAttribute("data-visible", "true");
+  await expect(photo).toHaveAttribute("data-visible", "false");
+});
+
 test("SYS keyboard shortcut is resilient and ignores editable or repeated keys", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "vibrate", { configurable: true, value: () => { throw new Error("haptics unavailable"); } });
