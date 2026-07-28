@@ -244,11 +244,15 @@ test("SYS mode starts clean, then activates only after an explicit control inter
 });
 
 test("hero keeps the photograph visible until the SYS portrait is ready", async ({ page }) => {
-  let releaseSystemPortrait!: () => void;
-  const systemPortraitReleased = new Promise<void>((resolve) => { releaseSystemPortrait = resolve; });
-  await page.route("**/*image-face*", async (route) => {
-    await systemPortraitReleased;
-    await route.continue();
+  await page.addInitScript(() => {
+    (window as Window & { releaseSystemPortrait?: boolean }).releaseSystemPortrait = false;
+    document.addEventListener("load", (event) => {
+      const image = event.target;
+      if (!(image instanceof HTMLImageElement)) return;
+      if (!image.currentSrc.includes("image-face") && !image.src.includes("image-face")) return;
+      if ((window as Window & { releaseSystemPortrait?: boolean }).releaseSystemPortrait) return;
+      event.stopImmediatePropagation();
+    }, true);
   });
 
   await page.goto("/");
@@ -260,7 +264,10 @@ test("hero keeps the photograph visible until the SYS portrait is ready", async 
   await expect(photo).toHaveAttribute("data-visible", "true");
   await expect(systemPortrait).toHaveAttribute("data-visible", "false");
 
-  releaseSystemPortrait();
+  await systemPortrait.locator("img").evaluate((image) => {
+    (window as Window & { releaseSystemPortrait?: boolean }).releaseSystemPortrait = true;
+    image.dispatchEvent(new Event("load", { bubbles: true }));
+  });
   await expect(systemPortrait).toHaveAttribute("data-visible", "true");
   await expect(photo).toHaveAttribute("data-visible", "false");
 });
@@ -684,6 +691,27 @@ test("capability selection and journey axis stay deterministic while scrolling",
   expect(alignment).not.toBeNull();
   expect(Math.abs(alignment!.indicator)).toBeLessThanOrEqual(1);
   expect(alignment!.nodes.every((offset) => Math.abs(offset) <= 1)).toBe(true);
+});
+
+test("touch capability rows use a single reveal pass", async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const firstRow = page.locator(".expertise-item").first();
+  await firstRow.scrollIntoViewIfNeeded();
+  await expect(firstRow).toBeVisible();
+
+  const nestedRevealStyles = await firstRow.locator("h3").evaluate((heading) => ({
+    opacity: heading.style.opacity,
+    transform: heading.style.transform,
+  }));
+  expect(nestedRevealStyles).toEqual({ opacity: "", transform: "" });
+
+  await context.close();
 });
 
 test("home loads without browser console errors", async ({ page }) => {

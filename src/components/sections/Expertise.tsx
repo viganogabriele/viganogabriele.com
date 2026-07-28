@@ -15,11 +15,13 @@ function ExpertiseItem({
   index,
   activeIndex,
   staticMotion,
+  detailedMotion,
 }: {
   activity: ActivityItem;
   index: number;
   activeIndex: number;
   staticMotion: boolean;
+  detailedMotion: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-12% 0px" });
@@ -43,32 +45,32 @@ function ExpertiseItem({
       <div>
         <m.p
           className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-400"
-          initial={staticMotion ? false : { opacity: 0, y: 8 }}
-          animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+          initial={detailedMotion ? { opacity: 0, y: 8 } : false}
+          animate={detailedMotion ? inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 } : undefined}
           transition={{ duration: 0.4, delay: 0.05, ease: ease.softSettle }}
         >
           {activity.role}
         </m.p>
         <m.h3
           className="mt-2 text-2xl tracking-[-0.05em] text-bone md:text-3xl"
-          initial={staticMotion ? false : { opacity: 0, y: 10 }}
-          animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          initial={detailedMotion ? { opacity: 0, y: 10 } : false}
+          animate={detailedMotion ? inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 } : undefined}
           transition={{ duration: 0.5, delay: 0.12, ease: ease.softSettle }}
         >
           {activity.title}
         </m.h3>
         <m.p
           className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-400"
-          initial={staticMotion ? false : { opacity: 0, y: 8 }}
-          animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+          initial={detailedMotion ? { opacity: 0, y: 8 } : false}
+          animate={detailedMotion ? inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 } : undefined}
           transition={{ duration: 0.45, delay: 0.2, ease: ease.softSettle }}
         >
           {activity.description}
         </m.p>
         <m.div
           className="mt-5 flex flex-wrap gap-x-3 gap-y-2 font-mono text-[9px] uppercase tracking-[0.1em] text-zinc-600"
-          initial={staticMotion ? false : { opacity: 0 }}
-          animate={staticMotion ? undefined : inView ? { opacity: 1 } : { opacity: 0 }}
+          initial={detailedMotion ? { opacity: 0 } : false}
+          animate={detailedMotion ? inView ? { opacity: 1 } : { opacity: 0 } : undefined}
           transition={{ duration: 0.4, delay: 0.28, ease: ease.softSettle }}
         >
           {activity.tags.map((tag) => <span key={tag}>/{tag}</span>)}
@@ -85,6 +87,10 @@ function ExpertiseItem({
 export function Expertise() {
   const { level } = useMotionProfile();
   const staticMotion = level === "static";
+  // Lite/touch hardware gets one reveal on the row. Stacking four staggered
+  // child fades on top of the row fade causes a visible second brightness
+  // pulse on mobile compositors after the content has already appeared.
+  const detailedMotion = level === "full";
   const [activeIndex, setActiveIndex] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
   const frameRef = useRef<number | null>(null);
@@ -154,6 +160,7 @@ export function Expertise() {
               index={index}
               activeIndex={activeIndex}
               staticMotion={staticMotion}
+              detailedMotion={detailedMotion}
             />
           ))}
         </div>
