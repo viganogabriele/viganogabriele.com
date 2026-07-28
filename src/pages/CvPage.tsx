@@ -1,6 +1,7 @@
 import { m, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Link } from "react-router-dom";
@@ -16,7 +17,14 @@ import { ease } from "../lib/motion";
 import { PageMeta } from "../lib/seo";
 import { useRouteReady } from "../hooks/useRouteReady";
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+// `new URL("pdfjs-dist/...", import.meta.url)` does no module resolution: a bare
+// specifier is just concatenated onto the importing file's URL, so in the built
+// site it resolved to /assets/pdfjs-dist/build/pdf.worker.min.mjs and 404'd. pdf.js
+// then fell back to its fake worker and the viewer rendered nothing but its own
+// error state. `?url` makes Vite resolve the package and emit a hashed asset.
+// pdfjs-dist is pinned to the exact version react-pdf depends on, so the worker
+// can never drift from the API that drives it.
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 function CvDocumentViewer({ onReady }: { onReady: () => void }) {
   const viewerRef = useRef<HTMLDivElement>(null);

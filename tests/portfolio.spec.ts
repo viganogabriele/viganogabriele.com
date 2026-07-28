@@ -719,7 +719,17 @@ test("closing a note restores its exact position on desktop and iPhone", async (
       const transform = getComputedStyle(element.parentElement!).transform;
       return transform === "none" ? 0 : Math.abs(new DOMMatrixReadOnly(transform).m42);
     })).toBeLessThanOrEqual(0.1);
-    const expectedOffset = await note.evaluate((element) => element.getBoundingClientRect().top);
+    // Layout offset, measured the same transform-free way the restore does, so a
+    // reveal animation replaying on return can't read as scroll drift. The last
+    // sample also checks the painted rect, by which point transforms have ended.
+    const LAYOUT_OFFSET = (element: Element) => {
+      let top = 0;
+      let current: HTMLElement | null = element as HTMLElement;
+      while (current) { top += current.offsetTop; current = current.offsetParent as HTMLElement | null; }
+      return top - window.scrollY;
+    };
+    const expectedOffset = await note.evaluate(LAYOUT_OFFSET);
+    const expectedRect = await note.evaluate((element) => element.getBoundingClientRect().top);
 
     // The row is already in view. A DOM click models the browser interaction
     // without Playwright's locator auto-scroll changing the captured offset.
@@ -730,9 +740,11 @@ test("closing a note restores its exact position on desktop and iPhone", async (
     await expect(page.locator("[data-preloader]")).toHaveCount(0);
     for (const delay of [100, 600, 2500]) {
       await page.waitForTimeout(delay);
-      const actualOffset = await note.evaluate((element) => element.getBoundingClientRect().top);
+      const actualOffset = await note.evaluate(LAYOUT_OFFSET);
       expect(Math.abs(actualOffset - expectedOffset), `scroll drift at ${viewport.width}px after ${delay}ms`).toBeLessThanOrEqual(2);
     }
+    const settledRect = await note.evaluate((element) => element.getBoundingClientRect().top);
+    expect(Math.abs(settledRect - expectedRect), `painted drift at ${viewport.width}px`).toBeLessThanOrEqual(2);
   }
 });
 
@@ -755,13 +767,7 @@ test("browser back still restores the exact note position", async ({ page }) => 
   await note.evaluate((element) => element.click());
   await page.goBack();
   await expect(note).toBeVisible();
-  // Tolerance is FadeIn's own translate (16px at full motion, 10px at lite).
-  // hasRunningAncestorAnimation in App.tsx guards the restore with
-  // getAnimations(), but Framer Motion drives transforms from its own rAF loop
-  // via inline styles, so that guard can't see a FadeIn still running and the
-  // restore may settle against a row that then moves. Pre-existing; this still
-  // catches the real regressions, which land hundreds of px out.
-  await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(20);
+  await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(2);
 });
 
 test("direct note close falls back to the notes section without replaying the preloader", async ({ page }) => {
