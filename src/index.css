@@ -292,7 +292,7 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
    photograph. Normalize their subject scale and vertical anchor so the
    cross-fade reads as one portrait changing state, rather than two shots. */
 .hero-portrait--photo {
-  transform: translate(3%, -2%) scale(1.12);
+  transform: translate(2%, -2%) scale(1.12);
   transform-origin: 50% 50%;
 }
 
