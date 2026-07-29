@@ -1,7 +1,7 @@
 import photoAvif from "../../assets/gabriele-photo.avif";
 import photoWebp from "../../assets/gabriele-photo.webp";
-import imageAvif from "../../assets/image-face.avif";
-import imageWebp from "../../assets/image-face.webp";
+import systemPhotoAvif from "../../assets/gabriele-photo-sys.avif";
+import systemPhotoWebp from "../../assets/gabriele-photo-sys.webp";
 import { heroCopy } from "../../data/sections";
 
 function PortraitFallback({ systemActive }: { systemActive: boolean }) {
@@ -11,7 +11,7 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
   return (
     <div className="hero-fallback">
       <div className="hero-fallback-motion h-full w-full">
-        {/* The photograph rests here and SYS swaps in the wireframe render. Both
+        {/* The photograph rests here and SYS swaps in the SYS portrait. Both
             layers stay mounted: toggling would otherwise show a gap while the
             second image decodes. Only the photo gets high fetch priority, since
             it is the one the hero is measured on. */}
@@ -25,20 +25,20 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
             height="1200"
             decoding="async"
             fetchPriority="high"
-            className="h-full w-full object-cover object-top"
+            className="hero-portrait hero-portrait--photo h-full w-full object-cover object-top"
           />
         </picture>
         <picture className="hero-portrait-layer" data-hero-portrait-layer="system" data-visible={showSystemPortrait}>
-          <source srcSet={imageAvif} type="image/avif" />
+          <source srcSet={systemPhotoAvif} type="image/avif" />
           <img
-            src={imageWebp}
+            src={systemPhotoWebp}
             alt=""
-            width="900"
-            height="900"
+            width="1254"
+            height="1254"
             decoding="async"
             fetchPriority="low"
             onLoad={() => setSystemPortraitReady(true)}
-            className="h-full w-full object-cover object-top"
+            className="hero-portrait hero-portrait--system h-full w-full object-cover object-top"
           />
         </picture>
       </div>
