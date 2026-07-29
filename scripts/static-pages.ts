@@ -79,7 +79,7 @@ function sitemap() {
     `    <changefreq>${entry.changefreq}</changefreq>`,
     `    <priority>${entry.priority}</priority>`,
     "  </url>",
-  ].join("\n"));
+  ].join("\n")).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
 }
 
