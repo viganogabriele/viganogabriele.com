@@ -244,11 +244,15 @@ test("SYS mode starts clean, then activates only after an explicit control inter
 });
 
 test("hero keeps the photograph visible until the SYS portrait is ready", async ({ page }) => {
-  let releaseSystemPortrait!: () => void;
-  const systemPortraitReleased = new Promise<void>((resolve) => { releaseSystemPortrait = resolve; });
-  await page.route("**/*image-face*", async (route) => {
-    await systemPortraitReleased;
-    await route.continue();
+  await page.addInitScript(() => {
+    (window as Window & { releaseSystemPortrait?: boolean }).releaseSystemPortrait = false;
+    document.addEventListener("load", (event) => {
+      const image = event.target;
+      if (!(image instanceof HTMLImageElement)) return;
+      if (!image.currentSrc.includes("image-face") && !image.src.includes("image-face")) return;
+      if ((window as Window & { releaseSystemPortrait?: boolean }).releaseSystemPortrait) return;
+      event.stopImmediatePropagation();
+    }, true);
   });
 
   await page.goto("/");
@@ -260,7 +264,10 @@ test("hero keeps the photograph visible until the SYS portrait is ready", async 
   await expect(photo).toHaveAttribute("data-visible", "true");
   await expect(systemPortrait).toHaveAttribute("data-visible", "false");
 
-  releaseSystemPortrait();
+  await systemPortrait.locator("img").evaluate((image) => {
+    (window as Window & { releaseSystemPortrait?: boolean }).releaseSystemPortrait = true;
+    image.dispatchEvent(new Event("load", { bubbles: true }));
+  });
   await expect(systemPortrait).toHaveAttribute("data-visible", "true");
   await expect(photo).toHaveAttribute("data-visible", "false");
 });
@@ -684,6 +691,45 @@ test("capability selection and journey axis stay deterministic while scrolling",
   expect(alignment).not.toBeNull();
   expect(Math.abs(alignment!.indicator)).toBeLessThanOrEqual(1);
   expect(alignment!.nodes.every((offset) => Math.abs(offset) <= 1)).toBe(true);
+});
+
+test("capability focus does not flash the row after its reveal", async ({ browser }) => {
+  for (const device of [
+    { name: "mobile", hasTouch: true, viewport: { width: 390, height: 844 } },
+    { name: "desktop", hasTouch: false, viewport: { width: 1440, height: 900 } },
+  ]) {
+    await test.step(device.name, async () => {
+      const context = await browser.newContext({
+        hasTouch: device.hasTouch,
+        viewport: device.viewport,
+      });
+      const page = await context.newPage();
+      await page.goto("/");
+      await expect(page.locator("[data-preloader]")).toHaveCount(0);
+      const row = page.locator(".expertise-item").nth(1);
+
+      await row.evaluate((element) => {
+        const top = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo(0, top - window.innerHeight * 0.62);
+        window.dispatchEvent(new Event("scroll"));
+      });
+      await expect(row).toHaveCSS("opacity", "1");
+      await expect(row).toHaveAttribute("data-active", "false");
+      await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+
+      await row.evaluate((element) => {
+        const top = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo(0, top - window.innerHeight * 0.42 + 10);
+        window.dispatchEvent(new Event("scroll"));
+      });
+      await expect(row).toHaveAttribute("data-active", "true");
+      await page.waitForTimeout(700);
+      await expect(row).toHaveCSS("opacity", "1");
+      await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+
+      await context.close();
+    });
+  }
 });
 
 test("home loads without browser console errors", async ({ page }) => {
