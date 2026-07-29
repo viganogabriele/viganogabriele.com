@@ -288,6 +288,19 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   object-position: 50% 12%;
 }
 
+/* The SYS render was framed a little tighter and higher than the source
+   photograph. Normalize their subject scale and vertical anchor so the
+   cross-fade reads as one portrait changing state, rather than two shots. */
+.hero-portrait--photo {
+  transform: translate(3%, -2%) scale(1.12);
+  transform-origin: 50% 50%;
+}
+
+.hero-portrait--system {
+  transform: scale(1.02);
+  transform-origin: 50% 50%;
+}
+
 .hero-fallback-grid,
 .hero-fallback-scan {
   position: absolute;
@@ -818,20 +831,24 @@ html[data-touch] .hero-viewport {
 /* Projects use the same carousel language as the toolkit, but their full
    context lives directly underneath. Keeping this ring compact makes that
    context visible without a long page-sized project panel. */
-.project-carousel .circular-carousel__stage { height: 14rem; }
+.project-carousel .circular-carousel__stage { height: 15.5rem; }
 .project-carousel .circular-carousel__card {
   width: min(16.5rem, calc(100% - 4rem));
   min-height: 10rem;
 }
+.tool-carousel .circular-carousel__stage { height: 30rem; }
 .project-carousel .project-carousel-card { padding: 1rem; }
 
 @media (max-width: 639px) {
   .circular-carousel { padding-top: 0.85rem; }
   .circular-carousel__stage { height: 24rem; perspective: 760px; }
+  /* Toolkit cards can contain four tool rows; give that carousel enough
+     vertical runway on phones without making the compact project ring taller. */
+  .tool-carousel .circular-carousel__stage { height: 28rem; }
   .circular-carousel__card { width: min(19.5rem, calc(100% - 4rem)); min-height: 17rem; }
   .circular-carousel__card .tool-group { padding: 1rem; }
   .circular-carousel__card .tool-row { min-height: 2.15rem; }
-  .project-carousel .circular-carousel__stage { height: 13.5rem; }
+  .project-carousel .circular-carousel__stage { height: 15rem; }
   .project-carousel .circular-carousel__card {
     width: min(15.25rem, calc(100% - 4rem));
     min-height: 9.5rem;

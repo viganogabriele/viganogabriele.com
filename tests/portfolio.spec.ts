@@ -249,7 +249,7 @@ test("hero keeps the photograph visible until the SYS portrait is ready", async 
     document.addEventListener("load", (event) => {
       const image = event.target;
       if (!(image instanceof HTMLImageElement)) return;
-      if (!image.currentSrc.includes("image-face") && !image.src.includes("image-face")) return;
+      if (!image.currentSrc.includes("gabriele-photo-sys") && !image.src.includes("gabriele-photo-sys")) return;
       if ((window as Window & { releaseSystemPortrait?: boolean }).releaseSystemPortrait) return;
       event.stopImmediatePropagation();
     }, true);
