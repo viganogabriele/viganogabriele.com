@@ -693,25 +693,43 @@ test("capability selection and journey axis stay deterministic while scrolling",
   expect(alignment!.nodes.every((offset) => Math.abs(offset) <= 1)).toBe(true);
 });
 
-test("touch capability rows use a single reveal pass", async ({ browser }) => {
-  const context = await browser.newContext({
-    hasTouch: true,
-    viewport: { width: 390, height: 844 },
-  });
-  const page = await context.newPage();
-  await page.goto("/");
-  await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const firstRow = page.locator(".expertise-item").first();
-  await firstRow.scrollIntoViewIfNeeded();
-  await expect(firstRow).toBeVisible();
+test("capability focus does not flash the row after its reveal", async ({ browser }) => {
+  for (const device of [
+    { name: "mobile", hasTouch: true, viewport: { width: 390, height: 844 } },
+    { name: "desktop", hasTouch: false, viewport: { width: 1440, height: 900 } },
+  ]) {
+    await test.step(device.name, async () => {
+      const context = await browser.newContext({
+        hasTouch: device.hasTouch,
+        viewport: device.viewport,
+      });
+      const page = await context.newPage();
+      await page.goto("/");
+      await expect(page.locator("[data-preloader]")).toHaveCount(0);
+      const row = page.locator(".expertise-item").nth(1);
 
-  const nestedRevealStyles = await firstRow.locator("h3").evaluate((heading) => ({
-    opacity: heading.style.opacity,
-    transform: heading.style.transform,
-  }));
-  expect(nestedRevealStyles).toEqual({ opacity: "", transform: "" });
+      await row.evaluate((element) => {
+        const top = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo(0, top - window.innerHeight * 0.62);
+        window.dispatchEvent(new Event("scroll"));
+      });
+      await expect(row).toHaveCSS("opacity", "1");
+      await expect(row).toHaveAttribute("data-active", "false");
+      await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 
-  await context.close();
+      await row.evaluate((element) => {
+        const top = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo(0, top - window.innerHeight * 0.42 + 10);
+        window.dispatchEvent(new Event("scroll"));
+      });
+      await expect(row).toHaveAttribute("data-active", "true");
+      await page.waitForTimeout(700);
+      await expect(row).toHaveCSS("opacity", "1");
+      await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+
+      await context.close();
+    });
+  }
 });
 
 test("home loads without browser console errors", async ({ page }) => {
