@@ -61,6 +61,24 @@ test("projects contain the four real case studies", async ({ page }) => {
   await expect(page.getByText("Next Build", { exact: false })).toHaveCount(0);
 });
 
+test("every carousel step counts when the presses overlap the animation", async ({ page }) => {
+  await page.goto("/");
+  const carousel = page.getByRole("region", { name: "Selected projects" });
+  await expect(carousel.locator("[data-carousel-card]")).toHaveCount(4);
+  const next = carousel.getByRole("button", { name: "Show next project" });
+  const position = carousel.locator(".circular-carousel__controls span");
+  await expect(position).toHaveText("01 / 04");
+
+  // Each press lands while the previous selection is still rotating. A press
+  // swallowed here means a driver was left running behind the one that
+  // replaced it and reset the selection underneath it.
+  for (const expected of ["02 / 04", "03 / 04", "04 / 04", "01 / 04"]) {
+    await next.click();
+    await expect(position).toHaveText(expected);
+  }
+  await expect(page.locator("[data-project-detail]")).toContainText("Homelab & Remote Dev");
+});
+
 test("notes and certifications expose their destinations without relying on hover", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Read note").first()).toBeVisible();
@@ -281,14 +299,21 @@ test("the SYS portrait is not fetched until the mode is wanted", async ({ page }
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const systemPortrait = page.locator('[data-hero-portrait-layer="system"]');
+
+  // Assert the mechanism, not the absence of traffic within a window: an
+  // unarmed layer carries no source at all, so there is nothing that could
+  // start loading late and slip past a timed check.
+  await expect(systemPortrait.locator("source")).toHaveCount(0);
+  expect(await systemPortrait.locator("img").evaluate((image: HTMLImageElement) => image.currentSrc || image.getAttribute("src") || "")).toBe("");
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await page.waitForTimeout(400);
+  await page.evaluate(() => window.scrollTo(0, 0));
   expect(systemPortraitRequests).toHaveLength(0);
 
-  await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(systemPortrait.locator("source")).toHaveCount(1);
   await expect.poll(() => systemPortraitRequests.length).toBeGreaterThan(0);
-  await expect(page.locator('[data-hero-portrait-layer="system"]')).toHaveAttribute("data-visible", "true");
+  await expect(systemPortrait).toHaveAttribute("data-visible", "true");
 });
 
 test("SYS keyboard shortcut is resilient and ignores editable or repeated keys", async ({ page }) => {

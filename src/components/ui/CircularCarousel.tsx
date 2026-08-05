@@ -118,7 +118,16 @@ export function CircularCarousel<T>({
     }
   }, [items, onActiveIndexChange, radiusScale]);
 
+  // Three drivers write rotation on their own rAF: the idle loop, an explicit
+  // selection animation, and the momentum decay after a drag. They share one
+  // frame slot, so exactly one may be live at a time. Every start bumps this
+  // generation and every tick bails once it no longer matches, which means a
+  // driver whose id got overwritten can never keep running behind the one that
+  // replaced it — see the guard in the idle effect for what that cost.
+  const runRef = useRef(0);
+
   const stopAnimation = useCallback(() => {
+    runRef.current += 1;
     if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
     frameRef.current = null;
     lastFrame.current = null;
@@ -136,7 +145,9 @@ export function CircularCarousel<T>({
     }
     const start = rotation.current;
     const startedAt = performance.now();
+    const run = runRef.current;
     const tick = (now: number) => {
+      if (run !== runRef.current) return;
       const progress = Math.min(1, (now - startedAt) / duration);
       const eased = easing(progress);
       rotation.current = start + (target - start) * eased;
@@ -190,7 +201,18 @@ export function CircularCarousel<T>({
 
   useEffect(() => {
     if (reducedMotion || !items.length || !inView) return;
+    // A selection animation or a momentum decay owns the slot until it
+    // finishes and bumps tickerRevision, which re-runs this effect. Starting a
+    // second loop on top of one used to overwrite frameRef and orphan it: the
+    // orphan kept ticking, and on completion cleared selectionTarget under the
+    // animation that had replaced it, so the next Next/Previous press
+    // recomputed the index it was already on and appeared to do nothing. The
+    // window opened whenever this effect re-ran mid-animation — most often the
+    // IntersectionObserver flipping inView as the section scrolled in.
+    if (frameRef.current !== null) return;
+    const run = runRef.current;
     const tick = (now: number) => {
+      if (run !== runRef.current) return;
       const previous = lastFrame.current ?? now;
       const elapsed = Math.min(40, now - previous);
       lastFrame.current = now;
@@ -207,7 +229,10 @@ export function CircularCarousel<T>({
       frameRef.current = window.requestAnimationFrame(tick);
     };
     frameRef.current = window.requestAnimationFrame(tick);
-    return stopAnimation;
+    // Only tear down the loop this run started. By the time the effect is
+    // cleaned up another driver may already own the slot, and cancelling that
+    // one would strand its rotation mid-arc with selectionTarget still set.
+    return () => { if (run === runRef.current) stopAnimation(); };
   }, [autoRotateSpeed, inView, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
 
   const select = useCallback((index: number) => {
@@ -289,19 +314,25 @@ export function CircularCarousel<T>({
     pause();
     if (reducedMotion || !moved.current) { velocity.current = 0; settle(); }
     else {
-      lastFrame.current = null;
+      // Take the frame slot the same way the other two drivers do, so a
+      // selection animation started before the finger lifted cannot keep
+      // ticking underneath this decay.
+      stopAnimation();
+      const generation = runRef.current;
+      const decay = (next: number) => {
+        if (generation !== runRef.current) return;
+        const elapsed = Math.min(40, next - (lastFrame.current ?? next));
+        lastFrame.current = next;
+        rotation.current += velocity.current * elapsed;
+        velocity.current *= Math.exp(-elapsed / 260);
+        updateCards();
+        if (Math.abs(velocity.current) > 0.003) frameRef.current = window.requestAnimationFrame(decay);
+        else { velocity.current = 0; settle(); }
+      };
       frameRef.current = window.requestAnimationFrame((now) => {
+        if (generation !== runRef.current) return;
         lastFrame.current = now;
-        const run = (next: number) => {
-          const elapsed = Math.min(40, next - (lastFrame.current ?? next));
-          lastFrame.current = next;
-          rotation.current += velocity.current * elapsed;
-          velocity.current *= Math.exp(-elapsed / 260);
-          updateCards();
-          if (Math.abs(velocity.current) > 0.003) frameRef.current = window.requestAnimationFrame(run);
-          else { velocity.current = 0; settle(); }
-        };
-        frameRef.current = window.requestAnimationFrame(run);
+        frameRef.current = window.requestAnimationFrame(decay);
       });
     }
   };
