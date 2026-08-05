@@ -7,7 +7,6 @@ export type MotionLevel = "full" | "lite" | "static";
 
 export interface MotionProfile {
   level: MotionLevel;
-  canUseWebGL: boolean;
   canUsePointerEffects: boolean;
   prefersReducedMotion: boolean;
   saveData: boolean;
@@ -16,7 +15,6 @@ export interface MotionProfile {
 
 const defaultProfile: MotionProfile = {
   level: "lite",
-  canUseWebGL: false,
   canUsePointerEffects: false,
   prefersReducedMotion: false,
   saveData: false,
@@ -29,21 +27,6 @@ type NavigatorWithHints = Navigator & {
   connection?: { saveData?: boolean };
   deviceMemory?: number;
 };
-
-let cachedWebGLSupport: boolean | undefined;
-
-function supportsWebGL() {
-  if (cachedWebGLSupport !== undefined) return cachedWebGLSupport;
-  try {
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("webgl2") || canvas.getContext("webgl");
-    cachedWebGLSupport = Boolean(context);
-    return cachedWebGLSupport;
-  } catch {
-    cachedWebGLSupport = false;
-    return false;
-  }
-}
 
 function readProfile(): MotionProfile {
   if (typeof window === "undefined") return defaultProfile;
@@ -61,12 +44,14 @@ function readProfile(): MotionProfile {
   const memory = nav.deviceMemory ?? 4;
   const cores = nav.hardwareConcurrency ?? 4;
   const capableHardware = memory >= 4 && cores >= 4;
-  const canUseWebGL = !prefersReducedMotion && !saveData && !isTelegram && !isTouch && capableHardware && supportsWebGL();
-  const level: MotionLevel = prefersReducedMotion ? "static" : canUseWebGL ? "full" : "lite";
+  // "full" buys the optional flourishes — blurred ambient blobs, looping
+  // pulses, the SYS aura ring. Everything that carries meaning renders at
+  // "lite" too, so this can stay conservative.
+  const canRunFullMotion = !prefersReducedMotion && !saveData && !isTelegram && !isTouch && capableHardware;
+  const level: MotionLevel = prefersReducedMotion ? "static" : canRunFullMotion ? "full" : "lite";
 
   return {
     level,
-    canUseWebGL,
     canUsePointerEffects: finePointer && !prefersReducedMotion,
     prefersReducedMotion,
     saveData,

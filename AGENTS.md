@@ -2,7 +2,7 @@
 
 ## Overview
 
-`viganogabriele.com` is Gabriele Viganò's personal portfolio. It is a React 19 + TypeScript single-page application built with Vite, styled with Tailwind CSS utilities, and animated with Framer Motion. It also uses Three.js for the adaptive hero object and Matter.js for interactive elements.
+`viganogabriele.com` is Gabriele Viganò's personal portfolio. It is a React 19 + TypeScript single-page application built with Vite, styled with Tailwind CSS utilities, and animated with Framer Motion. The CV route renders the real PDF through react-pdf.
 
 The repository is intentionally design- and interaction-heavy. Preserve responsiveness, reduced-motion behavior, accessibility semantics, and the established visual language when changing UI code.
 
@@ -13,10 +13,9 @@ The repository is intentionally design- and interaction-heavy. Preserve responsi
 - `npm run lint` — run ESLint.
 - `npm run test:e2e` — build, serve, and run Playwright tests in Chromium, Firefox, and WebKit.
 - `npm run test:e2e:update` — update Playwright snapshots when intentional visual assertions change.
-- `npm run generate:face-model` — regenerate `public/models/gabriele-head.v2.glb`.
-- `npm run generate:og-card` — regenerate the Open Graph card asset.
+- `npm run generate:og-card` — regenerate the Open Graph card asset from `scripts/assets/`.
 
-Use npm consistently for routine commands: `package-lock.json` is present and the Playwright configuration invokes npm. Node.js 22 or later is required.
+Use npm consistently for routine commands: `package-lock.json` is the only lockfile and the Playwright configuration invokes npm. Node.js 22 or later is required.
 
 ## Project map
 
@@ -26,13 +25,13 @@ Use npm consistently for routine commands: `package-lock.json` is present and th
 - `src/components/layout/` — shell, navigation, footer, preloader, and system-mode overlay.
 - `src/components/sections/` — home-page sections.
 - `src/components/motion/` — shared visual and interaction primitives.
-- `src/components/ui/` — reusable presentation components, including the adaptive Three.js hero object.
+- `src/components/ui/` — reusable presentation components, including the hero portrait object and the circular carousel.
 - `src/data/` — portfolio content, navigation, notes, timeline, and site metadata. Prefer data changes here over hard-coding content in components.
 - `src/hooks/` — feature detection, preloader, motion profile, and SYS mode behavior.
 - `src/lib/` — small shared utilities for classes, motion, navigation state, and SEO.
 - `src/index.css` — global styles, Tailwind theme tokens, and cross-component visual rules.
 - `scripts/static-pages.ts` — Vite plugin that emits crawler-safe static HTML, metadata, sitemap, and 404 responses. Keep it in sync with route and SEO changes.
-- `public/` — static assets, favicons, models, social images, and robots directives.
+- `public/` — static assets, favicons, the CV PDF, the social image, and robots directives.
 - `tests/portfolio.spec.ts` — end-to-end coverage for responsive layout, navigation, accessibility, metadata, static SEO output, and SYS mode.
 
 ## Change guidelines

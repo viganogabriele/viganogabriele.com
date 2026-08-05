@@ -3,7 +3,6 @@ import { useLocation } from "react-router-dom";
 import { pageUrl, site, type PageMetadata } from "../data/site";
 
 export { pageUrl, site };
-export const SITE_URL = site.url;
 
 type MetaAttribute = "name" | "property";
 
