@@ -71,7 +71,13 @@ export function CircularCarousel<T>({
     const root = rootRef.current;
     const width = root?.clientWidth ?? 0;
     const compact = width < 640;
-    const radius = Math.min(compact ? 180 : 290, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.34))) * radiusScale;
+    // The desktop ceiling used to be a flat 290px, so past ~850px the ring
+    // stopped growing and sat in the middle of an increasingly empty frame.
+    // Let it keep widening with the container (still bounded) so the stage
+    // fills the panel it is drawn inside. `.circular-carousel` clips, so a
+    // wider ring can never reach the page's horizontal scroll.
+    const ceiling = compact ? 180 : Math.min(430, Math.max(290, width * 0.36));
+    const radius = Math.min(ceiling, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.42))) * radiusScale;
     const depth = compact ? 76 : 96;
     const step = 360 / count;
     const nearest = items.reduce((best, _item, index) => (
