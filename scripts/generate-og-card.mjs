@@ -1,8 +1,11 @@
 import { readFile } from "node:fs/promises";
-import { chromium } from "playwright";
+// @playwright/test, not "playwright": the bare package is only present as a
+// transitive dependency here, so importing it directly breaks the moment the
+// tree is pruned or reinstalled.
+import { chromium } from "@playwright/test";
 
 const [background, font] = await Promise.all([
-  readFile(new URL("../public/og-card-background.png", import.meta.url)).then((file) => file.toString("base64")),
+  readFile(new URL("./assets/og-card-background.png", import.meta.url)).then((file) => file.toString("base64")),
   readFile(new URL("../node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2", import.meta.url)).then((file) => file.toString("base64")),
 ]);
 
@@ -21,10 +24,18 @@ await page.setContent(`<!doctype html>
   .content { position:absolute; left: 100px; top: 181px; max-width: 800px; }
   h1 { margin: 0; font-size: 112px; font-weight: 500; letter-spacing: -.084em; line-height: .79; }
   h1 span { display:block; }
+  /* Space Grotesk ships no Ò, so the card rendered the name as VIGANO. Same
+     drawn grave the hero uses (.hero-wordmark-o-grave in index.css), in the
+     same em units so it tracks the type size. */
+  .o-grave { position: relative; display: inline-block; }
+  .o-grave::before { content: ""; position: absolute; top: -.14em; left: .35em; width: .065em; height: .16em; background: currentColor; transform: rotate(-34deg); transform-origin: bottom center; }
   p { margin: 45px 0 0; max-width: 560px; color: #d6d9e2; font-size: 27px; font-weight: 400; letter-spacing: -.035em; line-height: 1.18; }
   .url { position:absolute; left:100px; bottom:78px; color: #8fa7de; font-size: 16px; font-weight:500; letter-spacing:.12em; }
   .cursor { position:absolute; right:118px; bottom:103px; width:18px; height:29px; border-left:2px solid #92adf2; border-bottom:2px solid #92adf2; transform:skew(-16deg); opacity:.65; }
 </style>
-<main class="card"><div class="wash"></div><div class="line"></div><div class="eyebrow">COMPUTER ENGINEERING STUDENT · MILAN</div><section class="content"><h1><span>GABRIELE</span><span>VIGANÒ</span></h1><p>I build products, teams and systems that hold up.</p></section><div class="url">WWW.VIGANOGABRIELE.COM</div><div class="cursor"></div></main>`);
-await page.screenshot({ path: new URL("../public/og-cover-v3.png", import.meta.url).pathname });
+<main class="card"><div class="wash"></div><div class="line"></div><div class="eyebrow">COMPUTER ENGINEERING STUDENT · MILAN</div><section class="content"><h1><span>GABRIELE</span><span>VIGAN<span class="o-grave">O</span></span></h1><p>I build products, teams and systems that hold up.</p></section><div class="url">WWW.VIGANOGABRIELE.COM</div><div class="cursor"></div></main>`);
+// JPEG, not PNG: the card is a photographic wash under type, which PNG stored
+// in 552kB. At quality 90 the same 1200x630 is under 100kB with no visible
+// difference in an unfurl, and scrapers fetch it on every share.
+await page.screenshot({ path: new URL("../public/og-cover.jpg", import.meta.url).pathname, type: "jpeg", quality: 90 });
 await browser.close();

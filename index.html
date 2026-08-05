@@ -13,7 +13,11 @@
     />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-dark.png?v=10" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=10" />
-    <link rel="preload" as="image" href="/src/assets/gabriele-photo.avif" type="image/avif" fetchpriority="high" />
+    <!-- The hero portrait frame is `hidden sm:block`, so below 640px this
+         image is never painted. Without the media condition the preload still
+         fetched it at high priority on every phone, competing with the fonts
+         and the entry chunk for nothing. -->
+    <link rel="preload" as="image" href="/src/assets/gabriele-photo.avif" type="image/avif" fetchpriority="high" media="(min-width: 640px)" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <script>
@@ -55,10 +59,10 @@
     <meta property="og:url" content="https://www.viganogabriele.com/" />
     <meta property="og:site_name" content="Gabriele Viganò" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:image" content="https://www.viganogabriele.com/og-cover-v3.png" />
+    <meta property="og:image" content="https://www.viganogabriele.com/og-cover.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:alt" content="Gabriele Viganò · infrastructure, front-end and product." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Gabriele Viganò" />
@@ -66,9 +70,9 @@
       name="twitter:description"
       content="Computer Engineering student at Politecnico di Milano. I run self-hosted infrastructure and own product and QA for a student network of 500+ group chats."
     />
-    <meta name="twitter:image" content="https://www.viganogabriele.com/og-cover-v3.png" />
+    <meta name="twitter:image" content="https://www.viganogabriele.com/og-cover.jpg" />
     <meta name="twitter:image:alt" content="Gabriele Viganò · infrastructure, front-end and product." />
-    <script type="application/ld+json" data-jsonld="website-person">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://www.viganogabriele.com/#website","name":"Gabriele Viganò","url":"https://www.viganogabriele.com/","description":"Portfolio of Gabriele Viganò: self-hosted infrastructure, front-end and product work, and notes on the decisions behind them.","inLanguage":"en"},{"@type":"Person","@id":"https://www.viganogabriele.com/#person","name":"Gabriele Viganò","url":"https://www.viganogabriele.com/","image":"https://www.viganogabriele.com/og-cover-v3.png","jobTitle":"Computer Engineering Student","affiliation":{"@type":"CollegeOrUniversity","name":"Politecnico di Milano"},"sameAs":["https://github.com/viganogabriele","https://linkedin.com/in/viganogabriele"]}]}</script>
+    <script type="application/ld+json" data-jsonld="website-person">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://www.viganogabriele.com/#website","name":"Gabriele Viganò","url":"https://www.viganogabriele.com/","description":"Portfolio of Gabriele Viganò: self-hosted infrastructure, front-end and product work, and notes on the decisions behind them.","inLanguage":"en"},{"@type":"Person","@id":"https://www.viganogabriele.com/#person","name":"Gabriele Viganò","url":"https://www.viganogabriele.com/","image":"https://www.viganogabriele.com/og-cover.jpg","jobTitle":"Computer Engineering Student","affiliation":{"@type":"CollegeOrUniversity","name":"Politecnico di Milano"},"sameAs":["https://github.com/viganogabriele","https://linkedin.com/in/viganogabriele"]}]}</script>
   </head>
   <body>
     <div id="root"></div>

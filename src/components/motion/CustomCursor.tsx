@@ -71,7 +71,17 @@ export function CustomCursor() {
     };
 
     const reset = () => { setActive(false); setVisible(false); clearTrail(); };
-    const onScroll = () => setActive(Boolean(document.querySelector(HOVERED_INTERACTIVE)));
+    // HOVERED_INTERACTIVE is a seven-clause :hover selector; running it
+    // straight off the scroll event meant a full document match per event,
+    // several times a frame on a trackpad. Coalesce to one per frame.
+    let scrollFrame = 0;
+    const onScroll = () => {
+      if (scrollFrame) return;
+      scrollFrame = requestAnimationFrame(() => {
+        scrollFrame = 0;
+        setActive(Boolean(document.querySelector(HOVERED_INTERACTIVE)));
+      });
+    };
     const onVisibility = () => { if (document.visibilityState !== "visible") reset(); };
 
     // SYS mode can toggle off while the mouse is idle — clear the trail
@@ -90,6 +100,7 @@ export function CustomCursor() {
 
     return () => {
       document.documentElement.classList.remove("has-custom-cursor");
+      if (scrollFrame) cancelAnimationFrame(scrollFrame);
       observer.disconnect();
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseover", updateTarget);

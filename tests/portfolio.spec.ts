@@ -185,7 +185,7 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
       expect(html).toContain(`<title>${route.title}</title>`);
       expect(html).toMatch(new RegExp(`<link rel="canonical" href="${route.canonical}"\\s*/?>`));
       expect(html).toMatch(new RegExp(`<meta property="og:type" content="${route.type}"\\s*/?>`));
-      expect(html).toContain('content="https://www.viganogabriele.com/og-cover-v3.png"');
+      expect(html).toContain('content="https://www.viganogabriele.com/og-cover.jpg"');
       expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
     }
   }
@@ -270,6 +270,25 @@ test("hero keeps the photograph visible until the SYS portrait is ready", async 
   });
   await expect(systemPortrait).toHaveAttribute("data-visible", "true");
   await expect(photo).toHaveAttribute("data-visible", "false");
+});
+
+test("the SYS portrait is not fetched until the mode is wanted", async ({ page }) => {
+  const systemPortraitRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("gabriele-photo-sys")) systemPortraitRequests.push(request.url());
+  });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(400);
+  expect(systemPortraitRequests).toHaveLength(0);
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect.poll(() => systemPortraitRequests.length).toBeGreaterThan(0);
+  await expect(page.locator('[data-hero-portrait-layer="system"]')).toHaveAttribute("data-visible", "true");
 });
 
 test("SYS keyboard shortcut is resilient and ignores editable or repeated keys", async ({ page }) => {

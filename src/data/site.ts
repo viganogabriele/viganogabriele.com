@@ -8,10 +8,10 @@ export const site = {
   title: "Gabriele Viganò",
   description: "Computer Engineering student at Politecnico di Milano. I run self-hosted infrastructure and own product and QA for a student network of 500+ group chats.",
   socialImage: {
-    path: "/og-cover-v3.png",
+    path: "/og-cover.jpg",
     width: 1200,
     height: 630,
-    type: "image/png",
+    type: "image/jpeg",
     alt: "Gabriele Viganò · infrastructure, front-end and product.",
   },
   updatedAt: "2026-07-13",

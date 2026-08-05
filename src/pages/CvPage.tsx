@@ -146,7 +146,7 @@ export function CvPage() {
           <Link to="/" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 px-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:text-white">
             <ArrowLeft className="h-3.5 w-3.5" /> Back to home
           </Link>
-          <button type="button" onClick={toggleSystem} data-cursor="hover" className={`inline-flex h-11 min-w-[4.25rem] items-center justify-center gap-2 border px-2.5 font-mono text-[9px] uppercase tracking-[0.13em] transition-colors ${systemActive ? "border-accent/60 text-accent" : "border-white/[0.1] text-zinc-300"}`} aria-pressed={systemActive} aria-label="Toggle system mode" aria-keyshortcuts="Shift+S">
+          <button type="button" onClick={toggleSystem} data-cursor="hover" data-sys-toggle className={`inline-flex h-11 min-w-[4.25rem] items-center justify-center gap-2 border px-2.5 font-mono text-[9px] uppercase tracking-[0.13em] transition-colors ${systemActive ? "border-accent/60 text-accent" : "border-white/[0.1] text-zinc-300"}`} aria-pressed={systemActive} aria-label="Toggle system mode" aria-keyshortcuts="Shift+S">
             <Power className="h-3 w-3" /> SYS
           </button>
         </div>
