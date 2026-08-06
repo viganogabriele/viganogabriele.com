@@ -30,26 +30,31 @@ export function Navbar({ onNavigate, systemActive, onToggleSystem }: { onNavigat
     // Active-section detection is scroll-based rather than an
     // IntersectionObserver: thresholds miss updates between crossings on tall
     // sections. Route items (e.g. CV) aren't hashes and have no section.
-    const nodes = navItems
-      .filter((item) => item.href.startsWith("#"))
-      .map((item) => document.querySelector<HTMLElement>(item.href))
-      .filter((node): node is HTMLElement => Boolean(node));
+    // A section can belong to an entry it isn't the anchor of — see the
+    // `sections` lists in data/nav.ts — so the winner resolves to its owner
+    // rather than to its own id.
+    const tracked = navItems.flatMap((item) =>
+      (item.sections ?? []).flatMap((id) => {
+        const node = document.getElementById(id);
+        return node ? [{ node, href: item.href }] : [];
+      }),
+    );
     let raf = 0;
     const check = () => {
       raf = 0;
       setScrolled(window.scrollY > 36);
-      if (!nodes.length) return;
+      if (!tracked.length) return;
       const probe = window.innerHeight * 0.32; // line 32% down the viewport
-      let winner: HTMLElement | null = null;
+      let winner: string | null = null;
       let bestTop = -Infinity;
-      for (const node of nodes) {
+      for (const { node, href } of tracked) {
         const rect = node.getBoundingClientRect();
         if (rect.top <= probe && rect.bottom >= probe && rect.top > bestTop) {
           bestTop = rect.top;
-          winner = node;
+          winner = href;
         }
       }
-      if (winner?.id) setActive(`#${winner.id}`);
+      if (winner) setActive(winner);
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(check);

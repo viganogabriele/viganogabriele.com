@@ -127,6 +127,59 @@ test("mobile hero omits the portrait while preserving the SYS control", async ({
   await expect(system).toHaveAttribute("aria-pressed", "true");
 });
 
+test("a phone never downloads the portrait it cannot show", async ({ page }) => {
+  const portraitRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("gabriele-photo")) portraitRequests.push(request.url());
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const portrait = page.locator("[data-hero-portrait]");
+  await expect(page.locator(".hero-visual-frame")).toBeHidden();
+  expect(await portrait.evaluate((image: HTMLImageElement) => image.currentSrc)).toBe("");
+  expect(portraitRequests).toHaveLength(0);
+
+  // Crossing the breakpoint re-runs source selection, so the desktop hero is
+  // still measured on a real photograph rather than an empty frame.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator(".hero-visual-frame")).toBeVisible();
+  await expect.poll(() => portrait.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  expect(portraitRequests.length).toBeGreaterThan(0);
+});
+
+test("the navbar highlight follows every section, including the ones without an entry", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const highlighted = async () => page.evaluate(() => {
+    const links = [...document.querySelectorAll<HTMLElement>("nav a[href^='#']")];
+    return links.find((link) => link.className.includes("text-white"))?.textContent?.trim() ?? null;
+  });
+
+  // Expertise and Certifications have no entry of their own; they belong to
+  // the neighbour a reader would say they are in. Before this mapping the
+  // highlight simply stopped updating across them.
+  for (const [section, entry] of [
+    ["about", "Profile"],
+    ["expertise", "Profile"],
+    ["projects", "Projects"],
+    ["stack", "Skills"],
+    ["journey", "Experience"],
+    ["notes", "Notes"],
+    ["certifications", "Notes"],
+  ] as const) {
+    await page.evaluate((id) => {
+      const element = document.getElementById(id)!;
+      window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 92, behavior: "auto" });
+    }, section);
+    await expect.poll(highlighted, { message: `section #${section}` }).toBe(entry);
+  }
+});
+
 test("hero portrait stays crisp while scrolling and the surname keeps its accent", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
@@ -311,7 +364,7 @@ test("the SYS portrait is not fetched until the mode is wanted", async ({ page }
   expect(systemPortraitRequests).toHaveLength(0);
 
   await page.getByRole("button", { name: "Toggle system mode" }).click();
-  await expect(systemPortrait.locator("source")).toHaveCount(1);
+  await expect(systemPortrait.locator("source")).toHaveCount(2);
   await expect.poll(() => systemPortraitRequests.length).toBeGreaterThan(0);
   await expect(systemPortrait).toHaveAttribute("data-visible", "true");
 });
