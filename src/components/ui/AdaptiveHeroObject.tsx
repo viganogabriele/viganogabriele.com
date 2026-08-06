@@ -5,6 +5,9 @@ import systemPhotoAvif from "../../assets/gabriele-photo-sys.avif";
 import systemPhotoWebp from "../../assets/gabriele-photo-sys.webp";
 import { heroCopy } from "../../data/sections";
 
+/** Mirrors the `hidden sm:block` on .hero-visual-frame — Tailwind's `sm`. */
+const FRAME_MEDIA = "(min-width: 640px)";
+
 /**
  * The SYS portrait is 58kB that most visits never paint — SYS is off by
  * default. Hold its source back until someone signals they want the mode,
@@ -50,12 +53,20 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
         {/* The photograph rests here and SYS swaps in the SYS portrait. Both
             layers stay mounted: toggling would otherwise show a gap while the
             second image decodes. Only the photo gets high fetch priority, since
-            it is the one the hero is measured on. */}
+            it is the one the hero is measured on.
+
+            Every source is gated on FRAME_MEDIA, which mirrors the `hidden
+            sm:block` on .hero-visual-frame in Hero.tsx. A phone paints none of
+            this, but an <img src> inside a display:none subtree is still
+            fetched, so the photograph cost every mobile visit ~14kB to render
+            nothing. With the source list empty below the breakpoint the <img>
+            resolves to no candidate and asks for nothing; crossing 640px makes
+            the browser re-run selection and load it. */}
         <picture className="hero-portrait-layer" data-hero-portrait-layer="photo" data-visible={!showSystemPortrait}>
-          <source srcSet={photoAvif} type="image/avif" />
+          <source media={FRAME_MEDIA} srcSet={photoAvif} type="image/avif" />
+          <source media={FRAME_MEDIA} srcSet={photoWebp} type="image/webp" />
           <img
             data-hero-portrait
-            src={photoWebp}
             alt=""
             width="1200"
             height="1200"
@@ -65,9 +76,9 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
           />
         </picture>
         <picture className="hero-portrait-layer" data-hero-portrait-layer="system" data-visible={showSystemPortrait}>
-          {systemPortraitArmed && <source srcSet={systemPhotoAvif} type="image/avif" />}
+          {systemPortraitArmed && <source media={FRAME_MEDIA} srcSet={systemPhotoAvif} type="image/avif" />}
+          {systemPortraitArmed && <source media={FRAME_MEDIA} srcSet={systemPhotoWebp} type="image/webp" />}
           <img
-            src={systemPortraitArmed ? systemPhotoWebp : undefined}
             alt=""
             width="1254"
             height="1254"
