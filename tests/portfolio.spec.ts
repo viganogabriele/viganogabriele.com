@@ -1017,6 +1017,28 @@ test("reduced motion preserves content and accessibility", async ({ page }) => {
   expect(serious, serious.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
 });
 
+test("every route is free of serious accessibility violations", async ({ page }) => {
+  // The audit above only ever visited the home page, which is how eight
+  // unlabelled links on the CV — pdf.js draws the PDF's own link annotations
+  // as empty <a href> boxes over the canvas — went unnoticed. Every route the
+  // site serves is checked here, at both a phone and a desktop width.
+  for (const size of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(size);
+    for (const path of ["/", "/cv", "/notes/vpn-off-by-default", "/does-not-exist"]) {
+      await test.step(`${path} @ ${size.width}`, async () => {
+        await page.goto(path);
+        await expect(page.locator("[data-preloader]")).toHaveCount(0, { timeout: 20_000 });
+        const results = await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+          .exclude("canvas")
+          .analyze();
+        const serious = results.violations.filter((violation) => ["serious", "critical"].includes(violation.impact ?? ""));
+        expect(serious, serious.map((violation) => `${violation.id}: ${violation.help} (${violation.nodes.length})`).join("\n")).toEqual([]);
+      });
+    }
+  }
+});
+
 test("interactive controls meet the minimum touch target", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

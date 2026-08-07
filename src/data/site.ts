@@ -14,8 +14,20 @@ export const site = {
     type: "image/jpeg",
     alt: "Gabriele Viganò · infrastructure, front-end and product.",
   },
-  updatedAt: "2026-07-13",
 } as const;
+
+/**
+ * `lastmod` for the pages that have no date of their own (`/` and `/cv`).
+ *
+ * This used to be a hand-written constant, which is a date nobody remembers to
+ * change: it read 2026-07-13 while the site had been redeployed many times
+ * since, so every crawl was told the home page had not moved. The build date is
+ * the honest answer for a site that ships on every merge — notes keep their own
+ * `datePublished`, which is a real editorial date and stays hand-written.
+ */
+export function buildDate() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export type PageMetadata = {
   title: string;

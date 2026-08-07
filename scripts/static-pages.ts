@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
 import { notes } from "../src/data/notes";
-import { cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site";
+import { buildDate, cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site";
 
 const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^>]*>\s*|<meta\s+(?:name|property)="(?:description|robots|twitter:[^"]+|og:[^"]+|article:[^"]+)"[^>]*>\s*|<script\s+type="application\/ld\+json"\s+data-jsonld="[^"]+">[\s\S]*?<\/script>\s*/g;
 
@@ -67,9 +67,10 @@ function withMetadata(shell: string, metadata: PageMetadata, structuredData?: { 
 }
 
 function sitemap() {
+  const built = buildDate();
   const urls = [
-    { path: "/", lastmod: site.updatedAt, changefreq: "weekly", priority: "1.0" },
-    { path: "/cv", lastmod: site.updatedAt, changefreq: "monthly", priority: "0.8" },
+    { path: "/", lastmod: built, changefreq: "weekly", priority: "1.0" },
+    { path: "/cv", lastmod: built, changefreq: "monthly", priority: "0.8" },
     ...notes.map((note) => ({ path: `/notes/${note.slug}`, lastmod: note.datePublished, changefreq: "monthly", priority: "0.7" })),
   ];
   const entries = urls.map((entry) => [

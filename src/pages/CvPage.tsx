@@ -27,6 +27,26 @@ import { useRouteReady } from "../hooks/useRouteReady";
 // can never drift from the API that drives it.
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
+/**
+ * A name for one of the PDF's own link annotations.
+ *
+ * pdf.js draws them as bare <a href> boxes positioned over the canvas: the
+ * visible text belongs to the rendered page, so the anchors themselves are
+ * empty. A screen reader met eight links in a row with nothing to announce.
+ * The href is the only thing that describes them, so say what it points at.
+ */
+function describeAnnotation(href: string) {
+  try {
+    const url = new URL(href);
+    if (url.protocol === "mailto:") return `Email ${url.pathname}`;
+    if (url.protocol === "tel:") return `Call ${url.pathname}`;
+    const path = url.pathname.replace(/\/$/, "");
+    return `Open ${url.host}${path} in a new tab`;
+  } catch {
+    return "Open link from the CV";
+  }
+}
+
 function CvDocumentViewer({ onReady }: { onReady: () => void }) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -60,6 +80,27 @@ function CvDocumentViewer({ onReady }: { onReady: () => void }) {
     updateSize();
     const observer = new ResizeObserver(updateSize);
     observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
+  // Name the PDF's link annotations as pdf.js inserts them. This watches the
+  // DOM rather than hanging off onRenderAnnotationLayerSuccess, which fires
+  // before the anchors are in the tree — and it keeps working across the
+  // re-render a zoom or a resize triggers. Only childList is observed, so
+  // writing the attribute cannot re-enter the callback.
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const nameAnnotations = () => {
+      for (const link of viewport.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+        if (link.getAttribute("aria-hidden") === "true") continue;
+        if (link.textContent?.trim() || link.getAttribute("aria-label")) continue;
+        link.setAttribute("aria-label", describeAnnotation(link.href));
+      }
+    };
+    nameAnnotations();
+    const observer = new MutationObserver(nameAnnotations);
+    observer.observe(viewport, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
 
