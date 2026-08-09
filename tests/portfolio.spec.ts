@@ -626,7 +626,7 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 });
 
-test("CV stays covered until the first PDF page and its annotations are rendered", async ({ page }) => {
+test("CV is readable before the PDF is, and the viewer says it is still working", async ({ page }) => {
   let releasePdf!: () => void;
   const pdfReleased = new Promise<void>((resolve) => { releasePdf = resolve; });
   let markPdfRequested!: () => void;
@@ -639,13 +639,42 @@ test("CV stays covered until the first PDF page and its annotations are rendered
 
   await page.goto("/cv", { waitUntil: "domcontentloaded" });
   await pdfRequested;
-  await expect(page.locator("[data-preloader]")).toBeVisible();
-  await expect(page.locator("[data-route-content]")).toHaveAttribute("aria-hidden", "true");
-  await expect(page.locator("canvas")).toHaveCount(0);
 
+  // Holding the whole route behind pdf.js cost WebKit about five seconds in
+  // front of a loading bar while all of this was already laid out. The reader
+  // gets it immediately; only the framed viewport is still pending.
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Curriculum/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Download CV/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Open in new tab/i })).toBeVisible();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.getByText(/Loading document|Rendering page/i)).toBeVisible();
+
+  // The viewport is sized whether or not the canvas has landed, so nothing
+  // reflows when it does. Height is the assertion: the section is still
+  // finishing its entrance transform, which moves y by a couple of pixels
+  // without resizing anything.
+  // Measured through offsetHeight, not getBoundingClientRect: the entrance is
+  // a transform still interpolating while this runs, and a rect read mid-scale
+  // comes back a fraction of a pixel off a layout that has not changed at all.
+  const viewportHeight = () => page.locator("[data-cv-viewport]").evaluate((node) => node.offsetHeight);
+  const heightBefore = await viewportHeight();
+  expect(heightBefore).toBeGreaterThan(0);
   releasePdf();
   await expect(page.locator("canvas").first()).toBeVisible();
-  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  expect(await viewportHeight()).toBe(heightBefore);
+});
+
+test("the CV's own PDF links are announceable", async ({ page }) => {
+  await page.goto("/cv");
+  await expect(page.locator("canvas").first()).toBeVisible();
+  const annotations = page.locator(".annotationLayer a[href]");
+  await expect.poll(() => annotations.count()).toBeGreaterThan(0);
+  const unnamed = await annotations.evaluateAll((links) => links
+    .filter((link) => !link.textContent?.trim() && !link.getAttribute("aria-label"))
+    .map((link) => link.getAttribute("href")));
+  expect(unnamed).toEqual([]);
+  await expect(page.getByRole("link", { name: /Email info@viganogabriele\.com/i })).toHaveCount(1);
 });
 
 test("likely internal destinations prefetch on intent", async ({ page }) => {

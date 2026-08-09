@@ -64,7 +64,9 @@ export const notesSection = {
 export const certificationsSection = {
   index: "07 / Recognition",
   title: "Credentials, lightly held.",
-} satisfies SectionHeaderCopy;
+  // Sits beside the list, where the other sections put a subtitle.
+  aside: "Worth listing, not worth leading with. The work above is the evidence.",
+};
 
 export const heroCopy = {
   summary: "I run my own infrastructure, and the product for 500+ student group chats.",

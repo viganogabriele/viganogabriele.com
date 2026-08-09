@@ -3,16 +3,17 @@ import { certificationsSection } from "../../data/sections";
 import { FadeIn } from "../motion/FadeIn";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { CertRow } from "../ui/CertRow";
+import { SectionHeader } from "../ui/SectionHeader";
 
 export function Certifications() {
   return (
     <section id="certifications" className="relative mx-auto mt-32 max-w-7xl px-5 sm:px-8 lg:mt-40 lg:px-10">
+      <SectionHeader index={certificationsSection.index} title={certificationsSection.title} />
       <div className="grid gap-5 border-y border-white/[0.08] py-5 md:grid-cols-[.8fr_1.2fr]">
         <ScrollReveal>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">{certificationsSection.index}</p>
-          <h2 className="mt-2 text-2xl tracking-[-0.04em] text-zinc-200">
-            {certificationsSection.title}
-          </h2>
+          <p className="max-w-xs font-mono text-[10px] uppercase leading-relaxed tracking-[0.15em] text-zinc-500">
+            {certificationsSection.aside}
+          </p>
         </ScrollReveal>
         <div className="cert-row">
           {certifications.map((certification, index) => (
