@@ -670,11 +670,23 @@ test("the CV's own PDF links are announceable", async ({ page }) => {
   await expect(page.locator("canvas").first()).toBeVisible();
   const annotations = page.locator(".annotationLayer a[href]");
   await expect.poll(() => annotations.count()).toBeGreaterThan(0);
-  const unnamed = await annotations.evaluateAll((links) => links
-    .filter((link) => !link.textContent?.trim() && !link.getAttribute("aria-label"))
-    .map((link) => link.getAttribute("href")));
-  expect(unnamed).toEqual([]);
+  const audit = await annotations.evaluateAll((links) => links.map((link) => ({
+    href: link.getAttribute("href"),
+    label: link.getAttribute("aria-label"),
+    text: link.textContent?.trim() ?? "",
+    target: (link as HTMLAnchorElement).target,
+  })));
+
+  expect(audit.filter((link) => !link.text && !link.label).map((link) => link.href)).toEqual([]);
   await expect(page.getByRole("link", { name: /Email info@viganogabriele\.com/i })).toHaveCount(1);
+
+  // The label may only promise a new tab when the anchor actually opens one.
+  // pdf.js leaves target empty unless externalLinkTarget is set, so without
+  // this the announcement described navigation that never happened.
+  const lying = audit.filter((link) => link.label?.includes("in a new tab") && link.target !== "_blank");
+  expect(lying, `labels promising a new tab on a same-tab link: ${JSON.stringify(lying)}`).toEqual([]);
+  // Following a link from inside the viewer must not replace the CV page.
+  expect(audit.filter((link) => link.href?.startsWith("http") && link.target !== "_blank")).toEqual([]);
 });
 
 test("likely internal destinations prefetch on intent", async ({ page }) => {

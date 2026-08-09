@@ -34,16 +34,22 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
  * visible text belongs to the rendered page, so the anchors themselves are
  * empty. A screen reader met eight links in a row with nothing to announce.
  * The href is the only thing that describes them, so say what it points at.
+ *
+ * The whole element is read, not just the href, because the href alone cannot
+ * say where the link lands. A jump to another page of the same document is
+ * marked with data-internal-link and is not a destination on the web at all,
+ * and "in a new tab" is a promise only `target` can keep.
  */
-function describeAnnotation(href: string) {
+function describeAnnotation(link: HTMLAnchorElement) {
+  if (link.closest("[data-internal-link]")) return "Jump to another part of this CV";
+  const suffix = link.target === "_blank" ? " in a new tab" : "";
   try {
-    const url = new URL(href);
+    const url = new URL(link.href);
     if (url.protocol === "mailto:") return `Email ${url.pathname}`;
     if (url.protocol === "tel:") return `Call ${url.pathname}`;
-    const path = url.pathname.replace(/\/$/, "");
-    return `Open ${url.host}${path} in a new tab`;
+    return `Open ${url.host}${url.pathname.replace(/\/$/, "")}${suffix}`;
   } catch {
-    return "Open link from the CV";
+    return `Open link from the CV${suffix}`;
   }
 }
 
@@ -85,7 +91,7 @@ function CvDocumentViewer() {
       for (const link of viewport.querySelectorAll<HTMLAnchorElement>("a[href]")) {
         if (link.getAttribute("aria-hidden") === "true") continue;
         if (link.textContent?.trim() || link.getAttribute("aria-label")) continue;
-        link.setAttribute("aria-label", describeAnnotation(link.href));
+        link.setAttribute("aria-label", describeAnnotation(link));
       }
     };
     nameAnnotations();
@@ -117,7 +123,7 @@ function CvDocumentViewer() {
           <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
         ) : (
           <div className="flex min-w-fit items-start justify-center sm:min-h-full">
-            <Document file={profile.cvPath} onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
+            <Document file={profile.cvPath} externalLinkTarget="_blank" onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
               {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer={false} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Rendering page…</span>} />}
             </Document>
           </div>
