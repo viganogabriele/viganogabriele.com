@@ -150,6 +150,33 @@ test("a phone never downloads the portrait it cannot show", async ({ page }) => 
   expect(portraitRequests.length).toBeGreaterThan(0);
 });
 
+test("the portrait breakpoint tracks the reader's font size", async ({ page, browserName }) => {
+  // The frame is revealed by Tailwind's `sm:`, which compiles to
+  // `(width>=40rem)`, and the <source>s are gated on the same query. `rem` in
+  // a media query resolves against the browser's default font size, so a
+  // reader who changes it moves the breakpoint — and the two conditions only
+  // move together while both are written in rem. Hard-coding 640px on one side
+  // showed an empty portrait frame at a smaller default, and put the fetch back
+  // on phones at a larger one. Only Chromium can emulate the default here.
+  test.skip(browserName !== "chromium", "needs CDP Page.setFontSizes");
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Page.enable");
+
+  for (const standard of [12, 16, 20]) {
+    await cdp.send("Page.setFontSizes", { fontSizes: { standard, fixed: standard } });
+    for (const width of [40 * standard - 20, 40 * standard + 20]) {
+      await test.step(`default ${standard}px @ ${width}`, async () => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto("/");
+        await expect(page.locator("[data-preloader]")).toHaveCount(0);
+        const frameShown = await page.locator(".hero-visual-frame").evaluate((node) => getComputedStyle(node).display !== "none");
+        await expect.poll(() => page.locator("[data-hero-portrait]").evaluate((image: HTMLImageElement) => image.naturalWidth > 0))
+          .toBe(frameShown);
+      });
+    }
+  }
+});
+
 test("the navbar highlight follows every section, including the ones without an entry", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
@@ -587,6 +614,13 @@ test("the loading screen is a lightweight readiness gate without a minimum durat
   await expect(preloader).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 
+  // Drop the interception before measuring the warm reload. Holding every
+  // portrait request through a Playwright route handler costs WebKit enough to
+  // dominate what this assertion is timing: with the route still armed the
+  // reload measured 654-1846ms across six runs and tripped the budget on the
+  // slow tail, and without it 664-862ms. The budget is about the app, so the
+  // harness should not be inside it.
+  await page.unroute("**/*gabriele-photo*");
   await page.reload();
   await expect(preloader).toHaveCount(0, { timeout: 1500 });
 });

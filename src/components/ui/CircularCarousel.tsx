@@ -195,9 +195,15 @@ export function CircularCarousel<T>({
     return () => observer.disconnect();
   }, []);
 
+  // Unmount stops whichever driver holds the slot. The idle effect's own
+  // cleanup deliberately only tears down the loop that same run started, so on
+  // its own it leaves a selection animation or a momentum decay begun after it
+  // still running — up to a couple of seconds of frames writing transforms to
+  // a torn-down tree. This is unconditional, so nothing outlives the component.
   useEffect(() => () => {
     if (moveFrame.current !== null) window.cancelAnimationFrame(moveFrame.current);
-  }, []);
+    stopAnimation();
+  }, [stopAnimation]);
 
   useEffect(() => {
     if (reducedMotion || !items.length || !inView) return;

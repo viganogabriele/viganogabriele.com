@@ -1,9 +1,10 @@
+import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
 import { notes } from "../src/data/notes";
-import { buildDate, cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site";
+import { cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site";
 
 const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^>]*>\s*|<meta\s+(?:name|property)="(?:description|robots|twitter:[^"]+|og:[^"]+|article:[^"]+)"[^>]*>\s*|<script\s+type="application\/ld\+json"\s+data-jsonld="[^"]+">[\s\S]*?<\/script>\s*/g;
 
@@ -66,8 +67,32 @@ function withMetadata(shell: string, metadata: PageMetadata, structuredData?: { 
   return shell.replace(managedTagPattern, "").replace("</head>", `    ${head}\n  </head>`);
 }
 
+/**
+ * `lastmod` for the two pages with no editorial date of their own.
+ *
+ * It was a hand-written constant, which is a date nobody remembers to change —
+ * it read 2026-07-13 after a month of deploys, telling every crawl the home
+ * page had not moved. The build clock overcorrects the other way: a rollback,
+ * an environment change or a redeploy of identical code would each claim a
+ * change that never happened, and a lastmod that is always today is one
+ * crawlers learn to disregard. The commit the deploy was built from moves only
+ * when the content does. Notes keep their own datePublished.
+ */
+function contentDate() {
+  try {
+    const committed = execFileSync("git", ["log", "-1", "--format=%cs"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(committed)) return committed;
+  } catch {
+    // No git history in the build environment; fall through to the clock.
+  }
+  return new Date().toISOString().slice(0, 10);
+}
+
 function sitemap() {
-  const built = buildDate();
+  const built = contentDate();
   const urls = [
     { path: "/", lastmod: built, changefreq: "weekly", priority: "1.0" },
     { path: "/cv", lastmod: built, changefreq: "monthly", priority: "0.8" },

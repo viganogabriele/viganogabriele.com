@@ -18,11 +18,12 @@ import { useSystemMode } from "../hooks/useSystemMode";
 import { homeMetadata, websitePersonJsonLd } from "../data/site";
 import { JsonLd, PageMeta } from "../lib/seo";
 import { useRouteReadyAfterImage } from "../hooks/useRouteReady";
+import { HERO_PORTRAIT_MEDIA } from "../lib/viewport";
 
 export const HomePage = memo(function HomePage() {
   const reduced = useReducedMotion();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
-  const portraitVisible = window.matchMedia("(min-width: 640px)").matches;
+  const portraitVisible = window.matchMedia(HERO_PORTRAIT_MEDIA).matches;
   useRouteReadyAfterImage("[data-hero-portrait]", portraitVisible);
 
   const scrollToSection = useCallback((target: string) => {

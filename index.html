@@ -13,11 +13,12 @@
     />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-dark.png?v=10" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=10" />
-    <!-- The hero portrait frame is `hidden sm:block`, so below 640px this
-         image is never painted. Without the media condition the preload still
-         fetched it at high priority on every phone, competing with the fonts
-         and the entry chunk for nothing. -->
-    <link rel="preload" as="image" href="/src/assets/gabriele-photo.avif" type="image/avif" fetchpriority="high" media="(min-width: 640px)" />
+    <!-- The hero portrait frame is `hidden sm:block`, so below this width the
+         image is never painted; without the condition the preload fetched it
+         at high priority on every phone to render nothing. 40rem, not 640px:
+         it has to agree with Tailwind's `sm:`, which compiles to
+         `(width>=40rem)`. See HERO_PORTRAIT_MEDIA in src/lib/viewport.ts. -->
+    <link rel="preload" as="image" href="/src/assets/gabriele-photo.avif" type="image/avif" fetchpriority="high" media="(min-width: 40rem)" />
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <script>

@@ -1,3 +1,19 @@
+/**
+ * The width at which the hero portrait frame appears.
+ *
+ * Written in rem, not 640px, because that is what it has to agree with:
+ * Tailwind's `sm:` compiles to `@media (width>=40rem)`, and rem in a media
+ * query resolves against the browser's default font size. A reader who has
+ * raised or lowered that default moves the breakpoint, and the two conditions
+ * only stay in step if they are expressed in the same unit. Out of step, a
+ * smaller default paints an empty portrait frame — the frame is shown while no
+ * <source> matches — and a larger one puts the fetch back on phones.
+ *
+ * Used by the frame's `sm:block`, the `<source media>` on both portrait
+ * layers, the preload in index.html, and the readiness gate in HomePage.
+ */
+export const HERO_PORTRAIT_MEDIA = "(min-width: 40rem)";
+
 // Mobile browsers collapse/expand their URL bar as the scroll direction
 // reverses, firing `resize` with a changed innerHeight but an unchanged
 // innerWidth. Anything that reacts to `resize` to recompute a height-derived

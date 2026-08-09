@@ -4,9 +4,7 @@ import photoWebp from "../../assets/gabriele-photo.webp";
 import systemPhotoAvif from "../../assets/gabriele-photo-sys.avif";
 import systemPhotoWebp from "../../assets/gabriele-photo-sys.webp";
 import { heroCopy } from "../../data/sections";
-
-/** Mirrors the `hidden sm:block` on .hero-visual-frame — Tailwind's `sm`. */
-const FRAME_MEDIA = "(min-width: 640px)";
+import { HERO_PORTRAIT_MEDIA } from "../../lib/viewport";
 
 /**
  * The SYS portrait is 58kB that most visits never paint — SYS is off by
@@ -55,16 +53,16 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
             second image decodes. Only the photo gets high fetch priority, since
             it is the one the hero is measured on.
 
-            Every source is gated on FRAME_MEDIA, which mirrors the `hidden
+            Every source is gated on HERO_PORTRAIT_MEDIA, which mirrors the `hidden
             sm:block` on .hero-visual-frame in Hero.tsx. A phone paints none of
             this, but an <img src> inside a display:none subtree is still
             fetched, so the photograph cost every mobile visit ~14kB to render
             nothing. With the source list empty below the breakpoint the <img>
-            resolves to no candidate and asks for nothing; crossing 640px makes
+            resolves to no candidate and asks for nothing; crossing the breakpoint makes
             the browser re-run selection and load it. */}
         <picture className="hero-portrait-layer" data-hero-portrait-layer="photo" data-visible={!showSystemPortrait}>
-          <source media={FRAME_MEDIA} srcSet={photoAvif} type="image/avif" />
-          <source media={FRAME_MEDIA} srcSet={photoWebp} type="image/webp" />
+          <source media={HERO_PORTRAIT_MEDIA} srcSet={photoAvif} type="image/avif" />
+          <source media={HERO_PORTRAIT_MEDIA} srcSet={photoWebp} type="image/webp" />
           <img
             data-hero-portrait
             alt=""
@@ -76,8 +74,8 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
           />
         </picture>
         <picture className="hero-portrait-layer" data-hero-portrait-layer="system" data-visible={showSystemPortrait}>
-          {systemPortraitArmed && <source media={FRAME_MEDIA} srcSet={systemPhotoAvif} type="image/avif" />}
-          {systemPortraitArmed && <source media={FRAME_MEDIA} srcSet={systemPhotoWebp} type="image/webp" />}
+          {systemPortraitArmed && <source media={HERO_PORTRAIT_MEDIA} srcSet={systemPhotoAvif} type="image/avif" />}
+          {systemPortraitArmed && <source media={HERO_PORTRAIT_MEDIA} srcSet={systemPhotoWebp} type="image/webp" />}
           <img
             alt=""
             width="1254"
