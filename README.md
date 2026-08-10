@@ -16,7 +16,7 @@ The site pairs a cinematic landing page with selected work, a CV, field notes an
 
 ## Technical character
 
-The interface uses Tailwind CSS utilities, React Router, React PDF and Three.js. It includes Vercel Analytics and Speed Insights, but the important detail is less the stack than the constraints it is built around: no horizontal overflow on compact screens, keyboard support, meaningful focus states, a skip link, reduced-motion behaviour, and defensive rendering for touch/WebKit and embedded browsers.
+The interface uses Tailwind CSS utilities, React Router and React PDF. It includes Vercel Analytics and Speed Insights, but the important detail is less the stack than the constraints it is built around: no horizontal overflow on compact screens, keyboard support, meaningful focus states, a skip link, reduced-motion behaviour, and defensive rendering for touch/WebKit and embedded browsers.
 
 The codebase is organised around a few clear boundaries:
 

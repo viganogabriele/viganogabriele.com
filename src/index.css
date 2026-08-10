@@ -254,7 +254,6 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   animation: hero-aura 7s ease-in-out infinite;
 }
 
-
 .hero-fallback {
   position: absolute;
   inset: 0;
@@ -360,44 +359,10 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   88%, 100% { translate: 0 110%; opacity: 0; }
 }
 
-.tool-chip {
-  transition: border-color 220ms ease, background-color 220ms ease, color 220ms ease, transform 220ms ease;
-}
-
 /* Small technical labels remain legible at WCAG AA contrast. */
 .text-zinc-500,
 .text-zinc-600 {
   color: #929bb5;
-}
-
-.tool-chip:hover,
-.tool-chip:active {
-  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
-  color: var(--accent-soft);
-  transform: translateY(-2px);
-}
-
-.project-panel[data-accent="blue"] { --project-accent: 120 169 255; }
-.project-panel[data-accent="violet"] { --project-accent: 166 139 255; }
-.project-panel[data-accent="bone"] { --project-accent: 237 241 255; }
-.project-panel:active { background-color: rgba(var(--project-accent), .025); }
-
-/* Cursor-tracking glow. Driven exclusively by --glow, which the panel's
-   pointer handlers raise to 1 while a mouse moves over it and drop to 0 on
-   leave — so it only ever appears following the cursor, never as a static
-   centred wash on hover. --px/--py default off-canvas as a safety net. */
-.project-panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(28rem circle at var(--px, -100%) var(--py, -100%), color-mix(in srgb, var(--accent) 11%, transparent), transparent 54%);
-  transition: opacity 250ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .project-panel::after { opacity: var(--glow, 0); }
 }
 
 /* ── Card graphics: bring the schematic artifacts to life ──────────────────
@@ -410,18 +375,14 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .project-panel:hover .artifact-svg circle,
   .expertise-item:hover .artifact-svg circle {
     animation: artifact-node 2.4s ease-in-out infinite;
     transform-box: fill-box;
     transform-origin: center;
   }
-  .project-panel:hover .artifact-svg circle:nth-of-type(2n),
   .expertise-item:hover .artifact-svg circle:nth-of-type(2n) { animation-delay: 0.4s; }
-  .project-panel:hover .artifact-svg circle:nth-of-type(3n),
   .expertise-item:hover .artifact-svg circle:nth-of-type(3n) { animation-delay: 0.8s; }
 
-  .project-panel:hover .artifact-svg > g > path:first-of-type,
   .expertise-item:hover .artifact-svg > g > path:first-of-type {
     stroke-dasharray: 340;
     animation: artifact-trace 2.6s cubic-bezier(.16, 1, .3, 1) infinite;
@@ -460,7 +421,6 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   .hero-wordmark { font-size: clamp(3.4rem, 17vw, 4.6rem); }
   .hero-stat-grid { column-gap: .75rem; }
   .proof-grid > :last-child { border-bottom: 0; }
-  .project-panel h3 { font-size: clamp(3rem, 16vw, 4.25rem); }
 }
 
 @media (max-width: 370px) {
@@ -482,14 +442,6 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   }
   .hero-portrait-layer { transition: none; }
   .note-row a::before { display: none; }
-}
-
-.tap-highlight-none {
-  -webkit-tap-highlight-color: transparent;
-}
-
-.gpu-promote {
-  backface-visibility: hidden;
 }
 
 .ambient-layer {
@@ -526,7 +478,6 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
    the section scrolls back into view. */
 [data-touch] .ambient-layer,
 [data-touch] .ambient-blob,
-[data-touch] .gpu-promote,
 [data-touch] .circular-carousel__card {
   backface-visibility: visible;
   will-change: auto;
@@ -720,25 +671,6 @@ html[data-touch] .hero-viewport {
   will-change: transform;
 }
 
-.project-panel-grid {
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px);
-  background-size: 30px 30px;
-  mask-image: linear-gradient(90deg, black, transparent 78%);
-}
-
-.instrument-static::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
 /* ─── 3D circular carousel ─────────────────────────────────────────────────── */
 .circular-carousel {
   position: relative;
@@ -746,10 +678,18 @@ html[data-touch] .hero-viewport {
   isolation: isolate;
   overflow: clip;
   padding: 1.25rem 0 0.9rem;
-  outline: none;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* The ring is a tabbable region that answers to the arrow keys, and a blanket
+   `outline: none` here used to beat the global :focus-visible rule on equal
+   specificity — so tabbing to it armed those keys while showing nothing at all.
+   Scoped to :focus-visible, a mouse press still leaves no ring. */
+.circular-carousel:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 92%, transparent);
+  outline-offset: 3px;
 }
 
 .circular-carousel__stage {
@@ -862,12 +802,6 @@ html[data-touch] .hero-viewport {
   .circular-carousel__control { transition-duration: 100ms; }
 }
 
-[data-system-mode="on"] .project-panel-grid {
-  opacity: 0.38;
-}
-
-[data-system-mode="on"] .expertise-row,
-[data-system-mode="on"] .project-panel,
 [data-system-mode="on"] .note-row,
 [data-system-mode="on"] .cert-row {
   border-color: color-mix(in srgb, var(--accent) 17%, transparent);
@@ -877,12 +811,6 @@ html[data-touch] .hero-viewport {
   border-color: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
-@media (max-width: 440px) {
-  .instrument-static {
-    min-height: 34rem;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -890,7 +818,6 @@ html[data-touch] .hero-viewport {
     scroll-behavior: auto !important;
   }
 
-  .face-hero-canvas,
   .section-anchor-label,
   .hero-grid::before {
     transition: none;
@@ -915,12 +842,6 @@ html[data-touch] .hero-viewport {
   48% { opacity: 0.86; }
   50% { opacity: 0.54; }
   52% { opacity: 0.8; }
-}
-
-.face-hero-canvas canvas {
-  display: block;
-  height: 100% !important;
-  width: 100% !important;
 }
 
 /* ─── Section anchor labels (visible in system mode) ─────────────────────────── */
@@ -1018,22 +939,6 @@ html[data-touch] .hero-grid::before {
   .hero-scanlines {
     animation: none !important;
   }
-}
-
-/* ─── Expertise row expand ───────────────────────────────────────────────────── */
-.expertise-row {
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-.expertise-row:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* ─── Project panel ──────────────────────────────────────────────────────────── */
-.project-panel {
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-.project-panel:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* ─── Notes index row ────────────────────────────────────────────────────────── */
@@ -1182,6 +1087,43 @@ html:not([data-system-mode="on"]) [data-sys-reveal] {
   border-color: var(--accent);
   background: var(--accent);
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Sticky-column readout of the rail. Only colour and a hairline marker move
+   between states, so the list never reflows as the active row changes. */
+.capability-legend-row {
+  position: relative;
+  transition: color 250ms ease;
+}
+
+.capability-legend-row::before {
+  content: "";
+  position: absolute;
+  left: -0.75rem;
+  top: 50%;
+  height: 0.9rem;
+  width: 1px;
+  translate: 0 -50%;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 250ms ease;
+}
+
+.capability-legend-row[data-active="true"] {
+  color: var(--accent);
+}
+
+.capability-legend-row[data-active="true"]::before {
+  opacity: 1;
+}
+
+.capability-legend-row[data-active="true"] .capability-legend-title {
+  color: var(--color-bone);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capability-legend-row,
+  .capability-legend-row::before { transition: none; }
 }
 
 @media (min-width: 768px) {

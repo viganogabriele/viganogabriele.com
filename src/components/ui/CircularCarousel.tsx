@@ -71,7 +71,13 @@ export function CircularCarousel<T>({
     const root = rootRef.current;
     const width = root?.clientWidth ?? 0;
     const compact = width < 640;
-    const radius = Math.min(compact ? 180 : 290, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.34))) * radiusScale;
+    // The desktop ceiling used to be a flat 290px, so past ~850px the ring
+    // stopped growing and sat in the middle of an increasingly empty frame.
+    // Let it keep widening with the container (still bounded) so the stage
+    // fills the panel it is drawn inside. `.circular-carousel` clips, so a
+    // wider ring can never reach the page's horizontal scroll.
+    const ceiling = compact ? 180 : Math.min(430, Math.max(290, width * 0.36));
+    const radius = Math.min(ceiling, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.42))) * radiusScale;
     const depth = compact ? 76 : 96;
     const step = 360 / count;
     const nearest = items.reduce((best, _item, index) => (
@@ -112,7 +118,16 @@ export function CircularCarousel<T>({
     }
   }, [items, onActiveIndexChange, radiusScale]);
 
+  // Three drivers write rotation on their own rAF: the idle loop, an explicit
+  // selection animation, and the momentum decay after a drag. They share one
+  // frame slot, so exactly one may be live at a time. Every start bumps this
+  // generation and every tick bails once it no longer matches, which means a
+  // driver whose id got overwritten can never keep running behind the one that
+  // replaced it — see the guard in the idle effect for what that cost.
+  const runRef = useRef(0);
+
   const stopAnimation = useCallback(() => {
+    runRef.current += 1;
     if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
     frameRef.current = null;
     lastFrame.current = null;
@@ -130,7 +145,9 @@ export function CircularCarousel<T>({
     }
     const start = rotation.current;
     const startedAt = performance.now();
+    const run = runRef.current;
     const tick = (now: number) => {
+      if (run !== runRef.current) return;
       const progress = Math.min(1, (now - startedAt) / duration);
       const eased = easing(progress);
       rotation.current = start + (target - start) * eased;
@@ -178,13 +195,30 @@ export function CircularCarousel<T>({
     return () => observer.disconnect();
   }, []);
 
+  // Unmount stops whichever driver holds the slot. The idle effect's own
+  // cleanup deliberately only tears down the loop that same run started, so on
+  // its own it leaves a selection animation or a momentum decay begun after it
+  // still running — up to a couple of seconds of frames writing transforms to
+  // a torn-down tree. This is unconditional, so nothing outlives the component.
   useEffect(() => () => {
     if (moveFrame.current !== null) window.cancelAnimationFrame(moveFrame.current);
-  }, []);
+    stopAnimation();
+  }, [stopAnimation]);
 
   useEffect(() => {
     if (reducedMotion || !items.length || !inView) return;
+    // A selection animation or a momentum decay owns the slot until it
+    // finishes and bumps tickerRevision, which re-runs this effect. Starting a
+    // second loop on top of one used to overwrite frameRef and orphan it: the
+    // orphan kept ticking, and on completion cleared selectionTarget under the
+    // animation that had replaced it, so the next Next/Previous press
+    // recomputed the index it was already on and appeared to do nothing. The
+    // window opened whenever this effect re-ran mid-animation — most often the
+    // IntersectionObserver flipping inView as the section scrolled in.
+    if (frameRef.current !== null) return;
+    const run = runRef.current;
     const tick = (now: number) => {
+      if (run !== runRef.current) return;
       const previous = lastFrame.current ?? now;
       const elapsed = Math.min(40, now - previous);
       lastFrame.current = now;
@@ -201,7 +235,10 @@ export function CircularCarousel<T>({
       frameRef.current = window.requestAnimationFrame(tick);
     };
     frameRef.current = window.requestAnimationFrame(tick);
-    return stopAnimation;
+    // Only tear down the loop this run started. By the time the effect is
+    // cleaned up another driver may already own the slot, and cancelling that
+    // one would strand its rotation mid-arc with selectionTarget still set.
+    return () => { if (run === runRef.current) stopAnimation(); };
   }, [autoRotateSpeed, inView, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
 
   const select = useCallback((index: number) => {
@@ -283,19 +320,25 @@ export function CircularCarousel<T>({
     pause();
     if (reducedMotion || !moved.current) { velocity.current = 0; settle(); }
     else {
-      lastFrame.current = null;
+      // Take the frame slot the same way the other two drivers do, so a
+      // selection animation started before the finger lifted cannot keep
+      // ticking underneath this decay.
+      stopAnimation();
+      const generation = runRef.current;
+      const decay = (next: number) => {
+        if (generation !== runRef.current) return;
+        const elapsed = Math.min(40, next - (lastFrame.current ?? next));
+        lastFrame.current = next;
+        rotation.current += velocity.current * elapsed;
+        velocity.current *= Math.exp(-elapsed / 260);
+        updateCards();
+        if (Math.abs(velocity.current) > 0.003) frameRef.current = window.requestAnimationFrame(decay);
+        else { velocity.current = 0; settle(); }
+      };
       frameRef.current = window.requestAnimationFrame((now) => {
+        if (generation !== runRef.current) return;
         lastFrame.current = now;
-        const run = (next: number) => {
-          const elapsed = Math.min(40, next - (lastFrame.current ?? next));
-          lastFrame.current = next;
-          rotation.current += velocity.current * elapsed;
-          velocity.current *= Math.exp(-elapsed / 260);
-          updateCards();
-          if (Math.abs(velocity.current) > 0.003) frameRef.current = window.requestAnimationFrame(run);
-          else { velocity.current = 0; settle(); }
-        };
-        frameRef.current = window.requestAnimationFrame(run);
+        frameRef.current = window.requestAnimationFrame(decay);
       });
     }
   };

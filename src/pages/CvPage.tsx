@@ -1,6 +1,6 @@
 import { m, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -27,11 +27,35 @@ import { useRouteReady } from "../hooks/useRouteReady";
 // can never drift from the API that drives it.
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
-function CvDocumentViewer({ onReady }: { onReady: () => void }) {
+/**
+ * A name for one of the PDF's own link annotations.
+ *
+ * pdf.js draws them as bare <a href> boxes positioned over the canvas: the
+ * visible text belongs to the rendered page, so the anchors themselves are
+ * empty. A screen reader met eight links in a row with nothing to announce.
+ * The href is the only thing that describes them, so say what it points at.
+ *
+ * The whole element is read, not just the href, because the href alone cannot
+ * say where the link lands. A jump to another page of the same document is
+ * marked with data-internal-link and is not a destination on the web at all,
+ * and "in a new tab" is a promise only `target` can keep.
+ */
+function describeAnnotation(link: HTMLAnchorElement) {
+  if (link.closest("[data-internal-link]")) return "Jump to another part of this CV";
+  const suffix = link.target === "_blank" ? " in a new tab" : "";
+  try {
+    const url = new URL(link.href);
+    if (url.protocol === "mailto:") return `Email ${url.pathname}`;
+    if (url.protocol === "tel:") return `Call ${url.pathname}`;
+    return `Open ${url.host}${url.pathname.replace(/\/$/, "")}${suffix}`;
+  } catch {
+    return `Open link from the CV${suffix}`;
+  }
+}
+
+function CvDocumentViewer() {
   const viewerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const canvasReady = useRef(false);
-  const annotationsReady = useRef(false);
   const [zoom, setZoom] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
@@ -44,14 +68,6 @@ function CvDocumentViewer({ onReady }: { onReady: () => void }) {
   const fittedWidth = viewportWidth < 640 || !pageAspect ? widthToFit : Math.min(widthToFit, heightToFit * pageAspect);
   const pageWidth = Math.round(fittedWidth * zoom);
   const clampZoom = (value: number) => Math.min(2.5, Math.max(0.75, Number(value.toFixed(2))));
-  const reportReady = () => {
-    if (canvasReady.current && annotationsReady.current) onReady();
-  };
-  const reportRenderFailure = () => {
-    canvasReady.current = true;
-    annotationsReady.current = true;
-    onReady();
-  };
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -60,6 +76,27 @@ function CvDocumentViewer({ onReady }: { onReady: () => void }) {
     updateSize();
     const observer = new ResizeObserver(updateSize);
     observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
+  // Name the PDF's link annotations as pdf.js inserts them. This watches the
+  // DOM rather than hanging off onRenderAnnotationLayerSuccess, which fires
+  // before the anchors are in the tree — and it keeps working across the
+  // re-render a zoom or a resize triggers. Only childList is observed, so
+  // writing the attribute cannot re-enter the callback.
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const nameAnnotations = () => {
+      for (const link of viewport.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+        if (link.getAttribute("aria-hidden") === "true") continue;
+        if (link.textContent?.trim() || link.getAttribute("aria-label")) continue;
+        link.setAttribute("aria-label", describeAnnotation(link));
+      }
+    };
+    nameAnnotations();
+    const observer = new MutationObserver(nameAnnotations);
+    observer.observe(viewport, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
 
@@ -79,14 +116,15 @@ function CvDocumentViewer({ onReady }: { onReady: () => void }) {
       </div>
       <div
         ref={viewportRef}
+        data-cv-viewport
         className="relative h-auto overflow-hidden bg-[#151a2b] p-2 sm:h-[min(84svh,72rem)] sm:min-h-[44rem] sm:overflow-auto sm:p-4 fullscreen:h-[calc(100dvh-3.75rem)] fullscreen:max-h-none"
       >
         {failed ? (
           <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
         ) : (
           <div className="flex min-w-fit items-start justify-center sm:min-h-full">
-            <Document file={profile.cvPath} onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => { setFailed(true); onReady(); }} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Loading document…</span>}>
-              {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer={false} onRenderSuccess={() => { canvasReady.current = true; reportReady(); }} onRenderError={reportRenderFailure} onRenderAnnotationLayerSuccess={() => { annotationsReady.current = true; reportReady(); }} onRenderAnnotationLayerError={reportRenderFailure} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Rendering page…</span>} />}
+            <Document file={profile.cvPath} externalLinkTarget="_blank" onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
+              {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer={false} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Rendering page…</span>} />}
             </Document>
           </div>
         )}
@@ -101,10 +139,15 @@ export function CvPage() {
   const { level } = useMotionProfile();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
   const [downloading, setDownloading] = useState(false);
-  const [documentReady, setDocumentReady] = useState(false);
   const entrance = reduced || level === "static" ? false : { opacity: 0, y: 16 };
-  const markDocumentReady = useCallback(() => setDocumentReady(true), []);
-  useRouteReady(documentReady);
+  // The route used to stay behind the preloader until pdf.js had rasterised
+  // page one. Chrome does that in ~300ms, but WebKit took about five seconds,
+  // so Safari readers sat in front of a loading bar while the title, the
+  // summary and both download buttons were already parsed and laid out. The
+  // page is ready when the page is ready; the viewer keeps its own framed
+  // "Loading document…" state, and the frame is sized either way so nothing
+  // reflows when the canvas lands.
+  useRouteReady();
 
   const downloadCv = async () => {
     setDownloading(true);
@@ -146,7 +189,7 @@ export function CvPage() {
           <Link to="/" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 px-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:text-white">
             <ArrowLeft className="h-3.5 w-3.5" /> Back to home
           </Link>
-          <button type="button" onClick={toggleSystem} data-cursor="hover" className={`inline-flex h-11 min-w-[4.25rem] items-center justify-center gap-2 border px-2.5 font-mono text-[9px] uppercase tracking-[0.13em] transition-colors ${systemActive ? "border-accent/60 text-accent" : "border-white/[0.1] text-zinc-300"}`} aria-pressed={systemActive} aria-label="Toggle system mode" aria-keyshortcuts="Shift+S">
+          <button type="button" onClick={toggleSystem} data-cursor="hover" data-sys-toggle className={`inline-flex h-11 min-w-[4.25rem] items-center justify-center gap-2 border px-2.5 font-mono text-[9px] uppercase tracking-[0.13em] transition-colors ${systemActive ? "border-accent/60 text-accent" : "border-white/[0.1] text-zinc-300"}`} aria-pressed={systemActive} aria-label="Toggle system mode" aria-keyshortcuts="Shift+S">
             <Power className="h-3 w-3" /> SYS
           </button>
         </div>
@@ -168,7 +211,7 @@ export function CvPage() {
         </m.section>
 
         <m.section initial={entrance} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.6, delay: reduced ? 0 : 0.1, ease: ease.cinematic }} className="mt-7" aria-label="CV document viewer">
-          <CvDocumentViewer onReady={markDocumentReady} />
+          <CvDocumentViewer />
         </m.section>
 
         {systemActive && <m.aside initial={reduced ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.35, ease: ease.cinematic }} className="mt-8 border border-accent/30 bg-accent/[0.05] px-5 py-4 sm:mt-10 sm:flex sm:items-center sm:justify-between sm:gap-6" aria-label="System mode discovery">

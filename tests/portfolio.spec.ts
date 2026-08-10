@@ -61,6 +61,24 @@ test("projects contain the four real case studies", async ({ page }) => {
   await expect(page.getByText("Next Build", { exact: false })).toHaveCount(0);
 });
 
+test("every carousel step counts when the presses overlap the animation", async ({ page }) => {
+  await page.goto("/");
+  const carousel = page.getByRole("region", { name: "Selected projects" });
+  await expect(carousel.locator("[data-carousel-card]")).toHaveCount(4);
+  const next = carousel.getByRole("button", { name: "Show next project" });
+  const position = carousel.locator(".circular-carousel__controls span");
+  await expect(position).toHaveText("01 / 04");
+
+  // Each press lands while the previous selection is still rotating. A press
+  // swallowed here means a driver was left running behind the one that
+  // replaced it and reset the selection underneath it.
+  for (const expected of ["02 / 04", "03 / 04", "04 / 04", "01 / 04"]) {
+    await next.click();
+    await expect(position).toHaveText(expected);
+  }
+  await expect(page.locator("[data-project-detail]")).toContainText("Homelab & Remote Dev");
+});
+
 test("notes and certifications expose their destinations without relying on hover", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Read note").first()).toBeVisible();
@@ -107,6 +125,86 @@ test("mobile hero omits the portrait while preserving the SYS control", async ({
   await expect(system).toBeVisible();
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
+});
+
+test("a phone never downloads the portrait it cannot show", async ({ page }) => {
+  const portraitRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("gabriele-photo")) portraitRequests.push(request.url());
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const portrait = page.locator("[data-hero-portrait]");
+  await expect(page.locator(".hero-visual-frame")).toBeHidden();
+  expect(await portrait.evaluate((image: HTMLImageElement) => image.currentSrc)).toBe("");
+  expect(portraitRequests).toHaveLength(0);
+
+  // Crossing the breakpoint re-runs source selection, so the desktop hero is
+  // still measured on a real photograph rather than an empty frame.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator(".hero-visual-frame")).toBeVisible();
+  await expect.poll(() => portrait.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  expect(portraitRequests.length).toBeGreaterThan(0);
+});
+
+test("the portrait breakpoint tracks the reader's font size", async ({ page, browserName }) => {
+  // The frame is revealed by Tailwind's `sm:`, which compiles to
+  // `(width>=40rem)`, and the <source>s are gated on the same query. `rem` in
+  // a media query resolves against the browser's default font size, so a
+  // reader who changes it moves the breakpoint — and the two conditions only
+  // move together while both are written in rem. Hard-coding 640px on one side
+  // showed an empty portrait frame at a smaller default, and put the fetch back
+  // on phones at a larger one. Only Chromium can emulate the default here.
+  test.skip(browserName !== "chromium", "needs CDP Page.setFontSizes");
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Page.enable");
+
+  for (const standard of [12, 16, 20]) {
+    await cdp.send("Page.setFontSizes", { fontSizes: { standard, fixed: standard } });
+    for (const width of [40 * standard - 20, 40 * standard + 20]) {
+      await test.step(`default ${standard}px @ ${width}`, async () => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto("/");
+        await expect(page.locator("[data-preloader]")).toHaveCount(0);
+        const frameShown = await page.locator(".hero-visual-frame").evaluate((node) => getComputedStyle(node).display !== "none");
+        await expect.poll(() => page.locator("[data-hero-portrait]").evaluate((image: HTMLImageElement) => image.naturalWidth > 0))
+          .toBe(frameShown);
+      });
+    }
+  }
+});
+
+test("the navbar highlight follows every section, including the ones without an entry", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const highlighted = async () => page.evaluate(() => {
+    const links = [...document.querySelectorAll<HTMLElement>("nav a[href^='#']")];
+    return links.find((link) => link.className.includes("text-white"))?.textContent?.trim() ?? null;
+  });
+
+  // Expertise and Certifications have no entry of their own; they belong to
+  // the neighbour a reader would say they are in. Before this mapping the
+  // highlight simply stopped updating across them.
+  for (const [section, entry] of [
+    ["about", "Profile"],
+    ["expertise", "Profile"],
+    ["projects", "Projects"],
+    ["stack", "Skills"],
+    ["journey", "Experience"],
+    ["notes", "Notes"],
+    ["certifications", "Notes"],
+  ] as const) {
+    await page.evaluate((id) => {
+      const element = document.getElementById(id)!;
+      window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 92, behavior: "auto" });
+    }, section);
+    await expect.poll(highlighted, { message: `section #${section}` }).toBe(entry);
+  }
 });
 
 test("hero portrait stays crisp while scrolling and the surname keeps its accent", async ({ page }) => {
@@ -185,7 +283,7 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
       expect(html).toContain(`<title>${route.title}</title>`);
       expect(html).toMatch(new RegExp(`<link rel="canonical" href="${route.canonical}"\\s*/?>`));
       expect(html).toMatch(new RegExp(`<meta property="og:type" content="${route.type}"\\s*/?>`));
-      expect(html).toContain('content="https://www.viganogabriele.com/og-cover-v3.png"');
+      expect(html).toContain('content="https://www.viganogabriele.com/og-cover.jpg"');
       expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
     }
   }
@@ -270,6 +368,32 @@ test("hero keeps the photograph visible until the SYS portrait is ready", async 
   });
   await expect(systemPortrait).toHaveAttribute("data-visible", "true");
   await expect(photo).toHaveAttribute("data-visible", "false");
+});
+
+test("the SYS portrait is not fetched until the mode is wanted", async ({ page }) => {
+  const systemPortraitRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("gabriele-photo-sys")) systemPortraitRequests.push(request.url());
+  });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const systemPortrait = page.locator('[data-hero-portrait-layer="system"]');
+
+  // Assert the mechanism, not the absence of traffic within a window: an
+  // unarmed layer carries no source at all, so there is nothing that could
+  // start loading late and slip past a timed check.
+  await expect(systemPortrait.locator("source")).toHaveCount(0);
+  expect(await systemPortrait.locator("img").evaluate((image: HTMLImageElement) => image.currentSrc || image.getAttribute("src") || "")).toBe("");
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.evaluate(() => window.scrollTo(0, 0));
+  expect(systemPortraitRequests).toHaveLength(0);
+
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(systemPortrait.locator("source")).toHaveCount(2);
+  await expect.poll(() => systemPortraitRequests.length).toBeGreaterThan(0);
+  await expect(systemPortrait).toHaveAttribute("data-visible", "true");
 });
 
 test("SYS keyboard shortcut is resilient and ignores editable or repeated keys", async ({ page }) => {
@@ -490,6 +614,13 @@ test("the loading screen is a lightweight readiness gate without a minimum durat
   await expect(preloader).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 
+  // Drop the interception before measuring the warm reload. Holding every
+  // portrait request through a Playwright route handler costs WebKit enough to
+  // dominate what this assertion is timing: with the route still armed the
+  // reload measured 654-1846ms across six runs and tripped the budget on the
+  // slow tail, and without it 664-862ms. The budget is about the app, so the
+  // harness should not be inside it.
+  await page.unroute("**/*gabriele-photo*");
   await page.reload();
   await expect(preloader).toHaveCount(0, { timeout: 1500 });
 });
@@ -529,7 +660,7 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 });
 
-test("CV stays covered until the first PDF page and its annotations are rendered", async ({ page }) => {
+test("CV is readable before the PDF is, and the viewer says it is still working", async ({ page }) => {
   let releasePdf!: () => void;
   const pdfReleased = new Promise<void>((resolve) => { releasePdf = resolve; });
   let markPdfRequested!: () => void;
@@ -542,13 +673,54 @@ test("CV stays covered until the first PDF page and its annotations are rendered
 
   await page.goto("/cv", { waitUntil: "domcontentloaded" });
   await pdfRequested;
-  await expect(page.locator("[data-preloader]")).toBeVisible();
-  await expect(page.locator("[data-route-content]")).toHaveAttribute("aria-hidden", "true");
-  await expect(page.locator("canvas")).toHaveCount(0);
 
+  // Holding the whole route behind pdf.js cost WebKit about five seconds in
+  // front of a loading bar while all of this was already laid out. The reader
+  // gets it immediately; only the framed viewport is still pending.
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Curriculum/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Download CV/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Open in new tab/i })).toBeVisible();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.getByText(/Loading document|Rendering page/i)).toBeVisible();
+
+  // The viewport is sized whether or not the canvas has landed, so nothing
+  // reflows when it does. Height is the assertion: the section is still
+  // finishing its entrance transform, which moves y by a couple of pixels
+  // without resizing anything.
+  // Measured through offsetHeight, not getBoundingClientRect: the entrance is
+  // a transform still interpolating while this runs, and a rect read mid-scale
+  // comes back a fraction of a pixel off a layout that has not changed at all.
+  const viewportHeight = () => page.locator("[data-cv-viewport]").evaluate((node) => node.offsetHeight);
+  const heightBefore = await viewportHeight();
+  expect(heightBefore).toBeGreaterThan(0);
   releasePdf();
   await expect(page.locator("canvas").first()).toBeVisible();
-  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  expect(await viewportHeight()).toBe(heightBefore);
+});
+
+test("the CV's own PDF links are announceable", async ({ page }) => {
+  await page.goto("/cv");
+  await expect(page.locator("canvas").first()).toBeVisible();
+  const annotations = page.locator(".annotationLayer a[href]");
+  await expect.poll(() => annotations.count()).toBeGreaterThan(0);
+  const audit = await annotations.evaluateAll((links) => links.map((link) => ({
+    href: link.getAttribute("href"),
+    label: link.getAttribute("aria-label"),
+    text: link.textContent?.trim() ?? "",
+    target: (link as HTMLAnchorElement).target,
+  })));
+
+  expect(audit.filter((link) => !link.text && !link.label).map((link) => link.href)).toEqual([]);
+  await expect(page.getByRole("link", { name: /Email info@viganogabriele\.com/i })).toHaveCount(1);
+
+  // The label may only promise a new tab when the anchor actually opens one.
+  // pdf.js leaves target empty unless externalLinkTarget is set, so without
+  // this the announcement described navigation that never happened.
+  const lying = audit.filter((link) => link.label?.includes("in a new tab") && link.target !== "_blank");
+  expect(lying, `labels promising a new tab on a same-tab link: ${JSON.stringify(lying)}`).toEqual([]);
+  // Following a link from inside the viewer must not replace the CV page.
+  expect(audit.filter((link) => link.href?.startsWith("http") && link.target !== "_blank")).toEqual([]);
 });
 
 test("likely internal destinations prefetch on intent", async ({ page }) => {
@@ -918,6 +1090,61 @@ test("reduced motion preserves content and accessibility", async ({ page }) => {
   const results = await new AxeBuilder({ page }).exclude("canvas").analyze();
   const serious = results.violations.filter((violation) => ["serious", "critical"].includes(violation.impact ?? ""));
   expect(serious, serious.map((violation) => `${violation.id}: ${violation.help}`).join("\n")).toEqual([]);
+});
+
+test("every route is free of serious accessibility violations", async ({ page }) => {
+  // The audit above only ever visited the home page, which is how eight
+  // unlabelled links on the CV — pdf.js draws the PDF's own link annotations
+  // as empty <a href> boxes over the canvas — went unnoticed. Every route the
+  // site serves is checked here, at both a phone and a desktop width.
+  for (const size of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(size);
+    for (const path of ["/", "/cv", "/notes/vpn-off-by-default", "/does-not-exist"]) {
+      await test.step(`${path} @ ${size.width}`, async () => {
+        await page.goto(path);
+        await expect(page.locator("[data-preloader]")).toHaveCount(0, { timeout: 20_000 });
+        const results = await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+          .exclude("canvas")
+          .analyze();
+        const serious = results.violations.filter((violation) => ["serious", "critical"].includes(violation.impact ?? ""));
+        expect(serious, serious.map((violation) => `${violation.id}: ${violation.help} (${violation.nodes.length})`).join("\n")).toEqual([]);
+      });
+    }
+  }
+});
+
+test("every keyboard stop shows where the focus is", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  // The carousels are tabbable regions that answer to the arrow keys, and they
+  // used to suppress the outline outright — arming those keys while showing
+  // nothing. Walking the whole page catches the next element that does it.
+  const unmarked: string[] = [];
+  const visited: string[] = [];
+  for (let step = 0; step < 120; step++) {
+    await page.keyboard.press("Tab");
+    const stop = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body) return null;
+      const style = getComputedStyle(el);
+      return {
+        name: el.getAttribute("aria-label") || el.textContent?.trim().slice(0, 40) || el.tagName,
+        marked: (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0) || style.boxShadow !== "none",
+      };
+    });
+    if (!stop) break;
+    visited.push(stop.name);
+    if (!stop.marked && !unmarked.includes(stop.name)) unmarked.push(stop.name);
+  }
+
+  // Assert the walk actually got as far as the regions this test exists for,
+  // otherwise an early exit would let it pass without checking anything.
+  expect(visited).toContain("Selected projects");
+  expect(visited).toContain("Skill groups");
+  expect(unmarked, `focusable with no visible focus indicator: ${unmarked.join(", ")}`).toEqual([]);
 });
 
 test("interactive controls meet the minimum touch target", async ({ page }) => {

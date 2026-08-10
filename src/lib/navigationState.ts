@@ -39,7 +39,7 @@ export function layoutTop(element: HTMLElement) {
 }
 
 /** Where the anchor sits relative to the current scroll offset, transform-free. */
-export function anchorViewportOffset(element: HTMLElement) {
+function anchorViewportOffset(element: HTMLElement) {
   return layoutTop(element) - window.scrollY;
 }
 

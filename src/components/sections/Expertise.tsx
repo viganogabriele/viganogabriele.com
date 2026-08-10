@@ -145,6 +145,23 @@ export function Expertise() {
           <p data-sys-reveal className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-accent">
             02.{String(activeIndex + 1).padStart(2, "0")} / active capability trace
           </p>
+          {/* A readout of the rail, not a control: the sticky column was empty
+              for the whole scroll of a five-item list, and the trace line above
+              named a number with nothing to read it against. Hidden below lg,
+              where the column stops being sticky and this would just repeat the
+              rail immediately underneath it. */}
+          <ol aria-hidden="true" className="mt-5 hidden border-t border-white/[0.08] lg:block">
+            {activities.map((activity, index) => (
+              <li
+                key={activity.title}
+                data-active={activeIndex === index}
+                className="capability-legend-row flex items-baseline gap-3 border-b border-white/[0.06] py-2.5 font-mono text-[10px] uppercase tracking-[0.13em] text-zinc-600"
+              >
+                <span className="capability-legend-index">{activity.index}</span>
+                <span className="capability-legend-title">{activity.title}</span>
+              </li>
+            ))}
+          </ol>
         </div>
         <div className="expertise-rail relative">
           {activities.map((activity, index) => (

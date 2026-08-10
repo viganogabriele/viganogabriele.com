@@ -1,10 +1,12 @@
 import { m, useInView } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
 import { useRef } from "react";
-import { CountUp } from "../motion/CountUp";
+import { CountUp, parseCountValue } from "../motion/CountUp";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { SectionHeader } from "../ui/SectionHeader";
 import { aboutSection } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
+import { cn } from "../../lib/cn";
 import { ease } from "../../lib/motion";
 
 export function About() {
@@ -44,9 +46,33 @@ export function About() {
               transition={{ delay: index * 0.06, duration: 0.5, ease: ease.cinematic }}
               className="proof-stat flex min-h-36 flex-col border-b border-white/[0.07] px-4 py-6 odd:border-r [&:nth-last-child(-n+2)]:border-b-0 lg:border-b-0 lg:[&:not(:last-child)]:border-r"
             >
-              <p className="text-3xl font-medium leading-none tracking-[-0.06em] text-accent sm:text-4xl"><CountUp value={item.value} trigger={statsInView} delay={index * 0.06} /></p>
+              {/* A value the counter can't count isn't a measurement, and
+                  setting one in the same accent display size as 16TB and 1,000
+                  read as a number that had failed to render. Word values take
+                  the bone weight instead, so the row scans as three metrics and
+                  one attribution rather than four metrics with a broken one. */}
+              <p className={cn(
+                "font-medium leading-none tracking-[-0.06em]",
+                parseCountValue(item.value)
+                  ? "text-3xl text-accent sm:text-4xl"
+                  : "text-2xl text-bone sm:text-3xl",
+              )}>
+                <CountUp value={item.value} trigger={statsInView} delay={index * 0.06} />
+              </p>
+              {/* Every label shares one treatment. The linked one used to be
+                  the only accent-coloured label in the row, which made the cell
+                  look like a different kind of thing rather than like a link;
+                  the arrow and the underline carry that job now. */}
               {item.link ? (
-                <a href={item.link} target="_blank" rel="noreferrer" data-cursor="hover" className="mt-auto inline-flex min-h-11 items-end py-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-accent/80 hover:text-accent">{item.label}</a>
+                <a href={item.link} target="_blank" rel="noreferrer" data-cursor="hover" className="group mt-auto flex min-h-11 items-end py-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-zinc-500 transition-colors hover:text-accent">
+                  {/* The arrow trails the last word inline rather than sitting
+                      at the cell's far edge, which on a wrapped label read as a
+                      stray mark instead of part of the link. */}
+                  <span className="underline decoration-transparent underline-offset-4 transition-colors group-hover:decoration-accent/50">
+                    {item.label}
+                    <ArrowUpRight aria-hidden="true" className="ml-1 inline h-3 w-3 align-[-0.15em]" />
+                  </span>
+                </a>
               ) : (
                 <p className="mt-auto font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">{item.label}</p>
               )}

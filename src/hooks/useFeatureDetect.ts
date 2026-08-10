@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { onViewportWidthChange } from "../lib/viewport";
 
-export const isTouchDevice = () =>
+const isTouchDevice = () =>
   typeof window !== "undefined" &&
   ("ontouchstart" in window || navigator.maxTouchPoints > 0);
 
-export const hasNoHoverPointer = () =>
+const hasNoHoverPointer = () =>
   typeof window !== "undefined" && window.matchMedia("(hover: none)").matches;
 
-export const isTelegramBrowser = () =>
+const isTelegramBrowser = () =>
   typeof navigator !== "undefined" && /Telegram/i.test(navigator.userAgent);
 
 export function useFeatureDetect() {
