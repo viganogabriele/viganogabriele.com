@@ -678,10 +678,18 @@ html[data-touch] .hero-viewport {
   isolation: isolate;
   overflow: clip;
   padding: 1.25rem 0 0.9rem;
-  outline: none;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* The ring is a tabbable region that answers to the arrow keys, and a blanket
+   `outline: none` here used to beat the global :focus-visible rule on equal
+   specificity — so tabbing to it armed those keys while showing nothing at all.
+   Scoped to :focus-visible, a mouse press still leaves no ring. */
+.circular-carousel:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 92%, transparent);
+  outline-offset: 3px;
 }
 
 .circular-carousel__stage {

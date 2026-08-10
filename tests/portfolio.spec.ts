@@ -1114,6 +1114,39 @@ test("every route is free of serious accessibility violations", async ({ page })
   }
 });
 
+test("every keyboard stop shows where the focus is", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  // The carousels are tabbable regions that answer to the arrow keys, and they
+  // used to suppress the outline outright — arming those keys while showing
+  // nothing. Walking the whole page catches the next element that does it.
+  const unmarked: string[] = [];
+  const visited: string[] = [];
+  for (let step = 0; step < 120; step++) {
+    await page.keyboard.press("Tab");
+    const stop = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body) return null;
+      const style = getComputedStyle(el);
+      return {
+        name: el.getAttribute("aria-label") || el.textContent?.trim().slice(0, 40) || el.tagName,
+        marked: (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0) || style.boxShadow !== "none",
+      };
+    });
+    if (!stop) break;
+    visited.push(stop.name);
+    if (!stop.marked && !unmarked.includes(stop.name)) unmarked.push(stop.name);
+  }
+
+  // Assert the walk actually got as far as the regions this test exists for,
+  // otherwise an early exit would let it pass without checking anything.
+  expect(visited).toContain("Selected projects");
+  expect(visited).toContain("Skill groups");
+  expect(unmarked, `focusable with no visible focus indicator: ${unmarked.join(", ")}`).toEqual([]);
+});
+
 test("interactive controls meet the minimum touch target", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
