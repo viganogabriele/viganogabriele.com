@@ -71,13 +71,11 @@ export function CircularCarousel<T>({
     const root = rootRef.current;
     const width = root?.clientWidth ?? 0;
     const compact = width < 640;
-    // The desktop ceiling used to be a flat 290px, so past ~850px the ring
-    // stopped growing and sat in the middle of an increasingly empty frame.
-    // Let it keep widening with the container (still bounded) so the stage
-    // fills the panel it is drawn inside. `.circular-carousel` clips, so a
-    // wider ring can never reach the page's horizontal scroll.
-    const ceiling = compact ? 180 : Math.min(430, Math.max(290, width * 0.36));
-    const radius = Math.min(ceiling, Math.max(compact ? 145 : 210, width * (compact ? 0.52 : 0.42))) * radiusScale;
+    // Keep enough radius to expose both neighbouring cards, but retain a
+    // deliberate overlap so the cards read as one ring instead of four panels
+    // floating apart. `.circular-carousel` clips the compact/mobile edges.
+    const ceiling = compact ? 160 : Math.min(360, Math.max(245, width * 0.28));
+    const radius = Math.min(ceiling, Math.max(compact ? 132 : 195, width * (compact ? 0.46 : 0.34))) * radiusScale;
     const depth = compact ? 76 : 96;
     const step = 360 / count;
     const nearest = items.reduce((best, _item, index) => (
@@ -100,7 +98,7 @@ export function CircularCarousel<T>({
       const rotateY = -Math.sin(radians) * 20;
       card.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${rotateY.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
       card.style.opacity = opacity.toFixed(3);
-      card.style.zIndex = String(Math.round(frontness * 100));
+      card.style.zIndex = String(index === selected ? 1000 : Math.round(frontness * 100) + (angle > 0 ? 1 : 0));
       card.style.filter = "none";
       card.style.pointerEvents = frontness < 0.1 ? "none" : "auto";
     });

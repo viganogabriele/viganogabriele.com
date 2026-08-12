@@ -32,8 +32,11 @@ function parseHSL(hslStr: string): { h: number; s: number; l: number } {
 }
 
 function buildBoxShadow(glowColor: string, intensity: number): string {
-  const { h, s, l } = parseHSL(glowColor);
-  const base = `${h}deg ${s}% ${l}%`;
+  let base = glowColor;
+  if (!glowColor.startsWith('var(')) {
+    const { h, s, l } = parseHSL(glowColor);
+    base = `${h}deg ${s}% ${l}%`;
+  }
   const layers: [number, number, number, number, number, boolean][] = [
     [0, 0, 0, 1, 100, true], [0, 0, 1, 0, 60, true], [0, 0, 3, 0, 50, true],
     [0, 0, 6, 0, 40, true], [0, 0, 15, 0, 30, true], [0, 0, 25, 2, 20, true],
@@ -95,14 +98,14 @@ export const BorderGlow: React.FC<BorderGlowProps> = ({
   children,
   className = '',
   edgeSensitivity = 30,
-  glowColor = '221 84 74',
+  glowColor = 'var(--border-glow-hsl)',
   backgroundColor = '#120F17',
   borderRadius = 28,
   glowRadius = 40,
   glowIntensity = 1.0,
   coneSpread = 25,
   animated = false,
-  colors = ['#78a9ff', '#a68bff', '#b8d0ff'],
+  colors = ['var(--border-glow-primary)', 'var(--border-glow-secondary)', 'var(--border-glow-soft)'],
   fillOpacity = 0.5,
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);

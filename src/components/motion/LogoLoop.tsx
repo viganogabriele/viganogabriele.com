@@ -6,8 +6,8 @@ import { stackLogos } from "../../data/stackLogos";
  * https://reactbits.dev/animations/logo-loop
  *
  * Trimmed to what this site uses: one horizontal track of inline marks. The
- * upstream vertical mode, image branch, renderItem hook and hover-scale are
- * gone, along with its `dark:` fade colour — the theme here is unconditionally
+ * upstream vertical mode, image branch and renderItem hook are gone, along
+ * with its `dark:` fade colour — the theme here is unconditionally
  * dark, so that variant never resolved and the fade edge would have blended
  * toward white. It also ran its rAF for the life of the page; this one parks
  * when the strip is off-screen or the tab is hidden.
@@ -21,11 +21,13 @@ const SMOOTH_TAU = 0.25;
 const MIN_COPIES = 2;
 const COPY_HEADROOM = 2;
 const SPEED = 26;
+const HOVER_SPEED = 76;
 
 export function LogoLoop({ className = "" }: { className?: string }) {
   const container = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const sequence = useRef<HTMLUListElement>(null);
+  const hovering = useRef(false);
   const [sequenceWidth, setSequenceWidth] = useState(0);
   const [copies, setCopies] = useState(MIN_COPIES);
 
@@ -68,7 +70,8 @@ export function LogoLoop({ className = "" }: { className?: string }) {
       if (last === null) last = now;
       const delta = Math.max(0, now - last) / 1000;
       last = now;
-      velocity += (SPEED - velocity) * (1 - Math.exp(-delta / SMOOTH_TAU));
+      const targetSpeed = hovering.current ? HOVER_SPEED : SPEED;
+      velocity += (targetSpeed - velocity) * (1 - Math.exp(-delta / SMOOTH_TAU));
       offset = (((offset + velocity * delta) % sequenceWidth) + sequenceWidth) % sequenceWidth;
       node.style.transform = `translate3d(${-offset}px, 0, 0)`;
       frame = requestAnimationFrame(tick);
@@ -104,20 +107,24 @@ export function LogoLoop({ className = "" }: { className?: string }) {
       key={copy}
       ref={copy === 0 ? sequence : undefined}
       aria-hidden={copy > 0}
-      className="flex shrink-0 items-center gap-16 pr-16"
+      className="logo-loop-sequence flex shrink-0 items-center"
     >
       {stackLogos.map((logo) => (
-        <li key={logo.label} className="flex shrink-0 items-center text-zinc-500">
-          <svg viewBox="0 0 24 24" aria-hidden className="h-9 w-9 shrink-0 fill-current"><path d={logo.path} /></svg>
+        <li key={logo.label} className="logo-loop-item flex shrink-0 items-center text-zinc-500">
+          <svg viewBox="0 0 24 24" aria-hidden className="h-7 w-7 shrink-0 fill-current sm:h-9 sm:w-9"><path d={logo.path} /></svg>
         </li>
       ))}
     </ul>
   )), [copies]);
 
   return (
-    // Scenery, not furniture: it runs on its own and never takes a pointer, so
-    // it cannot be hovered, paused, dragged or focused.
-    <div ref={container} aria-hidden className={`logo-loop pointer-events-none relative select-none overflow-hidden ${className}`}>
+    <div
+      ref={container}
+      aria-hidden
+      onPointerEnter={() => { hovering.current = true; }}
+      onPointerLeave={() => { hovering.current = false; }}
+      className={`logo-loop relative select-none overflow-hidden ${className}`}
+    >
       <div ref={track} className="flex h-full w-max items-center will-change-transform motion-reduce:transform-none">
         {lists}
       </div>

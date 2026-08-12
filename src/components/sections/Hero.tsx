@@ -121,7 +121,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
           initial={reduced ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.34, duration: 0.75, ease: ease.cinematic }}
-          className="hero-visual-frame relative mx-auto hidden w-full max-w-[34rem] sm:block sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem]"
+          className="hero-visual-frame relative mx-auto hidden w-full max-w-[30rem] sm:block sm:aspect-[5/6] sm:min-h-[21rem] lg:aspect-[4/5] lg:min-h-[30rem]"
         >
           <BorderGlow className="h-full w-full" borderRadius={0} backgroundColor="#080b16" glowRadius={46} glowIntensity={1.65} fillOpacity={0.44} animated={portraitSweep}>
             <div className="relative h-full w-full overflow-hidden">
