@@ -712,6 +712,28 @@ html[data-touch] .hero-viewport {
   outline-offset: 3px;
 }
 
+/* Edge fade for the marquee. The theme is unconditionally dark, so the colour
+   is stated rather than left to a `dark:` variant that never resolves. */
+.logo-loop::before,
+.logo-loop::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  z-index: 1;
+  width: clamp(2rem, 8%, 7rem);
+  pointer-events: none;
+}
+
+.logo-loop::before {
+  left: 0;
+  background: linear-gradient(to right, color-mix(in srgb, var(--color-surface) 80%, var(--color-background)) 0%, transparent 100%);
+}
+
+.logo-loop::after {
+  right: 0;
+  background: linear-gradient(to left, color-mix(in srgb, var(--color-surface) 80%, var(--color-background)) 0%, transparent 100%);
+}
+
 /* ── Cursor-tracked edge light (see components/motion/BorderGlow.tsx) ─────
    A 1px ring painted with a conic gradient whose origin follows the cursor,
    plus a low bloom under the pointer. The ring is a mask-composite cut-out

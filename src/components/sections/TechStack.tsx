@@ -1,4 +1,5 @@
 import { Bot, Code2, PanelsTopLeft, Server } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { toolGroups } from "../../data/techStack";
 import { techStackSection } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -6,6 +7,8 @@ import { BorderGlow } from "../motion/BorderGlow";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { CircularCarousel } from "../ui/CircularCarousel";
 import { SectionHeader } from "../ui/SectionHeader";
+
+const LogoLoop = lazy(() => import("../motion/LogoLoop").then((module) => ({ default: module.LogoLoop })));
 
 type ToolGroupType = typeof toolGroups[number];
 
@@ -57,6 +60,11 @@ export function TechStack() {
             reducedMotion={prefersReducedMotion || level === "static"}
             className="tool-carousel"
           />
+          {/* Fixed height so the lazy chunk cannot shift the panel when it
+              arrives, and so the strip reserves its row from first paint. */}
+          <div className="h-11 border-t border-white/[0.08]">
+            <Suspense fallback={null}><LogoLoop className="h-full" /></Suspense>
+          </div>
         </div>
       </ScrollReveal>
     </section>
