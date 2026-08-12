@@ -1,17 +1,25 @@
 import { m, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, FileText, Mail } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { profile } from "../../data/profile";
 import { heroCopy } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
+import { cn } from "../../lib/cn";
 import { ease } from "../../lib/motion";
 import { BorderGlow } from "../motion/BorderGlow";
 import { Magnetic } from "../motion/Magnetic";
 import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 
+const ParticleText = lazy(() => import("../motion/ParticleText").then((module) => ({ default: module.ParticleText })));
+
 export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; onToggleSystem: () => void }) {
   const reduced = useReducedMotion();
-  const { level } = useMotionProfile();
+  const { level, isCompact } = useMotionProfile();
+  // The wordmark only dissolves where the site already allows its optional
+  // flourishes: `full` excludes reduced motion, save-data, touch and thin
+  // hardware, and the canvas is worth nothing at phone width.
+  const particleWordmark = level === "full" && !isCompact;
   const ctaButton = (
     <a
       href={`mailto:${profile.email}`}
@@ -44,10 +52,13 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             initial={reduced ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.23, duration: 0.9, ease: ease.cinematic }}
-            className="hero-wordmark mt-4 max-w-4xl font-medium leading-[0.8] tracking-[-0.09em] text-bone"
+            className={cn("hero-wordmark relative mt-4 max-w-4xl font-medium leading-[0.8] tracking-[-0.09em] text-bone", particleWordmark && "hero-wordmark--particles")}
           >
-            <span className="hero-wordmark-line block"><span>GABRIELE</span></span>
-            <span className="hero-wordmark-line hero-wordmark-line-accent block pl-[0.06em] text-zinc-300" aria-hidden="true"><span>VIGAN<span className="hero-wordmark-o-grave">O</span></span></span>
+            <span className="hero-wordmark-line block"><span data-particle-line="GABRIELE">GABRIELE</span></span>
+            {/* The grave is drawn by .hero-wordmark-o-grave, so the canvas is
+                handed the real Ò to sample instead of the split-up markup. */}
+            <span className="hero-wordmark-line hero-wordmark-line-accent block pl-[0.06em] text-zinc-300" aria-hidden="true"><span data-particle-line="VIGANÒ">VIGAN<span className="hero-wordmark-o-grave">O</span></span></span>
+            {particleWordmark && <Suspense fallback={null}><ParticleText /></Suspense>}
           </m.h1>
 
           <m.div

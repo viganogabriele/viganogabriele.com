@@ -154,6 +154,26 @@ body {
   overflow: hidden;
 }
 
+/* The canvas in components/motion/ParticleText.tsx draws the wordmark. The
+   type stays in the document at the same metrics — it is still the accessible
+   name, still selectable, still what a crawler reads — it just stops painting,
+   which also takes the CSS-drawn grave accent with it. */
+.hero-wordmark--particles,
+.hero-wordmark--particles * {
+  color: transparent;
+}
+
+/* Keeps the wordmark's own two-tone hierarchy in the particle field: the name
+   stays bone, the surname keeps its quieter tone, and the canvas mixes each
+   toward the accent across the width. */
+.hero-wordmark--particles [data-particle-line] {
+  --particle-tint: var(--color-bone);
+}
+
+.hero-wordmark--particles .hero-wordmark-line-accent [data-particle-line] {
+  --particle-tint: var(--color-zinc-300);
+}
+
 .hero-wordmark-line-accent {
   overflow: hidden;
   margin-top: -0.04em;
@@ -741,7 +761,7 @@ html[data-touch] .hero-viewport {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(14rem 14rem at var(--glow-x) var(--glow-y), color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%);
+  background: radial-gradient(11rem 11rem at var(--glow-x) var(--glow-y), color-mix(in srgb, var(--accent) 9%, transparent), transparent 62%);
   mix-blend-mode: plus-lighter;
 }
 
