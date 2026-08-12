@@ -734,6 +734,75 @@ html[data-touch] .hero-viewport {
   background: linear-gradient(to left, color-mix(in srgb, var(--color-surface) 80%, var(--color-background)) 0%, transparent 100%);
 }
 
+/* ── Specular rim (see components/motion/SpecularRim.tsx) ─────────────────
+   Two streaks 180° apart on a 1px ring just outside the button, steering
+   toward the pointer. Registering the angle lets it interpolate rather than
+   snap; browsers without @property still track, just without the easing. */
+/* Inherited: the angle is written on the host element and has to reach the
+   pseudo-elements that draw the ring. Registering it also lets it interpolate
+   instead of snapping; browsers without @property still track, unsmoothed. */
+@property --rim-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+.specular-rim-host {
+  transition: --rim-angle 220ms linear;
+}
+
+.specular-rim {
+  position: absolute;
+  /* Entirely outside the button's border box, so it never sits over the bone
+     fill and needs no stacking-order games to stay visible. */
+  inset: -2px;
+  pointer-events: none;
+  opacity: var(--rim-opacity, 0);
+  transition: opacity 260ms ease-out;
+}
+
+.specular-rim::before,
+.specular-rim::after {
+  content: "";
+  position: absolute;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--rim-angle, 0deg) at 50% 50%,
+    var(--accent-soft) 0deg,
+    transparent 24deg,
+    transparent 156deg,
+    var(--accent-soft) 180deg,
+    transparent 204deg,
+    transparent 336deg,
+    var(--accent-soft) 360deg
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+}
+
+/* Crisp streak on the edge. */
+.specular-rim::before {
+  inset: 0;
+}
+
+/* Same streaks blurred and spread, so the light reads as light rather than as
+   a hairline drawn next to a bright fill. */
+.specular-rim::after {
+  inset: -5px;
+  padding: 3px;
+  filter: blur(5px);
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .specular-rim { display: none; }
+}
+
 /* ── Cursor-tracked edge light (see components/motion/BorderGlow.tsx) ─────
    A 1px ring painted with a conic gradient whose origin follows the cursor,
    plus a low bloom under the pointer. The ring is a mask-composite cut-out
