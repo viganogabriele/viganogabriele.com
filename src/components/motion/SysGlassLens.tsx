@@ -1,0 +1,52 @@
+import { useRef } from "react";
+import { createPortal } from "react-dom";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
+import { usePointerFrames } from "../../hooks/usePointerFrames";
+
+/**
+ * A glass lens that follows the cursor while SYS mode is on.
+ *
+ * This is the idea behind ReactBits `FluidGlass` at a cost the site can carry.
+ * That component is not really a component — it is the demo page: it mounts its
+ * own <Canvas>, wraps the scene in <ScrollControls>, which would take over
+ * scrolling from RouteScrollManager in App.tsx, and hard-codes GLB models and
+ * demo imagery that do not exist in this repository, on top of three,
+ * @react-three/fiber, @react-three/drei and maath. PR #18 removed exactly that
+ * toolchain.
+ *
+ * So the refraction is done the cheap way: backdrop-filter over the SYS grid,
+ * with a bright rim and an inner shadow doing the work of the glass edge. Note
+ * this is not the SVG feDisplacementMap the plan proposed — `backdrop-filter`
+ * does not accept a url() filter reference in Safari or Firefox, so a genuine
+ * displacement would have shown glass in Chrome and nothing anywhere else.
+ *
+ * Mounted only while SYS is active, and only where the site already allows its
+ * heavier flourishes.
+ */
+export function SysGlassLens() {
+  const lens = useRef<HTMLDivElement>(null);
+  const { level, canUsePointerEffects } = useMotionProfile();
+  const enabled = level === "full" && canUsePointerEffects;
+
+  usePointerFrames({
+    enabled,
+    target: () => window,
+    onPoint: (point) => {
+      const node = lens.current;
+      if (!node) return;
+      if (!point) {
+        node.style.opacity = "0";
+        return;
+      }
+      node.style.opacity = "1";
+      node.style.translate = `${point.x}px ${point.y}px`;
+    },
+  });
+
+  if (!enabled) return null;
+
+  return createPortal(
+    <div ref={lens} aria-hidden className="sys-glass-lens" />,
+    document.body,
+  );
+}
