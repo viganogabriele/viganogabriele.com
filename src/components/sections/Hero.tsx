@@ -5,6 +5,7 @@ import { profile } from "../../data/profile";
 import { heroCopy } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { ease } from "../../lib/motion";
+import { BorderGlow } from "../motion/BorderGlow";
 import { Magnetic } from "../motion/Magnetic";
 import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 
@@ -101,6 +102,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
           className="hero-visual-frame relative mx-auto hidden w-full max-w-[34rem] overflow-hidden sm:block sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem]"
         >
           <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />
+          <BorderGlow />
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-accent/75">
             Portrait / profile
           </span>

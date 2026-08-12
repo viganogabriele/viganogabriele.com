@@ -2,6 +2,7 @@ import { Bot, Code2, PanelsTopLeft, Server } from "lucide-react";
 import { toolGroups } from "../../data/techStack";
 import { techStackSection } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
+import { BorderGlow } from "../motion/BorderGlow";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { CircularCarousel } from "../ui/CircularCarousel";
 import { SectionHeader } from "../ui/SectionHeader";
@@ -13,7 +14,8 @@ const groupIcons = [Code2, Server, PanelsTopLeft, Bot];
 function ToolGroupCard({ group, index, active }: { group: ToolGroupType; index: number; active: boolean }) {
   const Icon = groupIcons[index] ?? Code2;
   return (
-    <div className="tool-group static-skill h-full p-5 sm:p-6">
+    <div className="tool-group static-skill relative h-full p-5 sm:p-6">
+      <BorderGlow />
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent">0{index + 1} / skills</p>
