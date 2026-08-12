@@ -39,14 +39,19 @@ export function SplitText({
   }
 
   const lite = level === "lite";
+  // The pieces are inline-block so they can be transformed, and browsers insert
+  // a word break between inline-block boxes when computing an accessible name —
+  // per character that turns a heading into "C u r r i c u l u m". The label
+  // states the real string and the pieces are hidden from the tree.
   return (
-    <Tag id={id} className={className}>
+    <Tag id={id} className={className} aria-label={text}>
       {parts.map((part, index) =>
         part.trim().length === 0 ? (
-          <span key={index}>{part}</span>
+          <span key={index} aria-hidden>{part}</span>
         ) : (
           <m.span
             key={index}
+            aria-hidden
             className="inline-block whitespace-pre-line"
             initial={{ opacity: 0, y: lite ? 12 : 20, filter: lite ? "none" : "blur(3px)" }}
             animate={trigger ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: lite ? 12 : 20, filter: lite ? "none" : "blur(3px)" }}

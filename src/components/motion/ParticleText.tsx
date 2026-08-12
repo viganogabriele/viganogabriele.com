@@ -24,12 +24,17 @@ import { useEffect, useRef } from "react";
 // 1024-1280px the hero grid narrows the heading to about 578px while the type
 // stays at 112px — bound to the h1's box exactly, the canvas cut the bottom off
 // VIGANÒ and clipped the wordmark's sides at those widths.
-const PAD = 72;
+const PAD = 130;
 const DENSITY = 3;
 const MAX_PARTICLES = 3200;
-const GATHER_MS = 1500;
-const STAGGER_MS = 520;
-const SCATTER = 190;
+const GATHER_MS = 1100;
+/** Sweep left to right across the wordmark, so the field assembles like a scan
+ *  rather than every particle leaving at once on a random delay. */
+const WAVE_MS = 620;
+const JITTER_MS = 150;
+/** Kept under PAD: a particle that starts outside the canvas is clipped, and
+ *  the clip drew the canvas's own rectangle across the hero mid-animation. */
+const SCATTER = 78;
 const REPEL_RADIUS = 130;
 const REPEL_STRENGTH = 34;
 const IDLE_DRIFT = 0.8;
@@ -141,8 +146,10 @@ export function ParticleText() {
 
         // Colour is precomputed per particle; only the gather fades alpha, and
         // that rides globalAlpha rather than rebuilding a colour string for
-        // every particle on every frame.
-        if (gathering) context.globalAlpha = 0.4 + progress * 0.6;
+        // every particle on every frame. Starting from zero means a particle is
+        // still invisible while it is furthest out, which is the other half of
+        // keeping the canvas's edge off the screen.
+        if (gathering) context.globalAlpha = progress * progress;
         context.fillStyle = particle.color;
         context.fillRect(particle.x - particle.size / 2, particle.y - particle.size / 2, particle.size, particle.size);
       }
@@ -270,7 +277,7 @@ export function ParticleText() {
             size: dot,
             seed,
             depth,
-            delay: seed * STAGGER_MS,
+            delay: (target.x / Math.max(1, width)) * WAVE_MS + seed * JITTER_MS,
             tone: Math.min(Math.max(target.x / Math.max(1, width) + (seed - 0.5) * 0.3, 0), 1),
             tint: target.tint,
             color: "",

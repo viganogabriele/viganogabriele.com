@@ -141,7 +141,6 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                     data-cursor="hover"
                     className="btn-solid group relative inline-flex min-h-12 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16]"
                   >
-                    <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                     <Mail className="relative h-4 w-4" />
                     <span className="relative">Send email</span>
                     <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />

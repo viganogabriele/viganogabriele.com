@@ -1002,23 +1002,67 @@ html[data-touch] .hero-grid::before {
 }
 
 /* ─── Solid (bone) buttons ───────────────────────────────────────────────────
-   The primary actions. On hover they lift a little and throw an accent halo
-   rather than only swapping fill colour, so the press reads as a real object
-   being picked up — and the nav's Contact chip finally has a hover at all. */
+   The primary actions. Hovering wipes an accent fill across from the left
+   under the label — the site's own cinematic easing — instead of cross-fading
+   one flat colour into another. The label sits above the wipe, so it stays put
+   and stays legible while the surface changes under it. */
 .btn-solid {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   transition:
     transform 260ms cubic-bezier(.16, 1, .3, 1),
-    box-shadow 260ms ease,
-    background-color 220ms ease;
+    box-shadow 260ms ease;
+}
+
+.btn-solid > * {
+  position: relative;
+  z-index: 1;
+}
+
+.btn-solid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(100deg, var(--accent) 0%, var(--accent-soft) 55%, #ffffff 100%);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 460ms cubic-bezier(.16, 1, .3, 1);
+}
+
+/* A hairline of the accent riding the wipe's leading edge. */
+.btn-solid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(90deg, transparent 0 calc(100% - 2px), color-mix(in srgb, var(--accent) 85%, #fff) calc(100% - 2px));
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0;
+  transition: transform 460ms cubic-bezier(.16, 1, .3, 1), opacity 200ms ease;
+}
+
+.btn-solid:hover::before,
+.btn-solid:focus-visible::before,
+.btn-solid:hover::after,
+.btn-solid:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.btn-solid:hover::after,
+.btn-solid:focus-visible::after {
+  opacity: 1;
+  transition-delay: 0ms, 40ms;
 }
 
 .btn-solid:hover,
 .btn-solid:focus-visible {
   transform: translateY(-2px);
-  background-color: var(--color-blue-soft);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent),
-    0 12px 32px -10px color-mix(in srgb, var(--accent) 65%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 14px 34px -12px color-mix(in srgb, var(--accent) 75%, transparent);
 }
 
 .btn-solid:active {
@@ -1028,6 +1072,8 @@ html[data-touch] .hero-grid::before {
 
 @media (prefers-reduced-motion: reduce) {
   .btn-solid,
+  .btn-solid::before,
+  .btn-solid::after,
   .btn-solid:active { transition-duration: 120ms; }
   .btn-solid:hover,
   .btn-solid:focus-visible { transform: none; }
