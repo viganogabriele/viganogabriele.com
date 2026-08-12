@@ -13,7 +13,6 @@ import { Footer } from "../components/layout/Footer";
 import { Navbar } from "../components/layout/Navbar";
 import { SystemModeOverlay } from "../components/layout/SystemModeOverlay";
 import { ScrollBar } from "../components/motion/ScrollBar";
-import { SystemHUD } from "../components/motion/SystemHUD";
 import { useSystemMode } from "../hooks/useSystemMode";
 import { homeMetadata, websitePersonJsonLd } from "../data/site";
 import { JsonLd, PageMeta } from "../lib/seo";
@@ -45,7 +44,6 @@ export const HomePage = memo(function HomePage() {
       <ScrollBar />
       <Navbar onNavigate={scrollToSection} systemActive={systemActive} onToggleSystem={toggleSystem} />
       <SystemModeOverlay active={systemActive} transitionId={systemTransitionId} safeMode={webkitSafeMode} laserEnabled={laserEnabled} />
-      <SystemHUD active={systemActive} />
       <main id="main-content">
         <Hero systemActive={systemActive} onToggleSystem={toggleSystem} />
         <About />

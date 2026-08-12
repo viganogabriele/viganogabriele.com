@@ -1,5 +1,5 @@
 import { m, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -9,7 +9,6 @@ import { Footer } from "../components/layout/Footer";
 import { AppShell } from "../components/layout/AppShell";
 import { SystemModeOverlay } from "../components/layout/SystemModeOverlay";
 import { SplitText } from "../components/motion/SplitText";
-import { SystemHUD } from "../components/motion/SystemHUD";
 import { profile } from "../data/profile";
 import { cvMetadata } from "../data/site";
 import { cvPageCopy } from "../data/sections";
@@ -184,7 +183,6 @@ export function CvPage() {
     <AppShell>
       <PageMeta metadata={cvMetadata} />
       <SystemModeOverlay active={systemActive} transitionId={systemTransitionId} safeMode={webkitSafeMode} laserEnabled={laserEnabled} />
-      <SystemHUD active={systemActive} />
       <header className="safe-nav fixed left-1/2 top-3 z-[60] w-[calc(100%-1.25rem)] max-w-6xl -translate-x-1/2 sm:top-6 sm:w-[calc(100%-2rem)]">
         <div className="flex items-center justify-between gap-3 border border-white/[0.09] bg-background/80 px-2 py-1.5 backdrop-blur-xl sm:px-4 sm:py-2">
           <Link to="/" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 px-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:text-white">
@@ -201,7 +199,7 @@ export function CvPage() {
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">{cvPageCopy.eyebrow}</p>
           <div className="mt-4 flex flex-col gap-6 border-b border-white/[0.09] pb-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <SplitText as="h1" id="cv-title" stagger={0.045} text={cvPageCopy.title} className="text-5xl font-medium leading-[0.88] tracking-[-0.07em] whitespace-pre-line text-bone sm:text-7xl" />
+              <SplitText as="h1" id="cv-title" by="char" delay={0.08} stagger={0.018} text={cvPageCopy.title} className="text-5xl font-medium leading-[0.88] tracking-[-0.07em] whitespace-pre-line text-bone sm:text-7xl" />
               {/* Plain, as it was and as every section subtitle is: only the
                   heading animates, and the section's own entrance carries this. */}
               <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400">{cvPageCopy.summary}</p>
@@ -216,11 +214,6 @@ export function CvPage() {
         <m.section initial={entrance} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.6, delay: reduced ? 0 : 0.1, ease: ease.cinematic }} className="mt-7" aria-label="CV document viewer">
           <CvDocumentViewer />
         </m.section>
-
-        {systemActive && <m.aside initial={reduced ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.35, ease: ease.cinematic }} className="mt-8 border border-accent/30 bg-accent/[0.05] px-5 py-4 sm:mt-10 sm:flex sm:items-center sm:justify-between sm:gap-6" aria-label="System mode discovery">
-          <div><p className="font-mono text-[9px] uppercase tracking-[0.17em] text-accent">{cvPageCopy.systemAside.eyebrow}</p><p className="mt-2 text-sm text-zinc-300">{cvPageCopy.systemAside.text}</p></div>
-          <Link to="/#projects" data-cursor="hover" className="mt-4 inline-flex min-h-11 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-bone transition-colors hover:text-accent sm:mt-0">{cvPageCopy.systemAside.link} <ArrowUpRight className="h-3.5 w-3.5" /></Link>
-        </m.aside>}
 
         <Footer context="cv" />
       </main>

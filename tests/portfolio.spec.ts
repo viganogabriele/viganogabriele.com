@@ -247,6 +247,12 @@ test("CV page keeps the document primary and gives mobile users a full-screen do
   await page.goto("/cv");
   await expect(page).toHaveTitle("Gabriele Viganò · CV");
   await expect(page.getByRole("heading", { name: "Curriculum Vitae." })).toBeVisible();
+  await expect(page.locator("#cv-title")).toHaveAttribute("data-split-text", "char");
+  await expect(page.locator("#cv-title > span[aria-hidden]")).toHaveCount(17);
+  await expect.poll(() => page.locator("#cv-title > span[aria-hidden]").first().evaluate((span) => ({
+    opacity: getComputedStyle(span).opacity,
+    transform: getComputedStyle(span).transform,
+  }))).toEqual({ opacity: "1", transform: "none" });
   await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
   await expect(page.getByRole("button", { name: "Download CV" })).toBeEnabled();
   await expect(page.getByRole("link", { name: "Open in new tab" })).toHaveAttribute("target", "_blank");
@@ -255,8 +261,9 @@ test("CV page keeps the document primary and gives mobile users a full-screen do
   await expect(page.getByRole("heading", { name: "Explore further." })).toHaveCount(0);
   await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
   await page.getByRole("button", { name: "Toggle system mode" }).click();
-  await expect(page.getByLabel("System mode discovery")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Explore selected work" })).toHaveAttribute("href", "/#projects");
+  await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
+  await expect(page.locator("[data-system-orbit]")).toBeVisible();
+  await expect(page.locator(".sys-hud")).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });
@@ -351,7 +358,8 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect.poll(() => page.locator("html").getAttribute("data-test-system-wipe-observed")).toBe("true");
   await expect(system).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
-  await expect(page.getByText("SYS / violet trace")).toBeVisible();
+  await expect(page.locator("[data-system-orbit]")).toBeVisible();
+  await expect(page.getByText(/System layer active|SYS \/ violet trace|Structure visible/i)).toHaveCount(0);
   await expect(page.locator("[data-system-wipe]")).toHaveCount(1);
   await page.reload();
   await expect(system).toHaveAttribute("aria-pressed", "false");
@@ -884,15 +892,20 @@ test("mobile browser chrome height changes do not reflow the page", async ({ bro
   await context.close();
 });
 
-test("capability selection and journey axis stay deterministic while scrolling", async ({ page }) => {
+test("visible capabilities advance on their own and the journey axis stays aligned", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await page.locator('[data-index="4"]').evaluate((node) => {
-    window.scrollTo({ top: node.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.42 + 48, behavior: "auto" });
-    window.dispatchEvent(new Event("scroll"));
+  const expertise = page.locator("#expertise");
+  await expertise.scrollIntoViewIfNeeded();
+  await expect(expertise.locator('.expertise-item[data-active="true"]')).toHaveCount(1);
+  const firstActive = await expertise.locator('.expertise-item[data-active="true"]').getAttribute("data-index");
+  await expect.poll(async () => expertise.locator('.expertise-item[data-active="true"]').getAttribute("data-index"), { timeout: 3_500 }).not.toBe(firstActive);
+  const activeIsVisible = await expertise.locator('.expertise-item[data-active="true"]').evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    return rect.bottom > 0 && rect.top < window.innerHeight;
   });
-  await expect(page.locator('[data-index="4"]')).toHaveAttribute("data-active", "true");
+  expect(activeIsVisible).toBe(true);
   await page.locator("[data-journey-rail]").scrollIntoViewIfNeeded();
   const alignment = await page.evaluate(() => {
     const axis = document.querySelector<HTMLElement>("[data-journey-axis]")?.getBoundingClientRect();
@@ -907,7 +920,7 @@ test("capability selection and journey axis stay deterministic while scrolling",
   expect(alignment!.nodes.every((offset) => Math.abs(offset) <= 1)).toBe(true);
 });
 
-test("capability focus does not flash the row after its reveal", async ({ browser }) => {
+test("capability autoplay keeps rows stable after their reveal", async ({ browser }) => {
   for (const device of [
     { name: "mobile", hasTouch: true, viewport: { width: 390, height: 844 } },
     { name: "desktop", hasTouch: false, viewport: { width: 1440, height: 900 } },
@@ -928,22 +941,28 @@ test("capability focus does not flash the row after its reveal", async ({ browse
         window.dispatchEvent(new Event("scroll"));
       });
       await expect(row).toHaveCSS("opacity", "1");
-      await expect(row).toHaveAttribute("data-active", "false");
       await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-
-      await row.evaluate((element) => {
-        const top = element.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo(0, top - window.innerHeight * 0.42 + 10);
-        window.dispatchEvent(new Event("scroll"));
-      });
-      await expect(row).toHaveAttribute("data-active", "true");
-      await page.waitForTimeout(700);
+      await expect(row.locator("[data-capability-artifact]")).toBeVisible();
+      await page.waitForTimeout(2_500);
       await expect(row).toHaveCSS("opacity", "1");
       await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 
       await context.close();
     });
   }
+});
+
+test("capability autoplay and decorative motion stop with reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const expertise = page.locator("#expertise");
+  await expertise.scrollIntoViewIfNeeded();
+  const active = await expertise.locator('.expertise-item[data-active="true"]').getAttribute("data-index");
+  await page.waitForTimeout(2_500);
+  await expect(expertise.locator('.expertise-item[data-active="true"]')).toHaveAttribute("data-index", active!);
+  await expect(expertise.locator("[data-capability-artifact]").first()).toHaveCSS("animation-name", "none");
 });
 
 test("home loads without browser console errors", async ({ page }) => {

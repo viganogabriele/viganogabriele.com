@@ -76,11 +76,6 @@ export const cvPageCopy = {
   eyebrow: "Document / CV",
   title: "Curriculum\nVitae.",
   summary: "One page, because a CV has to be one page. The detail it had to cut is on the rest of this site.",
-  systemAside: {
-    eyebrow: "SYS / trace available",
-    text: "Every line on that page has a longer version. Here are three of them.",
-    link: "Explore selected work",
-  },
 };
 
 export const footerCopy = {

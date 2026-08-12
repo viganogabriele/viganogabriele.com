@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { activities } from "../../data/activities";
 import { expertiseSection } from "../../data/sections";
 import { dur, ease } from "../../lib/motion";
-import { onViewportWidthChange } from "../../lib/viewport";
 import { ArtifactSVG } from "../ui/ArtifactSVG";
 import { SectionHeader } from "../ui/SectionHeader";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -15,11 +14,13 @@ function ExpertiseItem({
   index,
   activeIndex,
   staticMotion,
+  onActivate,
 }: {
   activity: ActivityItem;
   index: number;
   activeIndex: number;
   staticMotion: boolean;
+  onActivate: (index: number) => void;
 }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-12% 0px" });
@@ -33,6 +34,7 @@ function ExpertiseItem({
       initial={staticMotion ? false : { opacity: 0, y: 20 }}
       animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       transition={{ duration: dur.reveal, delay: index * 0.05, ease: ease.cinematic }}
+      onPointerEnter={() => onActivate(index)}
       className={`expertise-item group grid gap-5 py-8 md:grid-cols-[auto_1fr_11rem] md:gap-7 md:py-10 ${activeIndex === index ? "is-focused" : ""}`}
     >
       <span aria-hidden className="expertise-dot absolute" />
@@ -74,10 +76,15 @@ function ExpertiseItem({
           {activity.tags.map((tag) => <span key={tag}>/{tag}</span>)}
         </m.div>
       </div>
-      <ArtifactSVG
-        type={activity.artifact}
-        className="h-24 w-full self-center text-accent/45 transition-colors duration-500 group-hover:text-accent/90 md:h-28"
-      />
+      <div className="capability-artifact" data-capability-artifact>
+        <span aria-hidden className="capability-artifact-orbit capability-artifact-orbit-outer" />
+        <span aria-hidden className="capability-artifact-orbit capability-artifact-orbit-inner" />
+        <span aria-hidden className="capability-artifact-beacon" />
+        <ArtifactSVG
+          type={activity.artifact}
+          className="relative z-[1] h-24 w-full text-accent/45 transition-colors duration-500 group-hover:text-accent/90 md:h-28"
+        />
+      </div>
     </m.article>
   );
 }
@@ -87,51 +94,33 @@ export function Expertise() {
   const staticMotion = level === "static";
   const [activeIndex, setActiveIndex] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
-  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const updateActive = () => {
-      const probe = window.innerHeight * 0.42;
-      const available = Array.from(sectionRef.current?.querySelectorAll<HTMLElement>("[data-index]") ?? []);
-      if (!available.length) return;
-      let nextIndex = 0;
-      let nearest = Number.POSITIVE_INFINITY;
-      for (const row of available) {
-        const rect = row.getBoundingClientRect();
-        const index = Number(row.dataset.index);
-        const distance = rect.top <= probe && rect.bottom >= probe ? 0 : Math.min(Math.abs(rect.top - probe), Math.abs(rect.bottom - probe));
-        if (distance < nearest) { nearest = distance; nextIndex = index; }
-      }
-      setActiveIndex((current) => current === nextIndex ? current : nextIndex);
-    };
-    const scheduleUpdate = () => {
-      if (frameRef.current !== null) return;
-      frameRef.current = window.requestAnimationFrame(() => {
-        frameRef.current = null;
-        updateActive();
+    if (staticMotion) return;
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => {
+        const section = sectionRef.current;
+        if (!section) return current;
+        const sectionRect = section.getBoundingClientRect();
+        if (sectionRect.bottom <= 0 || sectionRect.top >= window.innerHeight) return current;
+        const visible = Array.from(section.querySelectorAll<HTMLElement>("[data-index]"))
+          .filter((row) => {
+            const rect = row.getBoundingClientRect();
+            return Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0) >= 48;
+          })
+          .map((row) => Number(row.dataset.index));
+        if (visible.length < 2) return current;
+        const position = visible.indexOf(current);
+        return visible[(position + 1 + visible.length) % visible.length];
       });
-    };
-    const resizeObserver = new ResizeObserver(scheduleUpdate);
-    const visibilityObserver = new IntersectionObserver(scheduleUpdate, { threshold: 0 });
-    const rows = Array.from(sectionRef.current?.querySelectorAll<HTMLElement>("[data-index]") ?? []);
-    rows.forEach((row) => {
-      if (!row) return;
-      resizeObserver.observe(row);
-      visibilityObserver.observe(row);
-    });
-    updateActive();
-    window.addEventListener("scroll", scheduleUpdate, { passive: true });
-    const removeResizeListener = onViewportWidthChange(scheduleUpdate);
-    window.addEventListener("hashchange", scheduleUpdate);
-    return () => {
-      if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
-      resizeObserver.disconnect();
-      visibilityObserver.disconnect();
-      window.removeEventListener("scroll", scheduleUpdate);
-      removeResizeListener();
-      window.removeEventListener("hashchange", scheduleUpdate);
-    };
-  }, []);
+    }, 2_250);
+    return () => window.clearInterval(timer);
+  }, [staticMotion]);
+
+  const activate = (index: number) => {
+    if (staticMotion) return;
+    setActiveIndex(index);
+  };
 
   return (
     <section ref={sectionRef as never} id="expertise" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
@@ -142,15 +131,7 @@ export function Expertise() {
             title={expertiseSection.title}
             subtitle={expertiseSection.subtitle}
           />
-          <p data-sys-reveal className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-accent">
-            02.{String(activeIndex + 1).padStart(2, "0")} / active capability trace
-          </p>
-          {/* A readout of the rail, not a control: the sticky column was empty
-              for the whole scroll of a five-item list, and the trace line above
-              named a number with nothing to read it against. Hidden below lg,
-              where the column stops being sticky and this would just repeat the
-              rail immediately underneath it. */}
-          <ol aria-hidden="true" className="mt-5 hidden border-t border-white/[0.08] lg:block">
+          <ol aria-hidden="true" className="capability-legend mt-5 hidden border-t border-white/[0.08] lg:block">
             {activities.map((activity, index) => (
               <li
                 key={activity.title}
@@ -171,6 +152,7 @@ export function Expertise() {
               index={index}
               activeIndex={activeIndex}
               staticMotion={staticMotion}
+              onActivate={activate}
             />
           ))}
         </div>

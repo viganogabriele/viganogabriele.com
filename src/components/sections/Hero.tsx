@@ -128,9 +128,6 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
               <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />
             </div>
           </BorderGlow>
-          <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-accent/75">
-            Portrait / profile
-          </span>
         </m.div>
       </div>
 

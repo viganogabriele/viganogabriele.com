@@ -35,7 +35,7 @@ export function SplitText({
   const parts = useMemo(() => (by === "char" ? [...text] : text.split(/(\s+)/)), [text, by]);
 
   if (prefersReducedMotion || level === "static") {
-    return <Tag id={id} className={className}>{text}</Tag>;
+    return <Tag id={id} data-split-text="static" className={className}>{text}</Tag>;
   }
 
   const lite = level === "lite";
@@ -44,7 +44,7 @@ export function SplitText({
   // per character that turns a heading into "C u r r i c u l u m". The label
   // states the real string and the pieces are hidden from the tree.
   return (
-    <Tag id={id} className={className} aria-label={text}>
+    <Tag id={id} data-split-text={by} className={className} aria-label={text}>
       {parts.map((part, index) =>
         part.trim().length === 0 ? (
           <span key={index} aria-hidden>{part}</span>
