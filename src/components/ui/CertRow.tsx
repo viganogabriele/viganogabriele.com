@@ -1,7 +1,33 @@
 import { ArrowUpRight } from "lucide-react";
 import type { Certification } from "../../data/certifications";
 
-export function CertRow({ certification }: { certification: Certification }) {
+/**
+ * One credential as a full-width row. Now that the section header carries the
+ * aside, the list has the whole column: the numbering, title, issuer and year
+ * get their own tracks instead of being crowded into a narrow half.
+ */
+export function CertRow({ certification, index }: { certification: Certification; index: number }) {
   const Icon = certification.icon;
-  return <a href={certification.link} target="_blank" rel="noreferrer" data-cursor="hover" className="group grid min-h-14 grid-cols-[auto_1fr_auto] items-center gap-4 px-3 py-3 font-mono text-[10px] uppercase tracking-[0.13em] text-zinc-500 transition-colors hover:text-zinc-100 sm:grid-cols-[auto_1fr_auto_auto]"><Icon className="h-4 w-4 text-blue-soft/80" /><span className="text-zinc-300">{certification.title}</span><span className="hidden sm:block">{certification.issuer}</span><span className="flex items-center gap-2 self-center text-accent/80"><span className="hidden lg:inline">View credential</span>{certification.year}<ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></span></a>;
+  return (
+    <a
+      href={certification.link}
+      target="_blank"
+      rel="noreferrer"
+      data-cursor="hover"
+      className="cert-row group grid min-h-16 grid-cols-[auto_1fr_auto] items-center gap-x-5 gap-y-1 border-b border-white/[0.08] px-3 py-4 sm:grid-cols-[auto_auto_1fr_auto_auto] sm:py-5"
+    >
+      <span className="font-mono text-[10px] tracking-[0.14em] text-zinc-600">{String(index + 1).padStart(2, "0")}</span>
+      <Icon aria-hidden className="h-4 w-4 text-accent/70 transition-colors group-hover:text-accent" />
+      <span className="min-w-0 text-base tracking-[-0.02em] text-zinc-200 transition-colors group-hover:text-bone sm:text-lg">
+        {certification.title}
+      </span>
+      <span className="col-start-2 col-end-4 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:col-auto sm:text-right">
+        {certification.issuer} · {certification.year}
+      </span>
+      <span className="col-start-3 row-start-1 flex items-center gap-2 justify-self-end font-mono text-[9px] uppercase tracking-[0.14em] text-accent/80 sm:col-auto sm:row-auto">
+        <span className="hidden lg:inline">View credential</span>
+        <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+      </span>
+    </a>
+  );
 }

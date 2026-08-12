@@ -139,7 +139,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                   <a
                     href={`mailto:${EMAIL}`}
                     data-cursor="hover"
-                    className="group relative inline-flex min-h-12 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
+                    className="btn-solid group relative inline-flex min-h-12 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16]"
                   >
                     <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                     <Mail className="relative h-4 w-4" />

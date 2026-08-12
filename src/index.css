@@ -717,57 +717,6 @@ html[data-touch] .hero-viewport {
   -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
 }
 
-/* ── Specular button ──────────────────────────────────────────────────────
-   The ReactBits SpecularButton's own shape, so the shader draws this element's
-   edge rather than a highlight against a filled block: no fill, an 18px
-   radius, and the faint inner top edge and drop that give it thickness. */
-.specular-button {
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--color-surface) 34%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 8px 24px rgba(0, 0, 0, 0.25);
-  transition: background-color 220ms ease, color 220ms ease;
-}
-
-.specular-button:hover {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: #fff;
-}
-
-/* ── SYS glass lens (see components/motion/SysGlassLens.tsx) ──────────────
-   Centred on the cursor via `translate`, so it composes with the -50% offset
-   in `transform` the way CustomCursor already does it. */
-.sys-glass-lens {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 60;
-  width: 11rem;
-  height: 11rem;
-  border-radius: 9999px;
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  backdrop-filter: blur(6px) saturate(1.9) brightness(1.22) contrast(1.08);
-  -webkit-backdrop-filter: blur(6px) saturate(1.9) brightness(1.22) contrast(1.08);
-  border: 1px solid color-mix(in srgb, var(--accent-soft) 55%, transparent);
-  /* Bright top edge, dark bottom, coloured spill: the cues that read as a
-     thick piece of glass sitting above the page rather than a blurred hole. */
-  box-shadow:
-    inset 0 2px 1px color-mix(in srgb, var(--accent-soft) 55%, transparent),
-    inset 0 -2px 1px color-mix(in srgb, var(--color-background) 65%, transparent),
-    inset 0 0 3.5rem color-mix(in srgb, var(--accent) 18%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--color-background) 55%, transparent),
-    0 1rem 3rem color-mix(in srgb, var(--color-background) 70%, transparent),
-    0 0 3rem color-mix(in srgb, var(--accent) 22%, transparent);
-  transition: opacity 240ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sys-glass-lens { display: none; }
-}
-
 .circular-carousel__stage {
   position: relative;
   height: 26rem;
@@ -776,18 +725,14 @@ html[data-touch] .hero-viewport {
   transform-style: preserve-3d;
 }
 
-/* Border, shadow and overflow belong to BorderGlow now — overflow has to stay
-   visible so its outer glow is not sliced off at the card edge. The original
-   fill stays, unflattened: the ring dims its background cards for depth, so
-   their small labels sit near the contrast floor, and replacing this gradient
-   with a flat colour turned a check axe cannot compute into a failing one
-   without changing what anyone actually sees. */
 .circular-carousel__card {
   position: absolute;
   top: 50%;
   left: 50%;
   width: min(25rem, calc(100% - 2.5rem));
   min-height: 19.25rem;
+  /* Border, shadow and overflow belong to BorderGlow — overflow must stay
+     visible so its outer glow is not sliced off at the card edge. */
   background:
     linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 96%, var(--accent) 4%), rgba(8, 11, 22, 0.94)),
     var(--color-surface);
@@ -818,19 +763,6 @@ html[data-touch] .hero-viewport {
 }
 
 .circular-carousel__card:active { cursor: grabbing; }
-
-/* BorderGlow sets a flat background inline — it needs one solid colour to mask
-   its mesh border against. That flat fill replaced the card's designed gradient
-   as the nearest painted background, which is both a visual flattening and the
-   reason a contrast check that was previously incomplete started failing on the
-   ring's deliberately dimmed background cards. Layering the gradient back as a
-   background-image restores the original surface; !important is the only way
-   past an inline style. */
-.circular-carousel__card > .tool-group,
-.circular-carousel__card > .project-carousel-card {
-  background-image:
-    linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 96%, var(--accent) 4%), rgba(8, 11, 22, 0.94)) !important;
-}
 
 .circular-carousel__secondary {
   opacity: 0.72;
@@ -914,6 +846,16 @@ html[data-touch] .hero-viewport {
   .hero-grid::before {
     transition: none;
   }
+}
+
+/* BorderGlow sets a flat background inline — it needs one solid colour to mask
+   its mesh border against. Layering the card's designed gradient back over it
+   keeps the surface as drawn, and keeps a contrast checker reading the card
+   rather than the page behind it. */
+.circular-carousel__card > .tool-group,
+.circular-carousel__card > .project-carousel-card {
+  background-image:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 96%, var(--accent) 4%), rgba(8, 11, 22, 0.94)) !important;
 }
 
 /* ─── Hero scanlines ─────────────────────────────────────────────────────────── */
@@ -1059,27 +1001,61 @@ html[data-touch] .hero-grid::before {
   .note-row a:hover, .note-row a:focus-visible { transform: none; }
 }
 
-/* ─── Cert strip row ─────────────────────────────────────────────────────────── */
-.cert-row {
-  border-bottom: 0;
-}
-.cert-row:first-child {
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.cert-row a {
-  border-left: 1px solid transparent;
-  transition: border-color 280ms ease, background-color 280ms ease, color 280ms ease;
+/* ─── Solid (bone) buttons ───────────────────────────────────────────────────
+   The primary actions. On hover they lift a little and throw an accent halo
+   rather than only swapping fill colour, so the press reads as a real object
+   being picked up — and the nav's Contact chip finally has a hover at all. */
+.btn-solid {
+  transition:
+    transform 260ms cubic-bezier(.16, 1, .3, 1),
+    box-shadow 260ms ease,
+    background-color 220ms ease;
 }
 
-.cert-row a:hover,
-.cert-row a:focus-visible {
-  border-left-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
+.btn-solid:hover,
+.btn-solid:focus-visible {
+  transform: translateY(-2px);
+  background-color: var(--color-blue-soft);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 12px 32px -10px color-mix(in srgb, var(--accent) 65%, transparent);
+}
+
+.btn-solid:active {
+  transform: translateY(0);
+  transition-duration: 90ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cert-row a { transition-duration: 100ms; }
+  .btn-solid,
+  .btn-solid:active { transition-duration: 120ms; }
+  .btn-solid:hover,
+  .btn-solid:focus-visible { transform: none; }
+}
+
+/* ─── Cert row ───────────────────────────────────────────────────────────────── */
+/* The row is the link itself now, so the accent edge and wash live on it
+   rather than on a wrapper inside a narrow column. */
+.cert-row {
+  border-left: 2px solid transparent;
+  transition: border-color 280ms ease, background-color 280ms ease, padding-left 280ms ease;
+}
+
+.cert-row:hover,
+.cert-row:focus-visible {
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  padding-left: 1.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cert-row { transition-duration: 100ms; }
+  .cert-row:hover, .cert-row:focus-visible { padding-left: 0.75rem; }
+}
+
+[data-system-mode="on"] .note-row,
+[data-system-mode="on"] .cert-row {
+  border-color: color-mix(in srgb, var(--accent) 17%, transparent);
 }
 
 /* ─── System-mode grid overlay ───────────────────────────────────────────────── */

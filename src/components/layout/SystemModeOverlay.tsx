@@ -1,5 +1,5 @@
 import { AnimatePresence, m } from "framer-motion";
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 import { dur, ease } from "../../lib/motion";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { cn } from "../../lib/cn";
@@ -10,10 +10,6 @@ const CORNER_POS = [
   { key: "bl", cls: "bottom-6 left-6 border-b-2 border-l-2" },
   { key: "br", cls: "bottom-6 right-6 border-b-2 border-r-2" },
 ];
-
-// Only fetched when someone actually turns SYS on, so it costs a page load
-// that never enters the mode nothing at all.
-const SysGlassLens = lazy(() => import("../motion/SysGlassLens").then((module) => ({ default: module.SysGlassLens })));
 
 export function SystemModeOverlay({ active, transitionId, safeMode = false, laserEnabled = true }: { active: boolean; transitionId: number; safeMode?: boolean; laserEnabled?: boolean }) {
   const { level } = useMotionProfile();
@@ -29,7 +25,6 @@ export function SystemModeOverlay({ active, transitionId, safeMode = false, lase
 
   return <>
     <div aria-live="polite" className="sr-only">{announcement}</div>
-    {active && <Suspense fallback={null}><SysGlassLens /></Suspense>}
     <AnimatePresence>
       {wipeId !== null && <div key={wipeId} data-system-wipe aria-hidden className="system-mode-wipe-container pointer-events-none fixed inset-0 z-[80]"><m.div initial={{ y: "-100%" }} animate={{ y: "100%" }} transition={{ duration: dur.mode, ease: ease.cinematic }} onAnimationComplete={() => setCompletedWipeId((completed) => Math.max(completed, wipeId))} className="system-mode-wipe absolute inset-0" /></div>}
     </AnimatePresence>

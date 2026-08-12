@@ -1,6 +1,6 @@
 import { m, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, FileText, Mail } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { profile } from "../../data/profile";
 import { heroCopy } from "../../data/sections";
@@ -17,15 +17,28 @@ const ParticleText = lazy(() => import("../motion/ParticleText").then((module) =
 export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; onToggleSystem: () => void }) {
   const reduced = useReducedMotion();
   const { level, isCompact, prefersReducedMotion } = useMotionProfile();
-  // Every desktop, not just the top motion tier: `full` also demands four cores
-  // and 4GB, which quietly dropped the wordmark on ordinary laptops. Touch and
-  // phone widths keep the crisp type, and so does reduced motion.
-  const particleWordmark = !isCompact && !prefersReducedMotion;
+  // The wordmark is crisp type until SYS is switched on, and dissolves into the
+  // particle field while it is: the effect belongs to the mode that takes the
+  // site apart, rather than being the permanent state of Gabriele's name.
+  const particleWordmark = systemActive && !isCompact && !prefersReducedMotion;
+
+  // The portrait plays BorderGlow's sweep once the preloader hands the hero
+  // over — the same signal the wordmark reveal waits for, so the light runs
+  // when it can actually be seen rather than behind the overlay.
+  const [portraitSweep, setPortraitSweep] = useState(false);
+  useEffect(() => {
+    const root = document.documentElement;
+    const arm = () => { if (root.hasAttribute("data-hero-reveal")) { setPortraitSweep(true); return true; } return false; };
+    const observer = new MutationObserver(() => { if (arm()) observer.disconnect(); });
+    // Deferred a frame: an effect body may not set state directly.
+    const frame = requestAnimationFrame(() => { if (!arm()) observer.observe(root, { attributes: true, attributeFilter: ["data-hero-reveal"] }); });
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); };
+  }, []);
   const ctaButton = (
     <a
       href={`mailto:${profile.email}`}
       data-cursor="hover"
-      className="group relative inline-flex min-h-11 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
+      className="btn-solid group relative inline-flex min-h-11 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16]"
     >
       <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
       <Mail className="relative h-4 w-4" />
@@ -114,7 +127,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
           transition={{ delay: 0.34, duration: 1, ease: ease.cinematic }}
           className="hero-visual-frame relative mx-auto hidden w-full max-w-[34rem] sm:block sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem]"
         >
-          <BorderGlow className="h-full w-full" borderRadius={0} backgroundColor="#080b16" glowRadius={30} fillOpacity={0.28}>
+          <BorderGlow className="h-full w-full" borderRadius={0} backgroundColor="#080b16" glowRadius={30} fillOpacity={0.32} animated={portraitSweep}>
             <div className="relative h-full w-full overflow-hidden">
               <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />
             </div>

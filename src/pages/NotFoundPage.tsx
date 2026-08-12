@@ -54,7 +54,7 @@ export function NotFoundPage() {
             </p>
 
             <div className="not-found-actions mt-9 flex min-w-0 flex-wrap gap-3">
-              <Link to="/" data-cursor="hover" className="group inline-flex min-h-12 items-center gap-3 bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-accent-soft">
+              <Link to="/" data-cursor="hover" className="btn-solid group inline-flex min-h-12 items-center gap-3 bg-bone px-5 text-sm font-semibold text-[#080b16]">
                 <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
                 Return to the index
               </Link>
