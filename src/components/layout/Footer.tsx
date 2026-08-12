@@ -1,6 +1,6 @@
 import { AnimatePresence, m, useInView } from "framer-motion";
 import { ArrowUpRight, Check, Copy, Mail } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
@@ -35,12 +35,23 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
 
   const words = useMemo(() => HEADING.split(/(\s+)/), []);
 
+  const resetTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (resetTimer.current !== null) window.clearTimeout(resetTimer.current); }, []);
+
   const copy = async () => {
+    if (resetTimer.current !== null) window.clearTimeout(resetTimer.current);
     try {
       await navigator.clipboard.writeText(EMAIL);
       setCopied(true);
       setCopyMessage("Email address copied.");
-      setTimeout(() => setCopied(false), 1800);
+      resetTimer.current = window.setTimeout(() => {
+        resetTimer.current = null;
+        setCopied(false);
+        // Emptying the region matters: a live region only speaks when its text
+        // changes, so leaving the confirmation in place meant a second copy
+        // was announced to nobody.
+        setCopyMessage("");
+      }, 1800);
     } catch {
       setCopyMessage(`Copy unavailable. Email ${EMAIL}.`);
     }

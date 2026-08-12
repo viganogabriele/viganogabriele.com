@@ -269,12 +269,22 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   translate: 130% 0;
 }
 
+/* The soft edge is drawn as gradient stops rather than a 48px `filter: blur()`
+   over a flat disc. A filtered layer has to be re-blurred every time it
+   changes, and this one breathes on a 7s loop that never stops — so the hero
+   was paying for a full-frame blur pass forever. Opacity and scale on an
+   unfiltered gradient stay on the compositor. */
 .hero-object-aura {
   position: absolute;
-  inset: 12%;
+  inset: 2%;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  filter: blur(48px);
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--accent) 12%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 11%, transparent) 40%,
+    color-mix(in srgb, var(--accent) 5%, transparent) 66%,
+    transparent 86%
+  );
   animation: hero-aura 7s ease-in-out infinite;
 }
 
@@ -571,7 +581,18 @@ html[data-touch] body {
   color: #ede9e2;
 }
 
-/* Noise texture overlay */
+/* Noise texture overlay.
+   This was by far the most expensive thing on the page, on every device rather
+   than just the touch ones the mitigation below was written for. It is a fixed,
+   full-viewport layer, and `mix-blend-mode: overlay` made the browser re-blend
+   it against the whole document on every scrolled frame; a `grainShift`
+   translation on top of that kept it from ever being treated as settled.
+   Measured on the toolkit section: 21fps with both, 27fps without the
+   animation, 37fps with neither.
+
+   Composited normally at a matched opacity the grain is indistinguishable —
+   the backdrop here is a near-black #080b16, where `overlay` degenerates to
+   almost straight multiply anyway — so nothing was traded for it. */
 .noise::before {
   content: "";
   position: fixed;
@@ -579,58 +600,25 @@ html[data-touch] body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   pointer-events: none;
   z-index: 1;
-  opacity: 0.32;
-  mix-blend-mode: overlay;
-  animation: grainShift 8s steps(10) infinite;
+  opacity: 0.19;
 }
 
-/* Highest-impact touch mitigation on the page: this is a fixed, full-viewport
-   layer that both blends and translates. `mix-blend-mode: overlay` forces it
-   to re-blend against everything scrolling underneath on every frame, and the
-   grainShift animation keeps it moving — together they read as "the
-   background is moving" and stutter the entire site, not just the hero.
-   Specificity (0,2,1) intentionally beats the 2dppx opacity rule below, so
-   this stays authoritative on Retina touch screens without a second rule. */
+/* Touch screens keep the lighter grain they already had. Specificity (0,2,1)
+   intentionally beats the 2dppx rule below, so this stays authoritative on
+   Retina touch screens without a second rule. */
 [data-touch] .noise::before {
   opacity: 0.06;
-  mix-blend-mode: normal;
-  animation: none;
-}
-
-@keyframes grainShift {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  25% {
-    transform: translate3d(-2%, 1.5%, 0);
-  }
-  50% {
-    transform: translate3d(1.25%, -1.25%, 0);
-  }
-  75% {
-    transform: translate3d(2%, 1%, 0);
-  }
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .noise::before {
-    animation: none;
-  }
 }
 
 @media (prefers-color-scheme: light) {
   .noise::before {
-    animation: none;
     opacity: 0;
   }
 }
 
 @media screen and (min-resolution: 2dppx) {
   .noise::before {
-    opacity: 0.24;
+    opacity: 0.14;
   }
 }
 
@@ -643,26 +631,19 @@ html[data-touch] .hero-viewport {
   min-height: var(--stable-viewport-height, 100svh);
 }
 
-/* The drift is a desktop-only ambient effect: it lives on ::before (sized one
-   tile period past every edge so the translation never exposes an edge) and
-   animates `transform`, not `background-position`, which would repaint every
-   tick. On touch it must never run — see the [data-touch] rule below. */
-.hero-grid::before {
-  content: "";
-  position: absolute;
-  inset: -64px;
+/* The grid is painted straight onto the hero. It used to live on a ::before
+   inset a whole tile past every edge, drifting 63px over 24s — a translation
+   slow enough to be invisible (2.6px per second) on a layer the size of the
+   viewport, which Chromium would not composite: it cost 21fps of the hero's
+   frame budget on its own. Touch hardware was already given this static
+   version for the same reason; the pseudo-element, its keyframes and the five
+   rules that used to special-case it are all gone with it. */
+.hero-grid {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
   background-size: 64px 64px;
   background-position: -1px -1px;
-  pointer-events: none;
-  animation: hero-grid-drift 24s linear infinite;
-  transition: background-image 0.6s ease;
-}
-
-@keyframes hero-grid-drift {
-  to { transform: translate3d(63px, 63px, 0); }
 }
 
 .system-overlay {
@@ -693,6 +674,188 @@ html[data-touch] .hero-viewport {
   background: linear-gradient(to bottom, transparent 0%, transparent 38%, color-mix(in srgb, var(--accent) 76%, transparent) 44%, color-mix(in srgb, var(--accent-soft) 92%, transparent) 50%, color-mix(in srgb, var(--accent) 76%, transparent) 56%, transparent 62%, transparent 100%);
   transform: translateZ(0);
   will-change: transform;
+}
+
+/* ─── BorderGlow ─────────────────────────────────────────────────────────────
+   The whole effect hangs off two registered custom properties. Registering them
+   is what makes the sweep possible in CSS at all: an unregistered custom
+   property has no type, so it can only flip between keyframes instead of
+   interpolating. components/motion/BorderGlow.tsx writes them on hover and adds
+   [data-sweep] for the intro; nothing else about these layers is dynamic. */
+@property --bg-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 45deg;
+}
+
+@property --bg-edge {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.border-glow {
+  /* Restated even though @property gives them initial values: below Firefox
+     128 the registration is ignored, and an unregistered custom property with
+     no declaration resolves as invalid — which would take the conic masks and
+     both opacities down with it and leave the raw mesh gradient on screen.
+     With these, that Firefox loses only the interpolation: it steps the sweep
+     between keyframes instead of easing through it. */
+  --bg-angle: 45deg;
+  --bg-edge: 0;
+  --bg-surface: #120f17;
+  --bg-glow-radius: 40px;
+  --bg-glow-intensity: 1;
+  --bg-fill-opacity: 0.5;
+  /* Both curves are flat until the pointer is within the outer third of the
+     card — the border lights later than the glow, which is what separates the
+     hairline from the bloom around it. */
+  --bg-border-o: max(0, calc((var(--bg-edge) * 100 - 50) / 50));
+  --bg-glow-o: max(0, calc((var(--bg-edge) * 100 - 30) / 70));
+  --bg-mesh:
+    radial-gradient(at 80% 55%, var(--border-glow-primary) 0px, transparent 50%),
+    radial-gradient(at 69% 34%, var(--border-glow-secondary) 0px, transparent 50%),
+    radial-gradient(at 8% 6%, var(--border-glow-soft) 0px, transparent 50%),
+    radial-gradient(at 41% 38%, var(--border-glow-primary) 0px, transparent 50%),
+    radial-gradient(at 86% 85%, var(--border-glow-secondary) 0px, transparent 50%),
+    radial-gradient(at 82% 18%, var(--border-glow-soft) 0px, transparent 50%),
+    radial-gradient(at 51% 4%, var(--border-glow-secondary) 0px, transparent 50%),
+    linear-gradient(var(--border-glow-primary) 0 100%);
+  position: relative;
+  display: grid;
+  isolation: isolate;
+  border: 1px solid rgb(255 255 255 / 0.15);
+  background: var(--bg-surface);
+  transform: translate3d(0, 0, 0.01px);
+  box-shadow:
+    rgba(0, 0, 0, 0.1) 0 1px 2px, rgba(0, 0, 0, 0.1) 0 2px 4px,
+    rgba(0, 0, 0, 0.1) 0 4px 8px, rgba(0, 0, 0, 0.1) 0 8px 16px,
+    rgba(0, 0, 0, 0.1) 0 16px 32px, rgba(0, 0, 0, 0.1) 0 32px 64px;
+}
+
+.border-glow__border,
+.border-glow__fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1px solid transparent;
+  transition: opacity 250ms ease-out;
+}
+
+.border-glow__border {
+  background:
+    linear-gradient(var(--bg-surface) 0 100%) padding-box,
+    linear-gradient(rgb(255 255 255 / 0%) 0% 100%) border-box,
+    var(--bg-mesh) border-box;
+  opacity: var(--bg-border-o);
+  mask-image: conic-gradient(from var(--bg-angle) at center, black 25%, transparent 40%, transparent 60%, black 75%);
+  -webkit-mask-image: conic-gradient(from var(--bg-angle) at center, black 25%, transparent 40%, transparent 60%, black 75%);
+}
+
+.border-glow__fill {
+  background: var(--bg-mesh) padding-box;
+  opacity: calc(var(--bg-border-o) * var(--bg-fill-opacity));
+  mix-blend-mode: soft-light;
+  mask-image:
+    linear-gradient(to bottom, black, black),
+    radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%),
+    radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%),
+    conic-gradient(from var(--bg-angle) at center, transparent 5%, black 15%, black 85%, transparent 95%);
+  mask-composite: subtract, add, add, add, add, add;
+  -webkit-mask-composite: source-out, source-over, source-over, source-over, source-over, source-over;
+  -webkit-mask-image:
+    linear-gradient(to bottom, black, black),
+    radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%),
+    radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%),
+    conic-gradient(from var(--bg-angle) at center, transparent 5%, black 15%, black 85%, transparent 95%);
+}
+
+.border-glow__glow {
+  position: absolute;
+  z-index: 1;
+  inset: calc(-1 * var(--bg-glow-radius));
+  pointer-events: none;
+  opacity: var(--bg-glow-o);
+  mix-blend-mode: plus-lighter;
+  transition: opacity 250ms ease-out;
+  mask-image: conic-gradient(from var(--bg-angle) at center, black 2.5%, transparent 10%, transparent 90%, black 97.5%);
+  -webkit-mask-image: conic-gradient(from var(--bg-angle) at center, black 2.5%, transparent 10%, transparent 90%, black 97.5%);
+}
+
+.border-glow__glow > span {
+  position: absolute;
+  inset: var(--bg-glow-radius);
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--border-glow-hsl) / min(100%, calc(100% * var(--bg-glow-intensity)))),
+    inset 0 0 1px 0 hsl(var(--border-glow-hsl) / min(100%, calc(60% * var(--bg-glow-intensity)))),
+    inset 0 0 3px 0 hsl(var(--border-glow-hsl) / min(100%, calc(50% * var(--bg-glow-intensity)))),
+    inset 0 0 6px 0 hsl(var(--border-glow-hsl) / min(100%, calc(40% * var(--bg-glow-intensity)))),
+    inset 0 0 15px 0 hsl(var(--border-glow-hsl) / min(100%, calc(30% * var(--bg-glow-intensity)))),
+    inset 0 0 25px 2px hsl(var(--border-glow-hsl) / min(100%, calc(20% * var(--bg-glow-intensity)))),
+    inset 0 0 50px 2px hsl(var(--border-glow-hsl) / min(100%, calc(10% * var(--bg-glow-intensity)))),
+    0 0 1px 0 hsl(var(--border-glow-hsl) / min(100%, calc(60% * var(--bg-glow-intensity)))),
+    0 0 3px 0 hsl(var(--border-glow-hsl) / min(100%, calc(50% * var(--bg-glow-intensity)))),
+    0 0 6px 0 hsl(var(--border-glow-hsl) / min(100%, calc(40% * var(--bg-glow-intensity)))),
+    0 0 15px 0 hsl(var(--border-glow-hsl) / min(100%, calc(30% * var(--bg-glow-intensity)))),
+    0 0 25px 2px hsl(var(--border-glow-hsl) / min(100%, calc(20% * var(--bg-glow-intensity)))),
+    0 0 50px 2px hsl(var(--border-glow-hsl) / min(100%, calc(10% * var(--bg-glow-intensity))));
+}
+
+.border-glow__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+/* Leaving is slower than arriving, so the light trails off the card rather than
+   being switched off with the pointer. */
+.border-glow:not(:hover) .border-glow__border,
+.border-glow:not(:hover) .border-glow__fill,
+.border-glow:not(:hover) .border-glow__glow {
+  transition: opacity 750ms ease-in-out;
+}
+
+/* The sweep drives --bg-edge itself; a transition on top would make the layers
+   chase a value that is already animating. */
+.border-glow[data-sweep] .border-glow__border,
+.border-glow[data-sweep] .border-glow__fill,
+.border-glow[data-sweep] .border-glow__glow {
+  transition: none;
+}
+
+.border-glow[data-sweep] {
+  animation: border-glow-edge 4s both, border-glow-angle 4s both;
+}
+
+@keyframes border-glow-edge {
+  0% { --bg-edge: 0; animation-timing-function: cubic-bezier(.215, .61, .355, 1); }
+  12.5% { --bg-edge: 1; }
+  62.5% { --bg-edge: 1; animation-timing-function: cubic-bezier(.55, .055, .675, .19); }
+  100% { --bg-edge: 0; }
+}
+
+@keyframes border-glow-angle {
+  0% { --bg-angle: 110deg; animation-timing-function: cubic-bezier(.55, .055, .675, .19); }
+  37.5% { --bg-angle: 287.5deg; animation-timing-function: cubic-bezier(.215, .61, .355, 1); }
+  93.75%, 100% { --bg-angle: 465deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .border-glow[data-sweep] { animation: none; }
+  .border-glow__border,
+  .border-glow__fill,
+  .border-glow__glow,
+  .border-glow:not(:hover) .border-glow__border,
+  .border-glow:not(:hover) .border-glow__fill,
+  .border-glow:not(:hover) .border-glow__glow { transition-duration: 120ms; }
 }
 
 /* ─── 3D circular carousel ─────────────────────────────────────────────────── */
@@ -753,6 +916,16 @@ html[data-touch] .hero-viewport {
   perspective: 1180px;
   perspective-origin: 50% 46%;
   transform-style: preserve-3d;
+  /* The cards sit at translateZ((frontness - 1) * depth), which is zero only
+     at the exact instant a card is dead centre and negative every other
+     moment. Inside this preserve-3d context that puts them a fraction of a
+     pixel *behind* the stage's own plane, so the stage won the hit test and
+     the cards took neither hover nor clicks unless the ring happened to be
+     perfectly settled — the reason tapping a card usually did nothing. The
+     stage is a container and never wants to be a pointer target; drags are
+     handled on .circular-carousel, which still receives everything that falls
+     through here, and the cards set their own pointer-events per frame. */
+  pointer-events: none;
 }
 
 .circular-carousel__card {
@@ -770,7 +943,9 @@ html[data-touch] .hero-viewport {
   transform-origin: center center;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  will-change: transform, opacity, filter;
+  /* `filter` was in this list but the ring never sets one, so it asked the
+     compositor to reserve for an effect that never arrives. */
+  will-change: transform, opacity;
   cursor: grab;
 }
 
@@ -783,8 +958,10 @@ html[data-touch] .hero-viewport {
   transition: border-color 250ms ease, box-shadow 250ms ease;
 }
 
+/* No border-color here: the card carries Tailwind preflight's border-width of
+   0, so it only ever coloured nothing. The visible edge is the ::before rule
+   below, and BorderGlow owns the card's own hairline. */
 .circular-carousel__card[data-active="true"] {
-  border-color: color-mix(in srgb, var(--accent) 54%, rgba(255, 255, 255, 0.16));
   box-shadow: 0 1.8rem 4.5rem rgba(0, 0, 0, 0.5), 0 0 2.25rem color-mix(in srgb, var(--accent) 13%, transparent);
 }
 
@@ -877,10 +1054,6 @@ html[data-touch] .hero-viewport {
   *::after {
     scroll-behavior: auto !important;
   }
-
-  .hero-grid::before {
-    transition: none;
-  }
 }
 
 /* BorderGlow sets a flat background inline — it needs one solid colour to mask
@@ -914,7 +1087,7 @@ html[data-touch] .hero-viewport {
 }
 
 /* ─── System Mode activated state ────────────────────────────────────────────── */
-[data-system-mode="on"] .hero-grid::before {
+[data-system-mode="on"] .hero-grid {
   background-image:
     radial-gradient(circle, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px),
     linear-gradient(color-mix(in srgb, var(--accent) 2.8%, transparent) 1px, transparent 1px),
@@ -958,41 +1131,14 @@ html[data-touch] .hero-viewport {
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 15%, transparent) !important;
 }
 
-/* Chromium-based mobile browsers can keep the oversized, transform-animated
-   pseudo-element in a compositor layer even after its animation is disabled.
-   During async scrolling Brave and Telegram's webview then re-anchor that
-   layer a frame late, which makes the grid visibly slide and janks the page.
-   Paint the static grid on the hero itself on touch hardware and remove the
-   pseudo-element from the render tree entirely. */
-html[data-touch] .hero-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
-  background-position: -1px -1px;
-  background-size: 64px 64px;
-}
-
-html[data-touch][data-system-mode="on"] .hero-grid {
-  background-image:
-    radial-gradient(circle, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px),
-    linear-gradient(color-mix(in srgb, var(--accent) 2.8%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 2.8%, transparent) 1px, transparent 1px);
-  background-position: 10px 10px, -1px -1px, -1px -1px;
-  background-size: 20px 20px, 64px 64px, 64px 64px;
-}
-
-html[data-touch] .hero-grid::before,
+/* The scanline flicker repaints the whole hero on the devices least able to
+   afford it. Both grid variants above are now unconditional, so the four rules
+   that used to restate them for touch are gone. */
 [data-touch] .hero-scanlines {
-  /* The scanline flicker repaints the whole hero on the same devices. */
   animation: none;
 }
 
-html[data-touch] .hero-grid::before {
-  content: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .hero-grid::before,
   .hero-scanlines {
     animation: none !important;
   }
@@ -1290,6 +1436,12 @@ html[data-touch] .hero-grid::before {
   isolation: isolate;
   transform: translateX(0);
   transition: border-color 300ms ease;
+  /* The sweep below is a band wider than the row, so the row has to clip. The
+     margin is what the two things that legitimately overhang need: the status
+     dot is centred on the left border (5px out) and the focused artifact
+     carries a 1.1rem drop-shadow. */
+  overflow: clip;
+  overflow-clip-margin: 26px;
 }
 
 .expertise-item::before,
@@ -1309,11 +1461,18 @@ html[data-touch] .hero-grid::before {
   transition: opacity 500ms ease;
 }
 
+/* Travels on `transform` rather than `background-position`: the row is the
+   full width of the rail, and repainting that gradient every frame for the
+   focused row — one is always focused — cost around 11fps on its own. Same
+   band, same path, now composited. The element is the 220% the background-size
+   used to be, and the offsets are the two ends of the old sweep resolved
+   against that width. */
 .expertise-item::after {
   opacity: 0;
+  inset: 0 auto 0 0;
+  width: 220%;
   background: linear-gradient(105deg, transparent 36%, color-mix(in srgb, var(--accent-soft) 7%, transparent) 49%, transparent 62%);
-  background-position: 130% 0;
-  background-size: 220% 100%;
+  transform: translate3d(-71%, 0, 0);
 }
 
 .expertise-rail {
@@ -1351,9 +1510,9 @@ html[data-touch] .hero-grid::before {
 .expertise-item.is-focused::after { animation: capability-row-scan 2.25s cubic-bezier(.2, .7, .2, 1) infinite; }
 
 @keyframes capability-row-scan {
-  0% { opacity: 0; background-position: 130% 0; }
+  0% { opacity: 0; transform: translate3d(-71%, 0, 0); }
   14%, 72% { opacity: 1; }
-  100% { opacity: 0; background-position: -30% 0; }
+  100% { opacity: 0; transform: translate3d(16.4%, 0, 0); }
 }
 
 .expertise-item.is-focused .expertise-dot {
@@ -1511,6 +1670,22 @@ html[data-touch] .hero-grid::before {
   .capability-artifact .artifact-check { animation: none !important; }
 }
 
+/* Everything looping inside the rail stops dead while the section is off
+   screen. Paused rather than removed, so scrolling back finds the artifacts
+   mid-pose instead of snapping to frame zero. sections/Expertise.tsx owns the
+   attribute. */
+#expertise:not([data-inview]) .capability-artifact,
+#expertise:not([data-inview]) .capability-artifact .artifact-flow,
+#expertise:not([data-inview]) .capability-artifact .artifact-pulse,
+#expertise:not([data-inview]) .capability-artifact .artifact-scan-line,
+#expertise:not([data-inview]) .capability-artifact .artifact-cursor,
+#expertise:not([data-inview]) .capability-artifact .artifact-check,
+#expertise:not([data-inview]) .expertise-item::after,
+#expertise:not([data-inview]) .expertise-dot::after,
+#expertise:not([data-inview]) .capability-legend-row::after {
+  animation-play-state: paused;
+}
+
 @media (min-width: 768px) {
   .expertise-rail { --expertise-gutter: 2.5rem; }
   .capability-artifact { width: 100%; min-height: 7rem; }
@@ -1601,12 +1776,6 @@ html[data-touch] .hero-grid::before {
   }
 }
 
-html[data-webkit-safe] .hero-reticle-ring,
-html[data-webkit-safe] .hero-reticle-ring::before,
-html[data-webkit-safe] .hero-reticle-inner {
-  animation: none;
-}
-
 html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   background-image: none;
 }
@@ -1641,6 +1810,12 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   aspect-ratio: 1;
   border: 1px dashed color-mix(in srgb, var(--accent) 38%, transparent);
   border-radius: 50%;
+}
+
+/* The reticle sits at opacity 0 outside SYS mode. Its three loops used to run
+   there anyway — two rotating dashed borders and a pulsing glow repainting
+   forever, for every visitor, behind nothing. */
+[data-system-mode="on"] .hero-reticle-ring {
   animation: hero-reticle-spin 28s linear infinite;
 }
 
@@ -1659,6 +1834,9 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
     linear-gradient(color-mix(in srgb, var(--accent) 55%, transparent), color-mix(in srgb, var(--accent) 55%, transparent)) center bottom / 1px 10px no-repeat,
     linear-gradient(color-mix(in srgb, var(--accent) 55%, transparent), color-mix(in srgb, var(--accent) 55%, transparent)) left center / 10px 1px no-repeat,
     linear-gradient(color-mix(in srgb, var(--accent) 55%, transparent), color-mix(in srgb, var(--accent) 55%, transparent)) right center / 10px 1px no-repeat;
+}
+
+[data-system-mode="on"] .hero-reticle-ring::before {
   animation: hero-reticle-spin-reverse 28s linear infinite;
 }
 
@@ -1676,6 +1854,9 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   border-radius: 50%;
   background: color-mix(in srgb, var(--accent) 70%, transparent);
   box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+[data-system-mode="on"] .hero-reticle-inner {
   animation: hero-reticle-pulse 2.2s ease-in-out infinite;
 }
 
@@ -1714,10 +1895,18 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
   );
 }
 
+/* WebKit's safe path and reduced motion both keep the reticle, still. Declared
+   after the SYS rules above so they win at equal specificity. */
+html[data-webkit-safe][data-system-mode="on"] .hero-reticle-ring,
+html[data-webkit-safe][data-system-mode="on"] .hero-reticle-ring::before,
+html[data-webkit-safe][data-system-mode="on"] .hero-reticle-inner {
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-reticle-ring,
   .hero-reticle-ring::before,
-  .hero-reticle-inner { animation: none; }
+  .hero-reticle-inner { animation: none !important; }
 }
 
 /* ─── Cursor trail — scia di punti in SYS mode ───────────────────────────────── */

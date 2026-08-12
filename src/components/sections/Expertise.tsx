@@ -94,24 +94,45 @@ export function Expertise() {
   const staticMotion = level === "static";
   const [autoIndex, setAutoIndex] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const activeIndex = hoveredIndex ?? autoIndex;
 
+  // Five rows of schematic artifacts loop continuously — floating cards,
+  // flowing dash patterns, pulsing nodes, a scanning row highlight. Those are
+  // SVG stroke and background repaints, not compositor work, and they used to
+  // run for the whole life of the page whether or not the section was anywhere
+  // near the viewport. `data-inview` parks all of them in CSS.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
+  // Deliberately not gated on `inView`: the tick itself is four-tenths of a
+  // second's worth of work per second, and re-arming the interval when the
+  // section scrolls in would put a fresh 2.25s before the first advance.
   useEffect(() => {
     if (staticMotion) return;
     const timer = window.setInterval(() => {
+      const section = sectionRef.current;
+      if (!section) return;
+      const sectionRect = section.getBoundingClientRect();
+      if (sectionRect.bottom <= 0 || sectionRect.top >= window.innerHeight) return;
+      // Measured out here rather than inside the updater below: a state updater
+      // has to be a pure function of the previous state, and React is free to
+      // run it more than once for a single commit — which under StrictMode
+      // advanced the highlight twice and skipped a row every tick.
+      const visible = Array.from(section.querySelectorAll<HTMLElement>("[data-index]"))
+        .filter((row) => {
+          const rect = row.getBoundingClientRect();
+          return Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0) >= 48;
+        })
+        .map((row) => Number(row.dataset.index));
+      if (visible.length === 0) return;
       setAutoIndex((current) => {
-        const section = sectionRef.current;
-        if (!section) return current;
-        const sectionRect = section.getBoundingClientRect();
-        if (sectionRect.bottom <= 0 || sectionRect.top >= window.innerHeight) return current;
-        const visible = Array.from(section.querySelectorAll<HTMLElement>("[data-index]"))
-          .filter((row) => {
-            const rect = row.getBoundingClientRect();
-            return Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0) >= 48;
-          })
-          .map((row) => Number(row.dataset.index));
-        if (visible.length === 0) return current;
         if (visible.length === 1) return visible[0];
         const position = visible.indexOf(current);
         return visible[position < 0 ? 0 : (position + 1) % visible.length];
@@ -126,7 +147,7 @@ export function Expertise() {
   };
 
   return (
-    <section ref={sectionRef as never} id="expertise" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
+    <section ref={sectionRef as never} id="expertise" data-inview={inView || undefined} className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <div className="lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
         <div className="lg:sticky lg:top-28 lg:h-fit">
           <SectionHeader

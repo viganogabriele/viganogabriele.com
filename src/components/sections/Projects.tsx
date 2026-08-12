@@ -12,7 +12,7 @@ type ProjectItem = typeof projects[number];
 
 function ProjectCard({ project, active }: { project: ProjectItem; active: boolean }) {
   return (
-    <BorderGlow className="project-carousel-card h-full p-5 sm:p-6" borderRadius={0} backgroundColor="#0e1223" animated={active} glowRadius={34} fillOpacity={0.32}>
+    <BorderGlow className="project-carousel-card h-full p-5 sm:p-6" backgroundColor="#0e1223" animated={active} glowRadius={34} fillOpacity={0.32}>
       <div className="flex items-start justify-between gap-4 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500">
         <span>{project.index} / work</span>
         <span className="text-accent">{active ? "selected" : project.status}</span>

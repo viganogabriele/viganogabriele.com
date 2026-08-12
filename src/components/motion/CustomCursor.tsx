@@ -27,6 +27,12 @@ export function CustomCursor() {
     return () => media.removeEventListener("change", sync);
   }, []);
 
+  // `visible` only ever flips twice per visit, but it was being set from every
+  // single mousemove. React discards the identical value, yet it still has to
+  // be told about it — the schedule, the bail-out check and the hook bookkeeping
+  // all ran hundreds of times a second for a boolean that was already true.
+  const visibleRef = useRef(false);
+
   useEffect(() => {
     if (!enabled) return;
     document.documentElement.classList.add("has-custom-cursor");
@@ -43,7 +49,7 @@ export function CustomCursor() {
       // with the `scale` property (CSS applies translate then scale, so the
       // translation distance isn't multiplied by the scale factor).
       dot.current?.style.setProperty("translate", `${event.clientX}px ${event.clientY}px`);
-      setVisible(true);
+      if (!visibleRef.current) { visibleRef.current = true; setVisible(true); }
 
       // Update trail only when SYS mode is active — read the attribute directly
       // to avoid re-registering the effect when SYS state changes.
@@ -70,7 +76,7 @@ export function CustomCursor() {
       setActive(Boolean(target?.closest(INTERACTIVE) || document.querySelector(HOVERED_INTERACTIVE)));
     };
 
-    const reset = () => { setActive(false); setVisible(false); clearTrail(); };
+    const reset = () => { setActive(false); visibleRef.current = false; setVisible(false); clearTrail(); };
     // HOVERED_INTERACTIVE is a seven-clause :hover selector; running it
     // straight off the scroll event meant a full document match per event,
     // several times a frame on a trackpad. Coalesce to one per frame.
