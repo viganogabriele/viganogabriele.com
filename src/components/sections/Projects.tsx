@@ -12,8 +12,7 @@ type ProjectItem = typeof projects[number];
 
 function ProjectCard({ project, active }: { project: ProjectItem; active: boolean }) {
   return (
-    <div className="project-carousel-card relative h-full p-5 sm:p-6">
-      <BorderGlow />
+    <BorderGlow className="project-carousel-card h-full p-5 sm:p-6" borderRadius={0} backgroundColor="#0e1223" animated={active} glowRadius={34} fillOpacity={0.32}>
       <div className="flex items-start justify-between gap-4 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500">
         <span>{project.index} / work</span>
         <span className="text-accent">{active ? "selected" : project.status}</span>
@@ -22,7 +21,7 @@ function ProjectCard({ project, active }: { project: ProjectItem; active: boolea
       <div className="mt-4 flex flex-wrap gap-1.5 border-t border-white/[0.08] pt-3 font-mono text-[8px] tracking-[0.08em] text-zinc-200">
         {project.stack.map((item) => <span key={item} className="border border-accent/30 bg-accent/[0.06] px-1.5 py-0.5">{item}</span>)}
       </div>
-    </div>
+    </BorderGlow>
   );
 }
 

@@ -19,6 +19,12 @@ import { useEffect, useRef } from "react";
  * kept a rAF running for the life of the page.
  */
 
+// The canvas is deliberately larger than the element it sits on. The wordmark
+// runs at a leading of 0.8, so its glyphs overflow their own line boxes, and at
+// 1024-1280px the hero grid narrows the heading to about 578px while the type
+// stays at 112px — bound to the h1's box exactly, the canvas cut the bottom off
+// VIGANÒ and clipped the wordmark's sides at those widths.
+const PAD = 72;
 const DENSITY = 3;
 const MAX_PARTICLES = 3200;
 const GATHER_MS = 1500;
@@ -163,13 +169,20 @@ export function ParticleText() {
       if (token !== build) return;
 
       const hostBox = host.getBoundingClientRect();
-      width = Math.ceil(hostBox.width);
-      height = Math.ceil(hostBox.height);
-      if (width <= 0 || height <= 0) return;
+      if (hostBox.width <= 0 || hostBox.height <= 0) return;
+      width = Math.ceil(hostBox.width) + PAD * 2;
+      height = Math.ceil(hostBox.height) + PAD * 2;
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
+      // A canvas is a replaced element: with width:auto it takes its backing
+      // store as its intrinsic size and insets alone will not stretch it, so
+      // the CSS box has to be stated or the field renders at dpr scale.
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      canvas.style.left = `${-PAD}px`;
+      canvas.style.top = `${-PAD}px`;
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       const stencil = document.createElement("canvas");
@@ -188,8 +201,8 @@ export function ParticleText() {
         const size = parseFloat(style.fontSize) || 96;
         // `translate` on the reveal animation does not move layout boxes, so
         // offsetLeft/offsetTop give the resting position even mid-animation.
-        let left = line.offsetLeft;
-        let top = line.offsetTop;
+        let left = line.offsetLeft + PAD;
+        let top = line.offsetTop + PAD;
         for (let node = line.offsetParent as HTMLElement | null; node && node !== host; node = node.offsetParent as HTMLElement | null) {
           left += node.offsetLeft;
           top += node.offsetTop;
@@ -323,5 +336,5 @@ export function ParticleText() {
     };
   }, []);
 
-  return <canvas ref={canvasRef} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" />;
+  return <canvas ref={canvasRef} aria-hidden className="pointer-events-none absolute left-0 top-0" />;
 }

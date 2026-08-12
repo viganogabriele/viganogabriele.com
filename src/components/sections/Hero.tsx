@@ -16,11 +16,11 @@ const ParticleText = lazy(() => import("../motion/ParticleText").then((module) =
 
 export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; onToggleSystem: () => void }) {
   const reduced = useReducedMotion();
-  const { level, isCompact } = useMotionProfile();
-  // The wordmark only dissolves where the site already allows its optional
-  // flourishes: `full` excludes reduced motion, save-data, touch and thin
-  // hardware, and the canvas is worth nothing at phone width.
-  const particleWordmark = level === "full" && !isCompact;
+  const { level, isCompact, prefersReducedMotion } = useMotionProfile();
+  // Every desktop, not just the top motion tier: `full` also demands four cores
+  // and 4GB, which quietly dropped the wordmark on ordinary laptops. Touch and
+  // phone widths keep the crisp type, and so does reduced motion.
+  const particleWordmark = !isCompact && !prefersReducedMotion;
   const ctaButton = (
     <a
       href={`mailto:${profile.email}`}
@@ -112,10 +112,13 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
           initial={reduced ? false : { opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.34, duration: 1, ease: ease.cinematic }}
-          className="hero-visual-frame relative mx-auto hidden w-full max-w-[34rem] overflow-hidden sm:block sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem]"
+          className="hero-visual-frame relative mx-auto hidden w-full max-w-[34rem] sm:block sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem]"
         >
-          <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />
-          <BorderGlow />
+          <BorderGlow className="h-full w-full" borderRadius={0} backgroundColor="#080b16" glowRadius={30} fillOpacity={0.28}>
+            <div className="relative h-full w-full overflow-hidden">
+              <AdaptiveHeroObject systemActive={systemActive} onToggleSystem={onToggleSystem} />
+            </div>
+          </BorderGlow>
           <span className="section-anchor-label absolute bottom-[-3rem] right-0 font-mono text-[9px] uppercase tracking-[0.17em] text-accent/75">
             Portrait / profile
           </span>

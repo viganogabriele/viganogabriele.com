@@ -831,63 +831,6 @@ html[data-touch] .hero-viewport {
   .specular-rim { display: none; }
 }
 
-/* ── Cursor-tracked edge light (see components/motion/BorderGlow.tsx) ─────
-   A 1px ring painted with a conic gradient whose origin follows the cursor,
-   plus a low bloom under the pointer. The ring is a mask-composite cut-out
-   rather than a border so it can sit inside surfaces that already have one. */
-.border-glow {
-  --glow-angle: 0deg;
-  --glow-opacity: 0;
-  --glow-cone: 26%;
-  --glow-x: 50%;
-  --glow-y: 50%;
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: var(--glow-opacity);
-  transition: opacity 220ms ease-out;
-}
-
-/* The ring. Masking the padding box out of the border box leaves a 1px band
-   for the conic gradient, so this can overlay a surface that already has a
-   border of its own instead of replacing it. */
-.border-glow::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  background: conic-gradient(
-    from var(--glow-angle) at 50% 50%,
-    var(--accent-soft) 0%,
-    color-mix(in srgb, var(--accent) 55%, transparent) calc(var(--glow-cone) * 0.45),
-    transparent var(--glow-cone),
-    transparent calc(100% - var(--glow-cone)),
-    color-mix(in srgb, var(--accent) 55%, transparent) calc(100% - var(--glow-cone) * 0.45),
-    var(--accent-soft) 100%
-  );
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-}
-
-/* Bloom under the pointer, kept off the ring's mask. */
-.border-glow::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(11rem 11rem at var(--glow-x) var(--glow-y), color-mix(in srgb, var(--accent) 9%, transparent), transparent 62%);
-  mix-blend-mode: plus-lighter;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .border-glow { display: none; }
-}
-
 .circular-carousel__stage {
   position: relative;
   height: 26rem;
@@ -896,18 +839,15 @@ html[data-touch] .hero-viewport {
   transform-style: preserve-3d;
 }
 
+/* Layout only. The painted surface — border, background, shadow — belongs to
+   BorderGlow now, and overflow has to stay visible so its outer glow is not
+   sliced off at the card edge. */
 .circular-carousel__card {
   position: absolute;
   top: 50%;
   left: 50%;
   width: min(25rem, calc(100% - 2.5rem));
   min-height: 19.25rem;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background:
-    linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 96%, var(--accent) 4%), rgba(8, 11, 22, 0.94)),
-    var(--color-surface);
-  box-shadow: 0 1.25rem 3.75rem rgba(0, 0, 0, 0.38);
   transform-style: preserve-3d;
   transform-origin: center center;
   backface-visibility: hidden;

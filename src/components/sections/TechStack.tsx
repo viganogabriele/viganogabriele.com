@@ -17,8 +17,7 @@ const groupIcons = [Code2, Server, PanelsTopLeft, Bot];
 function ToolGroupCard({ group, index, active }: { group: ToolGroupType; index: number; active: boolean }) {
   const Icon = groupIcons[index] ?? Code2;
   return (
-    <div className="tool-group static-skill relative h-full p-5 sm:p-6">
-      <BorderGlow />
+    <BorderGlow className="tool-group static-skill h-full p-5 sm:p-6" borderRadius={0} backgroundColor="#0e1223" animated={active} glowRadius={34} fillOpacity={0.32}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent">0{index + 1} / skills</p>
@@ -32,7 +31,7 @@ function ToolGroupCard({ group, index, active }: { group: ToolGroupType; index: 
           <li key={tool} className="tool-row flex min-h-10 items-center border-l border-accent/45 bg-white/[0.025] px-3 font-mono text-[10px] tracking-[0.08em] text-zinc-200">{tool}</li>
         ))}
       </ul>
-    </div>
+    </BorderGlow>
   );
 }
 
