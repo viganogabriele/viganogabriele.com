@@ -41,6 +41,7 @@ type Particle = {
   delay: number;
   tone: number;
   tint: Rgb;
+  color: string;
 };
 
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
@@ -83,6 +84,18 @@ export function ParticleText() {
 
     const pointer = { active: false, x: 0, y: 0, smoothX: 0, smoothY: 0 };
 
+    // Each line's own tint, drifting toward the accent across the width so the
+    // field has some internal life instead of reading as flat fill. Recomputed
+    // when SYS mode swaps the accent, not per frame.
+    const recolor = () => {
+      const [ar, ag, ab] = colors.soft;
+      for (const particle of particles) {
+        const [r, g, b] = particle.tint;
+        const t = particle.tone * 0.4;
+        particle.color = `rgb(${Math.round(r + (ar - r) * t)}, ${Math.round(g + (ag - g) * t)}, ${Math.round(b + (ab - b) * t)})`;
+      }
+    };
+
     const paint = (now: number) => {
       context.clearRect(0, 0, width, height);
       pointer.smoothX += (pointer.x - pointer.smoothX) * 0.18;
@@ -120,14 +133,14 @@ export function ParticleText() {
         particle.x += (x - particle.x) * 0.22;
         particle.y += (y - particle.y) * 0.22;
 
-        // Each line's own tint, drifting toward the accent across the width so
-        // the field has some internal life instead of reading as flat fill.
-        const [r, g, b] = particle.tint;
-        const [ar, ag, ab] = colors.soft;
-        const t = particle.tone * 0.4;
-        context.fillStyle = `rgba(${Math.round(r + (ar - r) * t)}, ${Math.round(g + (ag - g) * t)}, ${Math.round(b + (ab - b) * t)}, ${(0.4 + progress * 0.6).toFixed(2)})`;
+        // Colour is precomputed per particle; only the gather fades alpha, and
+        // that rides globalAlpha rather than rebuilding a colour string for
+        // every particle on every frame.
+        if (gathering) context.globalAlpha = 0.4 + progress * 0.6;
+        context.fillStyle = particle.color;
         context.fillRect(particle.x - particle.size / 2, particle.y - particle.size / 2, particle.size, particle.size);
       }
+      context.globalAlpha = 1;
 
       if (gathering && settled) gathering = false;
       frame = requestAnimationFrame(paint);
@@ -247,8 +260,10 @@ export function ParticleText() {
             delay: seed * STAGGER_MS,
             tone: Math.min(Math.max(target.x / Math.max(1, width) + (seed - 0.5) * 0.3, 0), 1),
             tint: target.tint,
+            color: "",
           };
         });
+      recolor();
 
       gatherStart = performance.now();
       gathering = true;
@@ -282,7 +297,10 @@ export function ParticleText() {
     };
     // SYS mode swaps the accent from blue to violet; follow it without
     // re-sampling, the glyph targets have not moved.
-    const accents = new MutationObserver(() => { colors = readAccents(); });
+    const accents = new MutationObserver(() => {
+      colors = readAccents();
+      recolor();
+    });
     accents.observe(document.documentElement, { attributes: true, attributeFilter: ["data-system-mode"] });
 
     const resize = new ResizeObserver(queueSample);
