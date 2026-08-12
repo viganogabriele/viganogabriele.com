@@ -126,8 +126,17 @@ export default function SpecularEdgeGL({
 
     const dpr = window.devicePixelRatio || 1;
     // WebGL can be unavailable, blocked by the user, or refused under memory
-    // pressure. This is decoration on a button that works without it, so a
-    // failure here has to be silent rather than take the page down.
+    // pressure. This is decoration on a button that works without it, so it has
+    // to fail silently. The context is probed first because ogl's own failure
+    // path writes to console.error, and a headless browser without WebGL would
+    // then fail the "no console errors" test on a purely cosmetic layer.
+    const probe = document.createElement("canvas").getContext("webgl2");
+    if (!probe) {
+      accents.disconnect();
+      return;
+    }
+    probe.getExtension("WEBGL_lose_context")?.loseContext();
+
     let renderer: Renderer;
     try {
       renderer = new Renderer({ alpha: true, premultipliedAlpha: true, antialias: true, dpr });
