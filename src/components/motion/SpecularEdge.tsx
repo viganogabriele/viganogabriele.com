@@ -13,7 +13,7 @@ import { useMotionProfile } from "../../hooks/useMotionProfile";
  */
 const SpecularEdgeGL = lazy(() => import("./SpecularEdgeGL"));
 
-export function SpecularEdge({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function SpecularEdge({ children, className = "", radius = 0 }: { children: ReactNode; className?: string; radius?: number }) {
   const hostRef = useRef<HTMLSpanElement>(null);
   const { canUsePointerEffects } = useMotionProfile();
 
@@ -22,7 +22,7 @@ export function SpecularEdge({ children, className = "" }: { children: ReactNode
   return (
     <span ref={hostRef} className={`relative inline-flex ${className}`}>
       {children}
-      <Suspense fallback={null}><SpecularEdgeGL hostRef={hostRef} /></Suspense>
+      <Suspense fallback={null}><SpecularEdgeGL hostRef={hostRef} radius={radius} /></Suspense>
     </span>
   );
 }

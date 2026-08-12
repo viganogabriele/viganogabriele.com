@@ -21,7 +21,6 @@ const SMOOTH_TAU = 0.25;
 const MIN_COPIES = 2;
 const COPY_HEADROOM = 2;
 const SPEED = 26;
-const HOVER_SPEED = 8;
 
 export function LogoLoop({ className = "" }: { className?: string }) {
   const container = useRef<HTMLDivElement>(null);
@@ -29,7 +28,6 @@ export function LogoLoop({ className = "" }: { className?: string }) {
   const sequence = useRef<HTMLUListElement>(null);
   const [sequenceWidth, setSequenceWidth] = useState(0);
   const [copies, setCopies] = useState(MIN_COPIES);
-  const [hovered, setHovered] = useState(false);
 
   const measure = useCallback(() => {
     const width = sequence.current?.getBoundingClientRect().width ?? 0;
@@ -70,8 +68,7 @@ export function LogoLoop({ className = "" }: { className?: string }) {
       if (last === null) last = now;
       const delta = Math.max(0, now - last) / 1000;
       last = now;
-      const target = hovered ? HOVER_SPEED : SPEED;
-      velocity += (target - velocity) * (1 - Math.exp(-delta / SMOOTH_TAU));
+      velocity += (SPEED - velocity) * (1 - Math.exp(-delta / SMOOTH_TAU));
       offset = (((offset + velocity * delta) % sequenceWidth) + sequenceWidth) % sequenceWidth;
       node.style.transform = `translate3d(${-offset}px, 0, 0)`;
       frame = requestAnimationFrame(tick);
@@ -100,7 +97,7 @@ export function LogoLoop({ className = "" }: { className?: string }) {
       observer.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [sequenceWidth, hovered]);
+  }, [sequenceWidth]);
 
   const lists = useMemo(() => Array.from({ length: copies }, (_, copy) => (
     <ul
@@ -110,7 +107,7 @@ export function LogoLoop({ className = "" }: { className?: string }) {
       className="flex shrink-0 items-center gap-10 pr-10"
     >
       {stackLogos.map((logo) => (
-        <li key={logo.label} className="flex shrink-0 items-center gap-2.5 text-zinc-600 transition-colors duration-300 hover:text-accent">
+        <li key={logo.label} className="flex shrink-0 items-center gap-2.5 text-zinc-600">
           <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 shrink-0 fill-current"><path d={logo.path} /></svg>
           <span className="font-mono text-[9px] uppercase tracking-[0.16em] whitespace-nowrap">{logo.label}</span>
         </li>
@@ -119,14 +116,9 @@ export function LogoLoop({ className = "" }: { className?: string }) {
   )), [copies]);
 
   return (
-    <div
-      ref={container}
-      className={`logo-loop relative overflow-hidden ${className}`}
-      role="region"
-      aria-label="Tools in regular use"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    // Scenery, not furniture: it runs on its own and never takes a pointer, so
+    // it cannot be hovered, paused, dragged or focused.
+    <div ref={container} aria-hidden className={`logo-loop pointer-events-none relative select-none overflow-hidden ${className}`}>
       <div ref={track} className="flex h-full w-max items-center will-change-transform motion-reduce:transform-none">
         {lists}
       </div>

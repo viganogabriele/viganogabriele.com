@@ -135,13 +135,12 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Magnetic>
-                <SpecularEdge>
+                <SpecularEdge radius={18}>
                   <a
                     href={`mailto:${EMAIL}`}
                     data-cursor="hover"
-                    className="group relative inline-flex min-h-12 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
+                    className="specular-button group relative inline-flex min-h-12 items-center gap-3 px-7 text-sm font-medium tracking-[0.01em] text-[#f5f5f5] transition-transform duration-150 active:scale-[0.97]"
                   >
-                    <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                     <Mail className="relative h-4 w-4" />
                     <span className="relative">Send email</span>
                     <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />

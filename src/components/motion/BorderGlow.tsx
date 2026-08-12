@@ -54,16 +54,27 @@ interface AnimateOpts {
   ease?: (t: number) => number; onUpdate: (v: number) => void; onEnd?: () => void;
 }
 
-function animateValue({ start = 0, end = 100, duration = 1000, delay = 0, ease = easeOutCubic, onUpdate, onEnd }: AnimateOpts) {
+/**
+ * Upstream's version cannot be stopped once started. Dragging the ring hands
+ * `animated` to each card the selection passes through, so a card that had
+ * already begun its 4s sweep kept glowing after it stopped being the selected
+ * one — two cards lit at once when the drag settled. The token lets a sweep be
+ * abandoned the moment its card is no longer the active one.
+ */
+function animateValue(
+  { start = 0, end = 100, duration = 1000, delay = 0, ease = easeOutCubic, onUpdate, onEnd }: AnimateOpts,
+  token: { cancelled: boolean },
+) {
   const t0 = performance.now() + delay;
   function tick() {
+    if (token.cancelled) return;
     const elapsed = performance.now() - t0;
     const t = Math.min(elapsed / duration, 1);
     onUpdate(start + (end - start) * ease(t));
     if (t < 1) requestAnimationFrame(tick);
     else if (onEnd) onEnd();
   }
-  setTimeout(() => requestAnimationFrame(tick), delay);
+  setTimeout(() => { if (!token.cancelled) requestAnimationFrame(tick); }, delay);
 }
 
 const GRADIENT_POSITIONS = ['80% 55%', '69% 34%', '8% 6%', '41% 38%', '86% 85%', '82% 18%', '51% 4%'];
@@ -145,23 +156,30 @@ export const BorderGlow: React.FC<BorderGlowProps> = ({
     // Upstream starts the sweep synchronously in the effect body; this repo's
     // lint forbids setState there, so it begins a frame later instead. Same
     // animation, and it now cancels if the card unmounts mid-sweep.
+    const token = { cancelled: false };
     const start = requestAnimationFrame(() => {
       setSweepActive(true);
       setCursorAngle(angleStart);
 
-      animateValue({ duration: 500, onUpdate: v => setEdgeProximity(v / 100) });
+      animateValue({ duration: 500, onUpdate: v => setEdgeProximity(v / 100) }, token);
       animateValue({ ease: easeInCubic, duration: 1500, end: 50, onUpdate: v => {
         setCursorAngle((angleEnd - angleStart) * (v / 100) + angleStart);
-      }});
+      }}, token);
       animateValue({ ease: easeOutCubic, delay: 1500, duration: 2250, start: 50, end: 100, onUpdate: v => {
         setCursorAngle((angleEnd - angleStart) * (v / 100) + angleStart);
-      }});
+      }}, token);
       animateValue({ ease: easeInCubic, delay: 2500, duration: 1500, start: 100, end: 0,
         onUpdate: v => setEdgeProximity(v / 100),
         onEnd: () => setSweepActive(false),
-      });
+      }, token);
     });
-    return () => cancelAnimationFrame(start);
+    return () => {
+      cancelAnimationFrame(start);
+      token.cancelled = true;
+      // Drop the sweep's light immediately; hover still lights this card.
+      setSweepActive(false);
+      setEdgeProximity(0);
+    };
   }, [animated]);
 
   const colorSensitivity = edgeSensitivity + 20;

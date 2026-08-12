@@ -59,13 +59,15 @@ export function TechStack() {
             reducedMotion={prefersReducedMotion || level === "static"}
             className="tool-carousel"
           />
-          {/* Fixed height so the lazy chunk cannot shift the panel when it
-              arrives, and so the strip reserves its row from first paint. */}
-          <div className="h-11 border-t border-white/[0.08]">
-            <Suspense fallback={null}><LogoLoop className="h-full" /></Suspense>
-          </div>
         </div>
       </ScrollReveal>
+
+      {/* Detached from the panel and set back into the page: a slow, untouchable
+          band of marks under the bench. Fixed height so the lazy chunk cannot
+          shift the section when it lands. */}
+      <div className="tool-marquee mt-10 h-11">
+        <Suspense fallback={null}><LogoLoop className="h-full" /></Suspense>
+      </div>
     </section>
   );
 }

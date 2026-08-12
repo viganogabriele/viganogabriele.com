@@ -235,7 +235,7 @@ test("CV page keeps the document primary and gives mobile users a full-screen do
   await expect(page.getByRole("button", { name: "Download CV" })).toBeEnabled();
   await expect(page.getByRole("link", { name: "Open in new tab" })).toHaveAttribute("target", "_blank");
   await expect(page.getByRole("link", { name: "Tap to view full screen" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
-  await expect(page.locator("canvas").first()).toBeVisible();
+  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Explore further." })).toHaveCount(0);
   await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
   await page.getByRole("button", { name: "Toggle system mode" }).click();
@@ -681,7 +681,7 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   await expect(page.getByRole("heading", { name: /Curriculum/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /Download CV/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /Open in new tab/i })).toBeVisible();
-  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator("[data-cv-viewport] canvas")).toHaveCount(0);
   await expect(page.getByText(/Loading document|Rendering page/i)).toBeVisible();
 
   // The viewport is sized whether or not the canvas has landed, so nothing
@@ -695,13 +695,13 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   const heightBefore = await viewportHeight();
   expect(heightBefore).toBeGreaterThan(0);
   releasePdf();
-  await expect(page.locator("canvas").first()).toBeVisible();
+  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
   expect(await viewportHeight()).toBe(heightBefore);
 });
 
 test("the CV's own PDF links are announceable", async ({ page }) => {
   await page.goto("/cv");
-  await expect(page.locator("canvas").first()).toBeVisible();
+  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
   const annotations = page.locator(".annotationLayer a[href]");
   await expect.poll(() => annotations.count()).toBeGreaterThan(0);
   const audit = await annotations.evaluateAll((links) => links.map((link) => ({

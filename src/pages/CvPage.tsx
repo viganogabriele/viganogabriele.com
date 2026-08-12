@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { Footer } from "../components/layout/Footer";
 import { AppShell } from "../components/layout/AppShell";
 import { SystemModeOverlay } from "../components/layout/SystemModeOverlay";
+import { SplitText } from "../components/motion/SplitText";
 import { SystemHUD } from "../components/motion/SystemHUD";
 import { profile } from "../data/profile";
 import { cvMetadata } from "../data/site";
@@ -200,8 +201,8 @@ export function CvPage() {
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">{cvPageCopy.eyebrow}</p>
           <div className="mt-4 flex flex-col gap-6 border-b border-white/[0.09] pb-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 id="cv-title" className="text-5xl font-medium leading-[0.88] tracking-[-0.07em] whitespace-pre-line text-bone sm:text-7xl">{cvPageCopy.title}</h1>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400">{cvPageCopy.summary}</p>
+              <SplitText as="h1" id="cv-title" text={cvPageCopy.title} className="text-5xl font-medium leading-[0.88] tracking-[-0.07em] whitespace-pre-line text-bone sm:text-7xl" />
+              <SplitText text={cvPageCopy.summary} delay={0.25} className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400" />
             </div>
             <div className="flex flex-wrap gap-3" aria-label="CV actions">
               <button type="button" onClick={() => void downloadCv()} disabled={downloading} data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft disabled:cursor-wait disabled:opacity-70"><Download className="h-4 w-4" /> {downloading ? "Preparing…" : "Download CV"}</button>
