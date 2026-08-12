@@ -21,21 +21,19 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
   // and 4GB, which quietly dropped the wordmark on ordinary laptops. Touch and
   // phone widths keep the crisp type, and so does reduced motion.
   const particleWordmark = !isCompact && !prefersReducedMotion;
-  // Shaped like the ReactBits SpecularButton itself: no fill, light text, an
-  // 18px radius and a soft inner top edge, so the shader's rim reads as the
-  // button's own edge instead of a highlight lost against a bone block.
   const ctaButton = (
     <a
       href={`mailto:${profile.email}`}
       data-cursor="hover"
-      className="specular-button group relative inline-flex min-h-12 items-center gap-3 px-7 text-sm font-medium tracking-[0.01em] text-[#f5f5f5] transition-transform duration-150 active:scale-[0.97]"
+      className="group relative inline-flex min-h-11 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft"
     >
+      <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
       <Mail className="relative h-4 w-4" />
       <span className="relative">Get in touch</span>
       <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
     </a>
   );
-  const cta = <SpecularEdge radius={18}>{ctaButton}</SpecularEdge>;
+  const cta = <SpecularEdge>{ctaButton}</SpecularEdge>;
   return (
     <section id="top" className="hero-grid hero-viewport relative flex items-center overflow-hidden border-b border-white/[0.07] pb-8 pt-24 sm:pt-28 lg:pt-32">
       <div className="hero-scanlines absolute inset-0 opacity-80" />

@@ -39,6 +39,7 @@ export function TechStack() {
   const { prefersReducedMotion, level } = useMotionProfile();
 
   return (
+    <>
     <section id="stack" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <SectionHeader
         index={techStackSection.index}
@@ -61,13 +62,14 @@ export function TechStack() {
           />
         </div>
       </ScrollReveal>
-
-      {/* Detached from the panel and set back into the page: a slow, untouchable
-          band of marks under the bench. Fixed height so the lazy chunk cannot
-          shift the section when it lands. */}
-      <div className="tool-marquee mt-10 h-11">
-        <Suspense fallback={null}><LogoLoop className="h-full" /></Suspense>
-      </div>
     </section>
+
+    {/* Outside the section's max-width so the marks run edge to edge: a slow,
+        untouchable band under the bench. Fixed height so the lazy chunk cannot
+        shift the page when it lands. */}
+    <div className="tool-marquee mt-12 h-12">
+      <Suspense fallback={null}><LogoLoop className="h-full" /></Suspense>
+    </div>
+    </>
   );
 }

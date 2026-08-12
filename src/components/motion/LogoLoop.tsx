@@ -104,12 +104,11 @@ export function LogoLoop({ className = "" }: { className?: string }) {
       key={copy}
       ref={copy === 0 ? sequence : undefined}
       aria-hidden={copy > 0}
-      className="flex shrink-0 items-center gap-10 pr-10"
+      className="flex shrink-0 items-center gap-14 pr-14"
     >
       {stackLogos.map((logo) => (
-        <li key={logo.label} className="flex shrink-0 items-center gap-2.5 text-zinc-600">
-          <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 shrink-0 fill-current"><path d={logo.path} /></svg>
-          <span className="font-mono text-[9px] uppercase tracking-[0.16em] whitespace-nowrap">{logo.label}</span>
+        <li key={logo.label} className="flex shrink-0 items-center text-zinc-500">
+          <svg viewBox="0 0 24 24" aria-hidden className="h-6 w-6 shrink-0 fill-current"><path d={logo.path} /></svg>
         </li>
       ))}
     </ul>

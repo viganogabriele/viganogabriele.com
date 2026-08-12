@@ -1,7 +1,8 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { usePointerFrames } from "../../hooks/usePointerFrames";
+import { getLastPointer } from "../../lib/pointerPosition";
 
 /**
  * A glass lens that follows the cursor while SYS mode is on.
@@ -31,6 +32,17 @@ export function SysGlassLens() {
   // are perfectly able to draw it.
   const { canUsePointerEffects, isCompact } = useMotionProfile();
   const enabled = canUsePointerEffects && !isCompact;
+
+  // SYS is turned on by pressing a button, so the pointer is already somewhere
+  // and typically still. Show the lens there at once instead of waiting for a
+  // move that may not come — which made the toggle look like it did nothing.
+  useEffect(() => {
+    const node = lens.current;
+    const point = getLastPointer();
+    if (!node || !point) return;
+    node.style.translate = `${point.x}px ${point.y}px`;
+    node.style.opacity = "1";
+  }, [enabled]);
 
   usePointerFrames({
     enabled,

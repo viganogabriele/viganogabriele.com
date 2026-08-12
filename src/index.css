@@ -107,13 +107,9 @@ a {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .nav-panel {
-    transition: border-color 180ms ease, box-shadow 180ms ease;
-  }
-  .nav-panel:hover {
-    border-color: color-mix(in srgb, var(--accent) 38%, transparent);
-    box-shadow: 0 0 1.5rem color-mix(in srgb, var(--accent) 10%, transparent);
-  }
+  /* The panel itself no longer lights up on hover: lifting the whole bar for a
+     pointer that is only passing over it drew attention to the chrome instead
+     of to the item under the cursor, which has its own hover state. */
   .nav-link:hover > span {
     opacity: .6;
   }
@@ -712,34 +708,13 @@ html[data-touch] .hero-viewport {
   outline-offset: 3px;
 }
 
-/* Edge fade for the marquee. The theme is unconditionally dark, so the colour
-   is stated rather than left to a `dark:` variant that never resolves. */
-.logo-loop::before,
-.logo-loop::after {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  z-index: 1;
-  width: clamp(2rem, 8%, 7rem);
-  pointer-events: none;
-}
-
-.logo-loop::before {
-  left: 0;
-  background: linear-gradient(to right, var(--color-background) 0%, transparent 100%);
-}
-
-.logo-loop::after {
-  right: 0;
-  background: linear-gradient(to left, var(--color-background) 0%, transparent 100%);
-}
-
-/* Held back behind the bench it belongs to: dim, desaturated, and wider than
-   the panel so it reads as something running past rather than a UI row. */
+/* Runs the full width of the page, behind the bench it belongs to: present
+   enough to read as a row of marks, faded at both ends so it has no start and
+   no finish. */
 .tool-marquee {
-  opacity: 0.5;
-  mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+  opacity: 0.72;
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
 }
 
 /* ── Specular button ──────────────────────────────────────────────────────

@@ -190,7 +190,7 @@ export function CvPage() {
           <Link to="/" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 px-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:text-white">
             <ArrowLeft className="h-3.5 w-3.5" /> Back to home
           </Link>
-          <button type="button" onClick={toggleSystem} data-cursor="hover" data-sys-toggle className={`inline-flex h-11 min-w-[4.25rem] items-center justify-center gap-2 border px-2.5 font-mono text-[9px] uppercase tracking-[0.13em] transition-colors ${systemActive ? "border-accent/60 text-accent" : "border-white/[0.1] text-zinc-300"}`} aria-pressed={systemActive} aria-label="Toggle system mode" aria-keyshortcuts="Shift+S">
+          <button type="button" onClick={toggleSystem} data-cursor="hover" data-sys-toggle className={`nav-sys-btn relative inline-flex h-11 min-w-[4.25rem] items-center justify-center gap-2 border px-2.5 font-mono text-[9px] uppercase tracking-[0.13em] transition-colors ${systemActive ? "border-accent/60 text-accent" : "border-white/[0.1] text-zinc-300"}`} aria-pressed={systemActive} aria-label="Toggle system mode" aria-keyshortcuts="Shift+S">
             <Power className="h-3 w-3" /> SYS
           </button>
         </div>
@@ -201,8 +201,8 @@ export function CvPage() {
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">{cvPageCopy.eyebrow}</p>
           <div className="mt-4 flex flex-col gap-6 border-b border-white/[0.09] pb-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <SplitText as="h1" id="cv-title" text={cvPageCopy.title} className="text-5xl font-medium leading-[0.88] tracking-[-0.07em] whitespace-pre-line text-bone sm:text-7xl" />
-              <SplitText text={cvPageCopy.summary} delay={0.25} className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400" />
+              <SplitText as="h1" id="cv-title" by="char" stagger={0.045} text={cvPageCopy.title} className="text-5xl font-medium leading-[0.88] tracking-[-0.07em] whitespace-pre-line text-bone sm:text-7xl" />
+              <SplitText text={cvPageCopy.summary} delay={0.55} className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400" />
             </div>
             <div className="flex flex-wrap gap-3" aria-label="CV actions">
               <button type="button" onClick={() => void downloadCv()} disabled={downloading} data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-[#080b16] transition-colors hover:bg-blue-soft disabled:cursor-wait disabled:opacity-70"><Download className="h-4 w-4" /> {downloading ? "Preparing…" : "Download CV"}</button>
