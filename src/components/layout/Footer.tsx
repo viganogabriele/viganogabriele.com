@@ -2,7 +2,7 @@ import { AnimatePresence, m, useInView } from "framer-motion";
 import { ArrowUpRight, Check, Copy, Mail } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
-import { SpecularRim } from "../motion/SpecularRim";
+import { SpecularEdge } from "../motion/SpecularEdge";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { Link } from "react-router-dom";
@@ -135,7 +135,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Magnetic>
-                <SpecularRim>
+                <SpecularEdge>
                   <a
                     href={`mailto:${EMAIL}`}
                     data-cursor="hover"
@@ -146,7 +146,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                     <span className="relative">Send email</span>
                     <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                   </a>
-                </SpecularRim>
+                </SpecularEdge>
               </Magnetic>
 
               <button

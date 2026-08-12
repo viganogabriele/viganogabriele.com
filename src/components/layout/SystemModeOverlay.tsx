@@ -29,7 +29,7 @@ export function SystemModeOverlay({ active, transitionId, safeMode = false, lase
 
   return <>
     <div aria-live="polite" className="sr-only">{announcement}</div>
-    {active && !safeMode && <Suspense fallback={null}><SysGlassLens /></Suspense>}
+    {active && <Suspense fallback={null}><SysGlassLens /></Suspense>}
     <AnimatePresence>
       {wipeId !== null && <div key={wipeId} data-system-wipe aria-hidden className="system-mode-wipe-container pointer-events-none fixed inset-0 z-[80]"><m.div initial={{ y: "-100%" }} animate={{ y: "100%" }} transition={{ duration: dur.mode, ease: ease.cinematic }} onAnimationComplete={() => setCompletedWipeId((completed) => Math.max(completed, wipeId))} className="system-mode-wipe absolute inset-0" /></div>}
     </AnimatePresence>

@@ -25,8 +25,12 @@ import { usePointerFrames } from "../../hooks/usePointerFrames";
  */
 export function SysGlassLens() {
   const lens = useRef<HTMLDivElement>(null);
-  const { level, canUsePointerEffects } = useMotionProfile();
-  const enabled = level === "full" && canUsePointerEffects;
+  // canUsePointerEffects already means a fine pointer, no touch screen and no
+  // reduced-motion request. Requiring level "full" on top of that also demanded
+  // four cores and 4GB, which is why the lens never appeared on machines that
+  // are perfectly able to draw it.
+  const { canUsePointerEffects, isCompact } = useMotionProfile();
+  const enabled = canUsePointerEffects && !isCompact;
 
   usePointerFrames({
     enabled,

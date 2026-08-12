@@ -9,7 +9,7 @@ import { cn } from "../../lib/cn";
 import { ease } from "../../lib/motion";
 import { BorderGlow } from "../motion/BorderGlow";
 import { Magnetic } from "../motion/Magnetic";
-import { SpecularRim } from "../motion/SpecularRim";
+import { SpecularEdge } from "../motion/SpecularEdge";
 import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 
 const ParticleText = lazy(() => import("../motion/ParticleText").then((module) => ({ default: module.ParticleText })));
@@ -33,7 +33,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
       <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
     </a>
   );
-  const cta = <SpecularRim>{ctaButton}</SpecularRim>;
+  const cta = <SpecularEdge>{ctaButton}</SpecularEdge>;
   return (
     <section id="top" className="hero-grid hero-viewport relative flex items-center overflow-hidden border-b border-white/[0.07] pb-8 pt-24 sm:pt-28 lg:pt-32">
       <div className="hero-scanlines absolute inset-0 opacity-80" />
