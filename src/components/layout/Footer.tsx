@@ -2,7 +2,6 @@ import { AnimatePresence, m, useInView } from "framer-motion";
 import { ArrowUpRight, Check, Copy, Mail } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
-import { SpecularEdge } from "../motion/SpecularEdge";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { Link } from "react-router-dom";
@@ -135,17 +134,15 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Magnetic>
-                <SpecularEdge>
-                  <a
-                    href={`mailto:${EMAIL}`}
-                    data-cursor="hover"
-                    className="btn-solid group relative inline-flex min-h-12 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16]"
-                  >
-                    <Mail className="relative h-4 w-4" />
-                    <span className="relative">Send email</span>
-                    <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                  </a>
-                </SpecularEdge>
+                <a
+                  href={`mailto:${EMAIL}`}
+                  data-cursor="hover"
+                  className="btn-solid group relative inline-flex min-h-12 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16]"
+                >
+                  <Mail className="relative h-4 w-4" />
+                  <span className="relative">Send email</span>
+                  <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </a>
               </Magnetic>
 
               <button

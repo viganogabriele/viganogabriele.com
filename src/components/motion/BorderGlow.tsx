@@ -8,6 +8,7 @@
  * drawn from this site's palette instead of the demo's purple/pink/sky.
  */
 import { useRef, useCallback, useState, useEffect, type ReactNode } from 'react';
+import { usePointerFrames } from '../../hooks/usePointerFrames';
 
 interface BorderGlowProps {
   children?: ReactNode;
@@ -137,15 +138,20 @@ export const BorderGlow: React.FC<BorderGlowProps> = ({
     return degrees;
   }, [getCenterOfElement]);
 
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerFrame = useCallback((point: { x: number; y: number } | null) => {
     const card = cardRef.current;
-    if (!card) return;
+    if (!card || !point) return;
     const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = point.x - rect.left;
+    const y = point.y - rect.top;
     setEdgeProximity(getEdgeProximity(card, x, y));
     setCursorAngle(getCursorAngle(card, x, y));
   }, [getEdgeProximity, getCursorAngle]);
+
+  usePointerFrames({
+    target: () => cardRef.current,
+    onPoint: handlePointerFrame,
+  });
 
   useEffect(() => {
     if (!animated) return;
@@ -199,7 +205,6 @@ export const BorderGlow: React.FC<BorderGlowProps> = ({
   return (
     <div
       ref={cardRef}
-      onPointerMove={handlePointerMove}
       onPointerEnter={() => setIsHovered(true)}
       onPointerLeave={() => setIsHovered(false)}
       className={`relative grid isolate border border-white/15 ${className}`}

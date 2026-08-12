@@ -115,6 +115,22 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
 });
 
+test("the toolkit logo loop uses legible large marks", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const marquee = page.locator(".tool-marquee");
+  await marquee.scrollIntoViewIfNeeded();
+  await expect(marquee.locator("svg").first()).toBeVisible();
+  const geometry = await marquee.evaluate((node) => ({
+    strip: node.getBoundingClientRect().height,
+    mark: node.querySelector("svg")?.getBoundingClientRect().height ?? 0,
+  }));
+  expect(geometry.strip).toBeGreaterThanOrEqual(60);
+  expect(geometry.mark).toBeGreaterThanOrEqual(34);
+});
+
 test("mobile hero omits the portrait while preserving the SYS control", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -339,6 +355,32 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect(page.locator("[data-system-wipe]")).toHaveCount(1);
   await page.reload();
   await expect(system).toHaveAttribute("aria-pressed", "false");
+});
+
+test("SYS keeps the real wordmark painted until the lazy particle canvas is ready", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  let releaseParticles!: () => void;
+  const particlesReleased = new Promise<void>((resolve) => { releaseParticles = resolve; });
+  let markParticlesRequested!: () => void;
+  const particlesRequested = new Promise<void>((resolve) => { markParticlesRequested = resolve; });
+  await page.route("**/ParticleText-*.js", async (route) => {
+    markParticlesRequested();
+    await particlesReleased;
+    await route.continue();
+  });
+
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const wordmark = page.locator(".hero-wordmark");
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await particlesRequested;
+
+  await expect(wordmark).not.toHaveClass(/hero-wordmark--particles/);
+  expect(await wordmark.locator("[data-particle-line]").first().evaluate((node) => getComputedStyle(node).color)).not.toBe("rgba(0, 0, 0, 0)");
+
+  releaseParticles();
+  await expect(wordmark.locator("canvas")).toBeAttached();
+  await expect(wordmark).toHaveClass(/hero-wordmark--particles/);
 });
 
 test("hero keeps the photograph visible until the SYS portrait is ready", async ({ page }) => {

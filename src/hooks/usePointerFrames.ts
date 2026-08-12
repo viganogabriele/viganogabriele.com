@@ -10,9 +10,9 @@ export interface PointerFramesOptions {
 
 /**
  * Pointer position at frame rate. `pointermove` fires far more often than the
- * display refreshes, and both the edge light and the specular rim only want the
- * newest position per frame — reacting to every event re-runs layout reads for
- * frames that never paint.
+ * display refreshes, and the edge light only wants the newest position per
+ * frame — reacting to every event re-runs layout reads for frames that never
+ * paint.
  */
 export function usePointerFrames({ target, onPoint, enabled = true }: PointerFramesOptions) {
   const handler = useRef(onPoint);

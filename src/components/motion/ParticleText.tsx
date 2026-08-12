@@ -27,11 +27,11 @@ import { useEffect, useRef } from "react";
 const PAD = 130;
 const DENSITY = 3;
 const MAX_PARTICLES = 3200;
-const GATHER_MS = 1100;
+const GATHER_MS = 850;
 /** Sweep left to right across the wordmark, so the field assembles like a scan
  *  rather than every particle leaving at once on a random delay. */
-const WAVE_MS = 620;
-const JITTER_MS = 150;
+const WAVE_MS = 450;
+const JITTER_MS = 120;
 /** Kept under PAD: a particle that starts outside the canvas is clipped, and
  *  the clip drew the canvas's own rectangle across the hero mid-animation. */
 const SCATTER = 78;
@@ -169,6 +169,10 @@ export function ParticleText() {
 
     const sample = async () => {
       const token = ++build;
+      // Keep the real text painted while the lazy chunk, fonts or a resize
+      // sample are pending. Hiding it any earlier leaves a blank wordmark on a
+      // slow connection because the canvas has nothing ready to replace it.
+      host.classList.remove("hero-wordmark--particles");
       const lines = Array.from(host.querySelectorAll<HTMLElement>("[data-particle-line]"));
       if (!lines.length) return;
 
@@ -287,6 +291,7 @@ export function ParticleText() {
 
       gatherStart = performance.now();
       gathering = true;
+      host.classList.add("hero-wordmark--particles");
       run();
     };
 
@@ -332,6 +337,7 @@ export function ParticleText() {
 
     return () => {
       build += 1;
+      host.classList.remove("hero-wordmark--particles");
       park();
       if (resample !== null) cancelAnimationFrame(resample);
       observer.disconnect();

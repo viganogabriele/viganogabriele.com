@@ -67,7 +67,7 @@ export function TechStack() {
     {/* Outside the section's max-width so the marks run edge to edge: a slow,
         untouchable band under the bench. Fixed height so the lazy chunk cannot
         shift the page when it lands. */}
-    <div className="tool-marquee mt-12 h-12">
+    <div className="tool-marquee mt-12 h-16">
       <Suspense fallback={null}><LogoLoop className="h-full" /></Suspense>
     </div>
     </>

@@ -3,7 +3,6 @@ import { m } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import logo from "../assets/logo-dark-small.webp";
 import { AppShell } from "../components/layout/AppShell";
-import { SpecularEdge } from "../components/motion/SpecularEdge";
 import { useMotionProfile } from "../hooks/useMotionProfile";
 import { ease } from "../lib/motion";
 import { PageMeta } from "../lib/seo";
@@ -56,12 +55,12 @@ export function NotFoundPage() {
             <div className="not-found-actions mt-9 flex min-w-0 flex-wrap gap-3">
               <Link to="/" data-cursor="hover" className="btn-solid group inline-flex min-h-12 items-center gap-3 bg-bone px-5 text-sm font-semibold text-[#080b16]">
                 <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
-                Return to the index
+                <span>Return to the index</span>
               </Link>
-              <SpecularEdge><a href="mailto:info@viganogabriele.com" data-cursor="hover" className="group inline-flex min-h-12 items-center gap-3 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent/60 hover:text-accent-soft">
+              <a href="mailto:info@viganogabriele.com" data-cursor="hover" className="group inline-flex min-h-12 items-center gap-3 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent/60 hover:text-accent-soft">
                 Report a broken link
                 <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-              </a></SpecularEdge>
+              </a>
             </div>
 
             <div className="not-found-coordinate mt-14 min-w-0 max-w-2xl border-y border-white/[0.08] py-4 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 sm:flex sm:items-center sm:justify-between sm:gap-6">
