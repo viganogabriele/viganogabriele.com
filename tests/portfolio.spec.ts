@@ -1341,11 +1341,20 @@ test("browser back also restores position across a Home <-> CV round trip", asyn
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await page.evaluate(() => window.scrollTo({ top: 900, behavior: "auto" }));
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(800);
+  // The footer's own "View CV" link, not the hero's: a Playwright `.click()`
+  // auto-scrolls its target into view first, and the hero's copy sits near
+  // the top of the page — clicking it would itself scroll the page back up
+  // before navigating, which is exactly the ordinary way a reader would have
+  // to reach it too, but defeats a test that wants to hold a specific,
+  // unrelated scroll position at the moment of navigating away. The DOM click
+  // below sidesteps this the same way the note-restoration tests do.
+  const cvLink = page.locator("footer").getByRole("link", { name: "View CV" });
+  await cvLink.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(200);
   const expectedY = await page.evaluate(() => window.scrollY);
+  expect(expectedY).toBeGreaterThan(800);
 
-  await page.getByRole("link", { name: "View CV" }).first().click();
+  await cvLink.evaluate((element) => (element as HTMLElement).click());
   await expect(page).toHaveURL(/\/cv$/);
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.goBack();
@@ -1363,12 +1372,21 @@ test("a deep-linked CV visit still restores Home's position on the way back", as
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.getByRole("link", { name: "Back to home" }).click();
   await expect(page).toHaveURL(/\/$/);
+  // Arriving at Home fresh from another route grows its content in from a
+  // shorter initial layout as later sections settle, which can flip the
+  // preloader gate back on for a beat right after the first check clears it.
+  // Confirming it twice, a moment apart, avoids catching that in-between dip.
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await page.evaluate(() => window.scrollTo({ top: 700, behavior: "auto" }));
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(600);
-  const expectedY = await page.evaluate(() => window.scrollY);
+  await page.waitForTimeout(300);
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
-  await page.getByRole("link", { name: "View CV" }).first().click();
+  const cvLink = page.locator("footer").getByRole("link", { name: "View CV" });
+  await cvLink.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(200);
+  const expectedY = await page.evaluate(() => window.scrollY);
+  expect(expectedY).toBeGreaterThan(600);
+
+  await cvLink.evaluate((element) => (element as HTMLElement).click());
   await expect(page).toHaveURL(/\/cv$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);

@@ -74,25 +74,53 @@ function RouteScrollManager() {
   // Notes are skipped: they're a fixed overlay with their own scroll
   // container, so `window.scrollY` there is meaningless and restoration for
   // `/notes/*` is skipped outright below.
+  //
+  // Deliberately no capture at effect setup, only listeners: RouteScrollCommit
+  // hasn't run its own restore yet at that point (it's gated on `ready`, which
+  // starts false on every mount), so an immediate capture here would freeze in
+  // whatever pre-restore scrollY happens to be — 0, or a leftover value from
+  // the previous route's layout — and permanently clobber a snapshot from an
+  // earlier, genuine visit to this same key before the restore ever got to
+  // read it. The restore's own `scrollTo` calls fire real `scroll` events, so
+  // the correct settled position gets captured that way instead, and a route
+  // with nothing to restore (a fresh hash-scroll or a plain top scroll) simply
+  // records that outcome once it actually happens.
+  //
+  // Also deliberately synchronous, not rAF-coalesced: a coalesced write is
+  // only pending, not committed, until the next frame, and this effect's own
+  // cleanup — which runs the instant the reader navigates away, same as any
+  // other effect teardown — has no page left to read a fresh value from by
+  // then (see the note above). Cancelling that pending frame on the way out,
+  // which a naive `cancelAnimationFrame` in the cleanup would do, silently
+  // dropped the very last scroll position for anyone who scrolled and then
+  // immediately followed a link, which is the ordinary case, not an edge one.
+  //
+  // The pathname guard inside `capture` covers a narrower but sharper version
+  // of the same race: React applies the DOM mutation for a navigation (the
+  // old route's content unmounting, the new route's mounting) before it runs
+  // any effect cleanup. If the new route is shorter, the browser clamps
+  // `window.scrollY` right then — synchronously, mid-mutation — and that
+  // clamp fires a real `scroll` event. This listener is still attached at
+  // that point (its cleanup hasn't run yet) and would otherwise capture that
+  // post-clamp, pre-cleanup value under the OLD route's key, overwriting the
+  // correct one an instant before it's cleaned up. `history.pushState` (and a
+  // back/forward `popstate`) updates `window.location` synchronously before
+  // that mutation ever happens, so comparing against the pathname captured at
+  // effect setup reliably tells a stale, post-navigation event apart from a
+  // genuine one from this route's own dwell time.
   useEffect(() => {
     if (location.pathname.startsWith("/notes/")) return;
     const key = location.key;
-    const capture = () => positions.current.set(key, getScrollSnapshot());
-    capture();
-    let frame = 0;
-    const onChange = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        capture();
-      });
+    const pathname = location.pathname;
+    const capture = () => {
+      if (window.location.pathname !== pathname) return;
+      positions.current.set(key, getScrollSnapshot());
     };
-    window.addEventListener("scroll", onChange, { passive: true });
-    window.addEventListener("resize", onChange);
+    window.addEventListener("scroll", capture, { passive: true });
+    window.addEventListener("resize", capture);
     return () => {
-      window.removeEventListener("scroll", onChange);
-      window.removeEventListener("resize", onChange);
-      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", capture);
+      window.removeEventListener("resize", capture);
     };
   }, [location.key, location.pathname]);
 
