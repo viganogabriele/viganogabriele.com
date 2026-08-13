@@ -11,6 +11,13 @@ import { Footer } from "../components/layout/Footer";
 import { queueNoteReturn, readNoteNavigationState, registerNoteReturn } from "../lib/navigationState";
 import { useRouteReady } from "../hooks/useRouteReady";
 
+// Notes don't instantiate useSystemMode() or render SystemModeOverlay/a SYS
+// toggle: the full-screen orbit/scan-beam HUD would compete with a reading
+// layout, and there's no control here to turn it on anyway. The ambient
+// accent (--accent/--accent-soft, set globally on <html> by whichever page
+// last toggled it) still carries over untouched, since nothing on this route
+// ever writes to that attribute — so a note opened while SYS is on reads
+// consistently violet without needing its own copy of the toggle machinery.
 export function NotePage() {
   const { slug = "" } = useParams();
   const location = useLocation();

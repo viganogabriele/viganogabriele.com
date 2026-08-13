@@ -335,8 +335,16 @@ export function CircularCarousel<T>({
       point.x = event.clientX;
       point.y = event.clientY;
       point.time = performance.now();
+      // `touch-action: pan-y` only grants the browser first refusal on the
+      // vertical axis — it does not stop it from also starting a page scroll
+      // the instant a touch drag has any vertical component, which every real
+      // swipe does. Once the axis has resolved horizontal, cancelling the
+      // pointer event's default action is what actually keeps that scroll
+      // from riding along underneath the drag on touch browsers.
+      if (event.pointerType === "touch") event.preventDefault();
       return;
     }
+    if (event.pointerType === "touch") event.preventDefault();
     const now = performance.now();
     const delta = dx * dragSensitivity;
     rotation.current += delta;

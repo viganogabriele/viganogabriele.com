@@ -23,6 +23,10 @@ const MIN_COPIES = 2;
 const COPY_HEADROOM = 2;
 const SPEED = 26;
 const HOVER_SPEED = 132;
+/** Touch has no hover to leave, so a press releases on a timer instead —
+ *  long enough to read as a deliberate accelerate-and-grow, short enough that
+ *  it can never look stuck if a pointerup/pointercancel is somehow missed. */
+const PRESS_MS = 700;
 
 export function LogoLoop({ className = "" }: { className?: string }) {
   const { prefersReducedMotion } = useMotionProfile();
@@ -30,8 +34,45 @@ export function LogoLoop({ className = "" }: { className?: string }) {
   const track = useRef<HTMLDivElement>(null);
   const sequence = useRef<HTMLUListElement>(null);
   const hovering = useRef(false);
+  const touchAccelerated = useRef(false);
+  const pressedCount = useRef(0);
+  const pressTimers = useRef(new Map<Element, number>());
   const [sequenceWidth, setSequenceWidth] = useState(0);
   const [copies, setCopies] = useState(MIN_COPIES);
+
+  // Imperative, like `hovering`: this runs from pointer events, not React
+  // state, so a press can't force a re-render of every duplicated logo copy
+  // on every tap.
+  const clearPressTimer = useCallback((element: Element) => {
+    const timer = pressTimers.current.get(element);
+    if (timer !== undefined) {
+      window.clearTimeout(timer);
+      pressTimers.current.delete(element);
+    }
+  }, []);
+
+  const releasePress = useCallback((element: Element) => {
+    clearPressTimer(element);
+    if (!element.classList.contains("logo-loop-item--pressed")) return;
+    element.classList.remove("logo-loop-item--pressed");
+    pressedCount.current = Math.max(0, pressedCount.current - 1);
+    if (pressedCount.current === 0) touchAccelerated.current = false;
+  }, [clearPressTimer]);
+
+  const pressItem = useCallback((element: Element) => {
+    if (!element.classList.contains("logo-loop-item--pressed")) {
+      element.classList.add("logo-loop-item--pressed");
+      pressedCount.current += 1;
+    }
+    touchAccelerated.current = true;
+    clearPressTimer(element);
+    pressTimers.current.set(element, window.setTimeout(() => releasePress(element), PRESS_MS));
+  }, [clearPressTimer, releasePress]);
+
+  useEffect(() => () => {
+    for (const timer of pressTimers.current.values()) window.clearTimeout(timer);
+    pressTimers.current.clear();
+  }, []);
 
   const measure = useCallback(() => {
     const width = sequence.current?.getBoundingClientRect().width ?? 0;
@@ -76,7 +117,7 @@ export function LogoLoop({ className = "" }: { className?: string }) {
       if (last === null) last = now;
       const delta = Math.max(0, now - last) / 1000;
       last = now;
-      const targetSpeed = hovering.current ? HOVER_SPEED : SPEED;
+      const targetSpeed = hovering.current || touchAccelerated.current ? HOVER_SPEED : SPEED;
       velocity += (targetSpeed - velocity) * (1 - Math.exp(-delta / SMOOTH_TAU));
       offset = (((offset + velocity * delta) % sequenceWidth) + sequenceWidth) % sequenceWidth;
       node.style.transform = `translate3d(${-offset}px, 0, 0)`;
@@ -123,12 +164,19 @@ export function LogoLoop({ className = "" }: { className?: string }) {
             if (event.pointerType !== "mouse") return;
             hovering.current = true;
           }}
+          // Touch's equivalent of hover: a tap/press stands in for
+          // mouseenter, since there is no hover state to leave once the
+          // finger lifts. `pointerdown` never calls preventDefault, so a
+          // press that turns into a vertical page scroll is unaffected.
+          onPointerDown={(event) => { if (event.pointerType !== "mouse") pressItem(event.currentTarget); }}
+          onPointerUp={(event) => { if (event.pointerType !== "mouse") releasePress(event.currentTarget); }}
+          onPointerCancel={(event) => { if (event.pointerType !== "mouse") releasePress(event.currentTarget); }}
         >
           <svg viewBox="0 0 24 24" aria-hidden className="h-7 w-7 shrink-0 fill-current sm:h-9 sm:w-9"><path d={logo.path} /></svg>
         </li>
       ))}
     </ul>
-  )), [copies]);
+  )), [copies, pressItem, releasePress]);
 
   return (
     <div

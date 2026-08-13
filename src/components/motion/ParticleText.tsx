@@ -27,14 +27,26 @@ import { useEffect, useRef } from "react";
 const PAD = 130;
 const DENSITY = 3;
 const MAX_PARTICLES = 3200;
-const COMPACT_MAX_PARTICLES = 1200;
+// Mobile glyphs render smaller (see the .hero-wordmark clamp()s), but not
+// proportionally smaller than this cap implies — a lower ratio than the
+// glyph area actually shrinks by read as visibly sparser dots than desktop.
+const COMPACT_MAX_PARTICLES = 1800;
 const GATHER_MS = 480;
 /** Sweep left to right across the wordmark, so the field assembles like a scan
  *  rather than every particle leaving at once on a random delay. */
 const WAVE_MS = 230;
 const JITTER_MS = 65;
 const RELEASE_MS = 280;
-const TEXT_HIDE_DELAY_MS = 90;
+// Real text starts fading almost immediately — the CSS transition on
+// .hero-wordmark--particles is long enough on its own (see index.css) to
+// keep it visible until particles across the whole wave have caught up; this
+// only needs to hold it steady for one frame so the canvas has painted
+// before anything starts moving.
+const TEXT_HIDE_DELAY_MS = 16;
+/** How long a mobile tap/press keeps the repel pulse alive before it decays
+ *  back to rest — long enough to read as a deliberate poke, short enough it
+ *  never reads as a stuck, hover-like state. */
+const TOUCH_RIPPLE_MS = 320;
 /** Kept under PAD: a particle that starts outside the canvas is clipped, and
  *  the clip drew the canvas's own rectangle across the hero mid-animation. */
 const SCATTER = 78;
@@ -270,7 +282,7 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
       width = Math.ceil(hostBox.width) + PAD * 2;
       height = Math.ceil(hostBox.height) + PAD * 2;
 
-      const dpr = Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, compact ? 1.75 : 2);
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       // A canvas is a replaced element: with width:auto it takes its backing
@@ -398,6 +410,37 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
     };
     const leave = () => { pointer.active = false; };
 
+    // Mobile has no hover to repel from, so a tap/press stands in with a
+    // short-lived pulse at the touch point instead of tracking the finger —
+    // tracking would mean reacting to touchmove, which is exactly the signal
+    // a vertical page scroll starts from, and this must never compete with
+    // that. Listens on `host` (the heading), not `window`: the canvas itself
+    // is pointer-events:none, so the heading is what actually receives the
+    // tap, and scoping to it means a tap anywhere else on the page is a no-op
+    // here instead of triggering an unrelated repel.
+    let rippleTimer: number | null = null;
+    const clearRipple = () => {
+      if (rippleTimer !== null) window.clearTimeout(rippleTimer);
+      rippleTimer = null;
+    };
+    const tap = (event: PointerEvent) => {
+      if (event.pointerType === "mouse" || !activeNow) return;
+      const box = canvas.getBoundingClientRect();
+      pointer.clientX = event.clientX;
+      pointer.clientY = event.clientY;
+      // Seed the smoothed position at the tap point too, otherwise the pulse
+      // visibly slides in from wherever the pointer last was (the origin, on
+      // a first tap) instead of bursting from where the finger landed.
+      pointer.x = event.clientX - box.left;
+      pointer.y = event.clientY - box.top;
+      pointer.smoothX = pointer.x;
+      pointer.smoothY = pointer.y;
+      pointer.active = true;
+      run();
+      clearRipple();
+      rippleTimer = window.setTimeout(() => { pointer.active = false; rippleTimer = null; }, TOUCH_RIPPLE_MS);
+    };
+
     const observer = new IntersectionObserver((entries) => {
       visible = entries.some((entry) => entry.isIntersecting);
       if (visible) run(); else park();
@@ -420,6 +463,8 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
     if (!compact) {
       window.addEventListener("pointermove", move, { passive: true });
       window.addEventListener("pointerleave", leave);
+    } else {
+      host.addEventListener("pointerdown", tap, { passive: true });
     }
     document.addEventListener("visibilitychange", onVisibility);
     void sample();
@@ -437,6 +482,9 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
       if (!compact) {
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerleave", leave);
+      } else {
+        host.removeEventListener("pointerdown", tap);
+        clearRipple();
       }
       document.removeEventListener("visibilitychange", onVisibility);
     };

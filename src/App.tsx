@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { BrowserRouter, Route, Routes, useLocation, type Location } from "react-router-dom";
 import { Preloader } from "./components/layout/Preloader";
 import { RouteReadyContext } from "./hooks/useRouteReady";
@@ -39,10 +39,9 @@ function useRoutePrefetching() {
 function RouteScrollManager() {
   const location = useLocation();
   const { prefersReducedMotion } = useMotionProfile();
-  const [positions, setPositions] = useState(() => new Map<string, ScrollSnapshot>());
+  const positions = useRef(new Map<string, ScrollSnapshot>());
   const [readyKey, setReadyKey] = useState<string | null>(null);
   const [settledKey, setSettledKey] = useState<string | null>(null);
-  const previousLocation = useRef<Location>(location);
   const routeReady = readyKey === location.key;
   const routeSettled = settledKey === location.key;
   const loading = !routeReady || !routeSettled;
@@ -65,17 +64,37 @@ function RouteScrollManager() {
     return () => { window.history.scrollRestoration = previous; };
   }, []);
 
-  useLayoutEffect(() => {
-    const previous = previousLocation.current;
-    if (previous.key === location.key) return;
-    const snapshot = getScrollSnapshot();
-    setPositions((current) => {
-      const next = new Map(current);
-      next.set(previous.key, snapshot);
-      return next;
-    });
-    previousLocation.current = location;
-  }, [location]);
+  // Captured live, not on the way out: by the time a location-change effect
+  // could run, the new route has already committed (React runs one commit for
+  // the whole tree), so `getScrollSnapshot()` would read the page being
+  // navigated TO, not the one being left — silently mis-recording the
+  // fallback position for any route pair without its own explicit nav state
+  // (e.g. Home<->CV). Keeping the ref current for every route as it's dwelt on
+  // sidesteps the ordering problem entirely and needs no departure-time hook.
+  // Notes are skipped: they're a fixed overlay with their own scroll
+  // container, so `window.scrollY` there is meaningless and restoration for
+  // `/notes/*` is skipped outright below.
+  useEffect(() => {
+    if (location.pathname.startsWith("/notes/")) return;
+    const key = location.key;
+    const capture = () => positions.current.set(key, getScrollSnapshot());
+    capture();
+    let frame = 0;
+    const onChange = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        capture();
+      });
+    };
+    window.addEventListener("scroll", onChange, { passive: true });
+    window.addEventListener("resize", onChange);
+    return () => {
+      window.removeEventListener("scroll", onChange);
+      window.removeEventListener("resize", onChange);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [location.key, location.pathname]);
 
   useLayoutEffect(() => {
     if (HOME_PATHS.has(location.pathname) && routeReady) {
@@ -138,7 +157,7 @@ class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: stri
   }
 }
 
-function RouteScrollCommit({ location, positions, ready, onSettled }: { location: Location; positions: Map<string, ScrollSnapshot>; ready: boolean; onSettled: (key: string) => void }) {
+function RouteScrollCommit({ location, positions, ready, onSettled }: { location: Location; positions: RefObject<Map<string, ScrollSnapshot>>; ready: boolean; onSettled: (key: string) => void }) {
   useLayoutEffect(() => {
     if (!ready) return;
     if (location.pathname.startsWith("/notes/")) {
@@ -149,7 +168,7 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
     let cancelled = false;
     const noteReturn = readNoteNavigationState(location.state)?.noteReturn.snapshot;
     const queuedReturn = location.pathname === "/" ? takeQueuedNoteReturn() : null;
-    const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.get(location.key);
+    const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.current.get(location.key);
     if (!snapshot && location.hash) {
       document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
       onSettled(location.key);
@@ -231,7 +250,7 @@ function hasRunningAncestorAnimation(element: HTMLElement) {
   return false;
 }
 
-function RenderedRoutes({ positions, ready, onSettled, onRouteError }: { positions: Map<string, ScrollSnapshot>; ready: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
+function RenderedRoutes({ positions, ready, onSettled, onRouteError }: { positions: RefObject<Map<string, ScrollSnapshot>>; ready: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
   const location = useLocation();
   const homeRoute = HOME_PATHS.has(location.pathname);
   return (

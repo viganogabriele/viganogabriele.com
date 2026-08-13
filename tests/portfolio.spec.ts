@@ -79,6 +79,70 @@ test("every carousel step counts when the presses overlap the animation", async 
   await expect(page.locator("[data-project-detail]")).toContainText("Homelab & Remote Dev");
 });
 
+test("a mostly horizontal carousel drag locks the axis and blocks vertical scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const carousel = page.getByRole("region", { name: "Selected projects" });
+  await carousel.scrollIntoViewIfNeeded();
+  const position = carousel.locator(".circular-carousel__controls span");
+  await expect(position).toHaveText("01 / 04");
+
+  // Dispatched, not real touch emulation (this project runs Chromium/Firefox/
+  // WebKit without a `hasTouch` context), so this checks the same thing the
+  // fix actually does: once the drag's axis resolves horizontal, the
+  // pointermove that locks it — and every one after — must come back with
+  // defaultPrevented, which is what stops a real browser from also starting
+  // its own vertical pan underneath the drag.
+  const horizontalResult = await carousel.evaluate((root) => {
+    const box = root.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    const fire = (type: string, clientX: number, clientY: number) => {
+      const event = new PointerEvent(type, { pointerId: 7, pointerType: "touch", clientX, clientY, bubbles: true, cancelable: true });
+      root.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    fire("pointerdown", x, y);
+    const lockPrevented = fire("pointermove", x - 40, y + 5);
+    const continuedPrevented = fire("pointermove", x - 90, y + 6);
+    fire("pointerup", x - 90, y + 6);
+    return { lockPrevented, continuedPrevented };
+  });
+  // The resulting card index depends on drag distance and release momentum,
+  // which isn't the point here — only that the axis lock actually suppressed
+  // the browser's own scroll handling for the gesture is asserted above.
+  expect(horizontalResult.lockPrevented).toBe(true);
+  expect(horizontalResult.continuedPrevented).toBe(true);
+});
+
+test("a mostly vertical drag on the carousel hands off to page scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const carousel = page.getByRole("region", { name: "Selected projects" });
+  await carousel.scrollIntoViewIfNeeded();
+  const position = carousel.locator(".circular-carousel__controls span");
+  await expect(position).toHaveText("01 / 04");
+
+  const verticalPrevented = await carousel.evaluate((root) => {
+    const box = root.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    const fire = (type: string, clientX: number, clientY: number) => {
+      const event = new PointerEvent(type, { pointerId: 8, pointerType: "touch", clientX, clientY, bubbles: true, cancelable: true });
+      root.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    fire("pointerdown", x, y);
+    const prevented = fire("pointermove", x + 4, y - 60);
+    fire("pointerup", x + 4, y - 60);
+    return prevented;
+  });
+  expect(verticalPrevented).toBe(false);
+  await expect(position).toHaveText("01 / 04");
+});
+
 test("notes and certifications expose their destinations without relying on hover", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Read note").first()).toBeVisible();
@@ -171,6 +235,62 @@ test("the toolkit logo loop uses legible large marks", async ({ page, browserNam
   if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
 });
 
+test("a press on a marquee logo accelerates it and grows the mark, then releases on pointerup", async ({ page, browserName }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const marquee = page.locator(".tool-marquee");
+  await marquee.scrollIntoViewIfNeeded();
+  const track = marquee.locator(".logo-loop > div");
+  const readX = () => track.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
+
+  const item = marquee.locator(".logo-loop-item").first();
+  const fire = (type: string) => item.evaluate((element, eventType) => {
+    element.dispatchEvent(new PointerEvent(eventType, { pointerId: 11, pointerType: "touch", bubbles: true, cancelable: true }));
+  }, type);
+  const start = await readX();
+  await page.waitForTimeout(400);
+  const normalDistance = Math.abs((await readX()) - start);
+
+  await fire("pointerdown");
+  await expect(item).toHaveClass(/logo-loop-item--pressed/);
+  await expect
+    .poll(() => item.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a))
+    .toBeGreaterThan(1.2);
+
+  const fastStart = await readX();
+  await page.waitForTimeout(400);
+  const fastDistance = Math.abs((await readX()) - fastStart);
+  // Same headless-WebKit rAF caveat as the hover version of this assertion.
+  if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+
+  await fire("pointerup");
+  await expect(item).not.toHaveClass(/logo-loop-item--pressed/);
+  const releasedStart = await readX();
+  await page.waitForTimeout(400);
+  const releasedDistance = Math.abs((await readX()) - releasedStart);
+  if (browserName !== "webkit") expect(releasedDistance).toBeLessThan(fastDistance);
+});
+
+test("a marquee press that never gets a pointerup still releases on its own", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const marquee = page.locator(".tool-marquee");
+  await marquee.scrollIntoViewIfNeeded();
+  const item = marquee.locator(".logo-loop-item").first();
+
+  await item.evaluate((element) => {
+    element.dispatchEvent(new PointerEvent("pointerdown", { pointerId: 12, pointerType: "touch", bubbles: true, cancelable: true }));
+  });
+  await expect(item).toHaveClass(/logo-loop-item--pressed/);
+  // No pointerup/pointercancel ever arrives — the safety timeout in
+  // LogoLoop.tsx (PRESS_MS) is the only thing that can clear this, which is
+  // the guarantee this test exists to hold: a dropped release event must
+  // never leave the marquee stuck accelerated.
+  await expect(item).not.toHaveClass(/logo-loop-item--pressed/, { timeout: 2000 });
+});
+
 test("mobile hero omits the portrait while preserving the SYS control", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -183,6 +303,34 @@ test("mobile hero omits the portrait while preserving the SYS control", async ({
   await expect(system).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".hero-wordmark canvas")).toBeAttached();
   await expect(page.locator(".hero-wordmark")).toHaveClass(/hero-wordmark--particles/);
+});
+
+test("a tap on the mobile particle wordmark never blocks page scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  const wordmark = page.locator(".hero-wordmark");
+  await expect(wordmark).toHaveClass(/hero-wordmark--particles/);
+
+  // The tap ripple is compact-only and listens on the heading, not the canvas
+  // (which is pointer-events:none). This is the same touch-vs-mouse and
+  // never-preventDefault contract the carousel fix relies on: whatever the
+  // repel effect does internally, it must never be able to swallow the
+  // gesture and stop the page from scrolling underneath a press.
+  const results = await wordmark.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const clientX = box.left + box.width / 2;
+    const clientY = box.top + box.height / 2;
+    const down = new PointerEvent("pointerdown", { pointerId: 21, pointerType: "touch", clientX, clientY, bubbles: true, cancelable: true });
+    element.dispatchEvent(down);
+    const up = new PointerEvent("pointerup", { pointerId: 21, pointerType: "touch", clientX, clientY, bubbles: true, cancelable: true });
+    element.dispatchEvent(up);
+    return { downPrevented: down.defaultPrevented, upPrevented: up.defaultPrevented };
+  });
+  expect(results.downPrevented).toBe(false);
+  expect(results.upPrevented).toBe(false);
+  await expect(page.locator(".hero-wordmark canvas")).toBeAttached();
 });
 
 test("a phone never downloads the portrait it cannot show", async ({ page }) => {
@@ -423,6 +571,54 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect(page.locator("[data-system-wipe]")).toHaveCount(1);
   await page.reload();
   await expect(system).toHaveAttribute("aria-pressed", "false");
+});
+
+test("SYS mode stays active and in sync across Home, the CV page and a note", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const homeToggle = page.getByRole("button", { name: "Toggle system mode" });
+  await homeToggle.click();
+  await expect(homeToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+  await expect(page.locator(".hero-wordmark")).toHaveClass(/hero-wordmark--particles/);
+
+  // CV mounts its own useSystemMode() instance. Without the shared in-memory
+  // flag it started at false every time, so the accent (driven off the same
+  // html[data-system-mode] attribute everywhere) snapped back to blue the
+  // moment this route's own mount effect ran, and CV's own SYS button read
+  // as off while every other SYS-tinted element on the page was still violet.
+  await page.getByRole("link", { name: "View CV" }).first().click();
+  await expect(page).toHaveURL(/\/cv$/);
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const cvToggle = page.getByRole("button", { name: "Toggle system mode" });
+  await expect(cvToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+  // No replayed wipe on a route that merely inherits the state — that
+  // animation belongs to an actual toggle, not to mounting already-on.
+  await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
+
+  // Notes intentionally have no SYS toggle of their own (see the comment in
+  // NotePage.tsx) but must not clear the ambient attribute either.
+  await page.getByRole("link", { name: "Back to home" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.getByRole("link", { name: "Read note", exact: false }).first().click();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+  await page.getByRole("button", { name: "Close note and return to notes" }).click();
+
+  await expect(homeToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+  await expect(page.locator(".hero-wordmark")).toHaveClass(/hero-wordmark--particles/);
+  await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
+
+  // Turning it off from wherever it's currently active still works, and a
+  // full reload — the one case this is meant to reset on — goes back to off.
+  await homeToggle.click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-system-mode", "on");
+  await page.reload();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await expect(homeToggle).toHaveAttribute("aria-pressed", "false");
 });
 
 test("SYS cross-fades the wordmark in both directions without dropping the canvas", async ({ page }) => {
@@ -1131,6 +1327,51 @@ test("browser back still restores the exact note position", async ({ page }) => 
   await note.evaluate((element) => element.click());
   await page.goBack();
   await expect(note).toBeVisible();
+  await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(2);
+});
+
+test("browser back also restores position across a Home <-> CV round trip", async ({ page }) => {
+  // The CV route has no explicit nav-state snapshot the way opening a note
+  // does — it falls back entirely to RouteScrollManager's own tracking. That
+  // fallback used to be captured after the new route had already committed
+  // (getScrollSnapshot() read the page being navigated TO, not the one being
+  // left), which this pair only worked by accident for notes and silently
+  // mis-recorded Home's position for every other route pair. This is the
+  // case that regressed without the continuous, ref-based capture.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo({ top: 900, behavior: "auto" }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(800);
+  const expectedY = await page.evaluate(() => window.scrollY);
+
+  await page.getByRole("link", { name: "View CV" }).first().click();
+  await expect(page).toHaveURL(/\/cv$/);
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(2);
+});
+
+test("a deep-linked CV visit still restores Home's position on the way back", async ({ page }) => {
+  // Landing directly on /cv (no prior Home visit this session) exercises the
+  // same continuous capture from a cold start rather than a route the reader
+  // navigated away from — the fix must not depend on how the route pair was
+  // first reached.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/cv");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.getByRole("link", { name: "Back to home" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo({ top: 700, behavior: "auto" }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(600);
+  const expectedY = await page.evaluate(() => window.scrollY);
+
+  await page.getByRole("link", { name: "View CV" }).first().click();
+  await expect(page).toHaveURL(/\/cv$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
   await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(2);
 });
 

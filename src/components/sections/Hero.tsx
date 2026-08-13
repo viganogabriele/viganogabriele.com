@@ -19,7 +19,11 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
   // afterwards so leaving the mode can dissolve the particles over the real
   // type instead of dropping the canvas in one frame. Mobile gets a smaller
   // particle budget inside ParticleText rather than losing the transition.
-  const [particleWordmarkArmed, setParticleWordmarkArmed] = useState(false);
+  // Also arm immediately when SYS mode was already on when Home mounted (a
+  // route came back from CV/a note with it still active) — otherwise the
+  // wordmark sat as plain text, out of sync with every other SYS-tinted
+  // element on the page, until the reader toggled it off and back on.
+  const [particleWordmarkArmed, setParticleWordmarkArmed] = useState(systemActive);
   useEffect(() => {
     if (reduced) return;
     const arm = () => setParticleWordmarkArmed(true);
