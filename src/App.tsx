@@ -108,6 +108,15 @@ function RouteScrollManager() {
   // that mutation ever happens, so comparing against the pathname captured at
   // effect setup reliably tells a stale, post-navigation event apart from a
   // genuine one from this route's own dwell time.
+  //
+  // `pointerdown` gets the same capture for a different reason: WebKit can
+  // defer the `scroll` event's actual dispatch by a frame or more after
+  // `scrollY` itself has already updated (Safari has form on coalescing
+  // scroll-driven work this way). A press-then-click that lands within that
+  // window fires the navigation before `scroll` ever caught up, so `capture`
+  // also runs on the pointer going down — always before a click's resulting
+  // navigation, and cheap enough to run on every press since it is just a
+  // handful of reads, not a re-render.
   useEffect(() => {
     if (location.pathname.startsWith("/notes/")) return;
     const key = location.key;
@@ -118,9 +127,11 @@ function RouteScrollManager() {
     };
     window.addEventListener("scroll", capture, { passive: true });
     window.addEventListener("resize", capture);
+    window.addEventListener("pointerdown", capture, { passive: true });
     return () => {
       window.removeEventListener("scroll", capture);
       window.removeEventListener("resize", capture);
+      window.removeEventListener("pointerdown", capture);
     };
   }, [location.key, location.pathname]);
 

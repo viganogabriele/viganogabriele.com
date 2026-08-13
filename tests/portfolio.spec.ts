@@ -1348,13 +1348,16 @@ test("browser back also restores position across a Home <-> CV round trip", asyn
   // to reach it too, but defeats a test that wants to hold a specific,
   // unrelated scroll position at the moment of navigating away. The DOM click
   // below sidesteps this the same way the note-restoration tests do.
+  // A plain `window.scrollTo`, not Playwright's own scrollIntoViewIfNeeded:
+  // the latter doesn't reliably raise a real `scroll` event in WebKit right
+  // after a fresh SPA mount, which is exactly the signal RouteScrollManager's
+  // capture listens for.
   const cvLink = page.locator("footer").getByRole("link", { name: "View CV" });
-  await cvLink.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(200);
+  await cvLink.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 200, behavior: "auto" }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(800);
   const expectedY = await page.evaluate(() => window.scrollY);
-  expect(expectedY).toBeGreaterThan(800);
 
-  await cvLink.evaluate((element) => (element as HTMLElement).click());
+  await cvLink.evaluate((element) => { element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); (element as HTMLElement).click(); });
   await expect(page).toHaveURL(/\/cv$/);
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.goBack();
@@ -1381,12 +1384,11 @@ test("a deep-linked CV visit still restores Home's position on the way back", as
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   const cvLink = page.locator("footer").getByRole("link", { name: "View CV" });
-  await cvLink.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(200);
+  await cvLink.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 200, behavior: "auto" }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(600);
   const expectedY = await page.evaluate(() => window.scrollY);
-  expect(expectedY).toBeGreaterThan(600);
 
-  await cvLink.evaluate((element) => (element as HTMLElement).click());
+  await cvLink.evaluate((element) => { element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); (element as HTMLElement).click(); });
   await expect(page).toHaveURL(/\/cv$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
