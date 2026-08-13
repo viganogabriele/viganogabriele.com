@@ -22,10 +22,10 @@ const SMOOTH_TAU = 0.25;
 const MIN_COPIES = 2;
 const COPY_HEADROOM = 2;
 const SPEED = 26;
-const HOVER_SPEED = 76;
+const HOVER_SPEED = 132;
 
 export function LogoLoop({ className = "" }: { className?: string }) {
-  const { level, prefersReducedMotion } = useMotionProfile();
+  const { prefersReducedMotion } = useMotionProfile();
   const container = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const sequence = useRef<HTMLUListElement>(null);
@@ -44,20 +44,25 @@ export function LogoLoop({ className = "" }: { className?: string }) {
   useEffect(() => {
     const node = container.current;
     if (!node) return;
-    // ResizeObserver delivers an initial observation for every element it is
-    // given, so the first measurement arrives without calling it here — which
-    // would be a setState directly inside the effect.
     const observer = new ResizeObserver(measure);
     observer.observe(node);
     if (sequence.current) observer.observe(sequence.current);
-    return () => observer.disconnect();
+    // WebKit can defer the observer's initial delivery while this lazy-loaded
+    // strip is scrolled into view. Measure on the next frame as a deterministic
+    // fallback, outside the effect body, so Safari does not leave the loop at
+    // translateX(0) until the next resize.
+    const frame = requestAnimationFrame(measure);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [measure]);
 
   useEffect(() => {
     const node = track.current;
     const host = container.current;
     if (!node || !host || sequenceWidth <= 0) return;
-    if (prefersReducedMotion || level === "static") {
+    if (prefersReducedMotion) {
       node.style.transform = "translate3d(0, 0, 0)";
       return;
     }
@@ -67,7 +72,6 @@ export function LogoLoop({ className = "" }: { className?: string }) {
     let offset = 0;
     let velocity = 0;
     let onScreen = true;
-
     const tick = (now: number) => {
       if (last === null) last = now;
       const delta = Math.max(0, now - last) / 1000;
@@ -102,7 +106,7 @@ export function LogoLoop({ className = "" }: { className?: string }) {
       observer.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [level, prefersReducedMotion, sequenceWidth]);
+  }, [prefersReducedMotion, sequenceWidth]);
 
   const lists = useMemo(() => Array.from({ length: copies }, (_, copy) => (
     <ul
@@ -112,7 +116,14 @@ export function LogoLoop({ className = "" }: { className?: string }) {
       className="logo-loop-sequence flex shrink-0 items-center"
     >
       {stackLogos.map((logo) => (
-        <li key={logo.label} className="logo-loop-item flex shrink-0 items-center text-zinc-500">
+        <li
+          key={logo.label}
+          className="logo-loop-item flex shrink-0 items-center text-zinc-500"
+          onPointerEnter={(event) => {
+            if (event.pointerType !== "mouse") return;
+            hovering.current = true;
+          }}
+        >
           <svg viewBox="0 0 24 24" aria-hidden className="h-7 w-7 shrink-0 fill-current sm:h-9 sm:w-9"><path d={logo.path} /></svg>
         </li>
       ))}
@@ -123,7 +134,6 @@ export function LogoLoop({ className = "" }: { className?: string }) {
     <div
       ref={container}
       aria-hidden
-      onPointerEnter={() => { hovering.current = true; }}
       onPointerLeave={() => { hovering.current = false; }}
       className={`logo-loop relative select-none overflow-hidden ${className}`}
     >

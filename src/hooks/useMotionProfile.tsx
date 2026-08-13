@@ -74,7 +74,12 @@ export function MotionProfileProvider({ children }: { children: ReactNode }) {
     // Nothing this profile reads can change from a width-unchanged resize
     // (the mobile URL bar collapsing) — skip the matchMedia work then.
     const removeResizeListener = onViewportWidthChange(refresh);
+    // WebKit can expose its final media-query values one frame after React's
+    // lazy initializer. Reconcile once after mount so the shared profile does
+    // not leave every consumer in a stale reduced/static state until resize.
+    const frame = requestAnimationFrame(refresh);
     return () => {
+      cancelAnimationFrame(frame);
       reduced.removeEventListener("change", refresh);
       pointer.removeEventListener("change", refresh);
       removeResizeListener();

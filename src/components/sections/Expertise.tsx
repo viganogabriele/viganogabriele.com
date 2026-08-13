@@ -111,39 +111,71 @@ export function Expertise() {
     return () => observer.disconnect();
   }, []);
 
-  // Deliberately not gated on `inView`: the tick itself is four-tenths of a
-  // second's worth of work per second, and re-arming the interval when the
-  // section scrolls in would put a fresh 2.25s before the first advance.
+  // Keep both the rail and its sticky readout tied to what the visitor is
+  // actually reading. The previous 2.25s interval advanced independently of
+  // scrolling, so the highlighted legend and visible row could disagree for
+  // a full cycle. One passive listener queues at most one layout read per
+  // frame, and it is only active while this section intersects the viewport.
   useEffect(() => {
-    if (staticMotion) return;
-    const timer = window.setInterval(() => {
-      const section = sectionRef.current;
-      if (!section) return;
+    const section = sectionRef.current;
+    if (!section) return;
+    const rows = Array.from(section.querySelectorAll<HTMLElement>("[data-index]"));
+    let frame: number | null = null;
+
+    const syncToScroll = () => {
+      frame = null;
       const sectionRect = section.getBoundingClientRect();
       if (sectionRect.bottom <= 0 || sectionRect.top >= window.innerHeight) return;
-      // Measured out here rather than inside the updater below: a state updater
-      // has to be a pure function of the previous state, and React is free to
-      // run it more than once for a single commit — which under StrictMode
-      // advanced the highlight twice and skipped a row every tick.
-      const visible = Array.from(section.querySelectorAll<HTMLElement>("[data-index]"))
-        .filter((row) => {
-          const rect = row.getBoundingClientRect();
-          return Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0) >= 48;
-        })
-        .map((row) => Number(row.dataset.index));
-      if (visible.length === 0) return;
-      setAutoIndex((current) => {
-        if (visible.length === 1) return visible[0];
-        const position = visible.indexOf(current);
-        return visible[position < 0 ? 0 : (position + 1) % visible.length];
-      });
-    }, 2_250);
-    return () => window.clearInterval(timer);
-  }, [staticMotion]);
+
+      const readingLine = Math.min(Math.max(window.innerHeight * 0.46, 150), window.innerHeight - 120);
+      let nextIndex = 0;
+      let closestDistance = Infinity;
+      for (const row of rows) {
+        const rect = row.getBoundingClientRect();
+        const distance = rect.top <= readingLine && rect.bottom >= readingLine
+          ? 0
+          : Math.min(Math.abs(rect.top - readingLine), Math.abs(rect.bottom - readingLine));
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          nextIndex = Number(row.dataset.index);
+        }
+      }
+      setAutoIndex((current) => current === nextIndex ? current : nextIndex);
+    };
+    const queueSync = () => {
+      if (frame === null) frame = requestAnimationFrame(syncToScroll);
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        window.addEventListener("scroll", queueSync, { passive: true });
+        queueSync();
+      } else {
+        window.removeEventListener("scroll", queueSync);
+      }
+    });
+    const resize = new ResizeObserver(queueSync);
+    observer.observe(section);
+    resize.observe(section);
+    window.addEventListener("resize", queueSync, { passive: true });
+    queueSync();
+    return () => {
+      observer.disconnect();
+      resize.disconnect();
+      window.removeEventListener("scroll", queueSync);
+      window.removeEventListener("resize", queueSync);
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const activate = (index: number) => {
     if (staticMotion) return;
     setHoveredIndex(index);
+  };
+
+  const scrollToActivity = (index: number) => {
+    const row = sectionRef.current?.querySelector<HTMLElement>(`[data-index="${index}"]`);
+    setAutoIndex(index);
+    row?.scrollIntoView({ behavior: staticMotion ? "auto" : "smooth", block: "center" });
   };
 
   return (
@@ -155,15 +187,24 @@ export function Expertise() {
             title={expertiseSection.title}
             subtitle={expertiseSection.subtitle}
           />
-          <ol aria-hidden="true" className="capability-legend mt-5 hidden border-t border-white/[0.08] lg:block">
+          <ol aria-label="Capabilities" className="capability-legend mt-5 hidden border-t border-white/[0.08] lg:block">
             {activities.map((activity, index) => (
               <li
                 key={activity.title}
                 data-active={activeIndex === index}
-                className="capability-legend-row flex items-baseline gap-3 border-b border-white/[0.06] py-2.5 font-mono text-[10px] uppercase tracking-[0.13em] text-zinc-600"
+                className="capability-legend-row border-b border-white/[0.06] font-mono text-[10px] uppercase tracking-[0.13em] text-zinc-600"
               >
-                <span className="capability-legend-index">{activity.index}</span>
-                <span className="capability-legend-title">{activity.title}</span>
+                <button
+                  type="button"
+                  onClick={() => scrollToActivity(index)}
+                  onPointerEnter={(event) => { if (event.pointerType === "mouse") activate(index); }}
+                  onPointerLeave={(event) => { if (event.pointerType === "mouse") setHoveredIndex(null); }}
+                  aria-current={activeIndex === index ? "true" : undefined}
+                  className="flex w-full items-baseline gap-3 py-2.5 text-left"
+                >
+                  <span className="capability-legend-index">{activity.index}</span>
+                  <span className="capability-legend-title">{activity.title}</span>
+                </button>
               </li>
             ))}
           </ol>

@@ -80,7 +80,7 @@ export function useSystemMode() {
         if (!activeRef.current) {
           document.documentElement.removeAttribute("data-system-mode");
         }
-      }, 620);
+      }, 460);
       return () => clearTimeout(timer);
     }
 

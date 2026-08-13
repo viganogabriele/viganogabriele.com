@@ -130,7 +130,7 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await expect(track).toHaveCSS("transform", parkedTransform);
 });
 
-test("the toolkit logo loop uses legible large marks", async ({ page }) => {
+test("the toolkit logo loop uses legible large marks", async ({ page, browserName }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
@@ -144,6 +144,31 @@ test("the toolkit logo loop uses legible large marks", async ({ page }) => {
   }));
   expect(geometry.strip).toBeGreaterThanOrEqual(60);
   expect(geometry.mark).toBeGreaterThanOrEqual(34);
+
+  const track = marquee.locator(".logo-loop > div");
+  const readX = () => track.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
+  const start = await readX();
+  await page.waitForTimeout(400);
+  const normalDistance = Math.abs((await readX()) - start);
+  const markIndex = await marquee.locator(".logo-loop-item").evaluateAll((items) => items.findIndex((item) => {
+    const rect = item.getBoundingClientRect();
+    return rect.left >= 0 && rect.right <= window.innerWidth;
+  }));
+  const mark = marquee.locator(".logo-loop-item").nth(markIndex);
+  const markBox = (await mark.boundingBox())!;
+  await page.mouse.move(markBox.x + markBox.width / 2, markBox.y + markBox.height / 2);
+  await expect
+    .poll(() => mark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a))
+    .toBeGreaterThan(1.2);
+  await expect(mark).toHaveCSS("filter", "none");
+  await page.waitForTimeout(150);
+  const fastStart = await readX();
+  await page.waitForTimeout(400);
+  const fastDistance = Math.abs((await readX()) - fastStart);
+  // Headless WebKit only delivers an isolated rAF when driven by automation,
+  // so validate the interactive CSS there and measure loop velocity in the
+  // two engines whose test clocks continuously advance animation frames.
+  if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
 });
 
 test("mobile hero omits the portrait while preserving the SYS control", async ({ page }) => {
@@ -156,6 +181,8 @@ test("mobile hero omits the portrait while preserving the SYS control", async ({
   await expect(system).toBeVisible();
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".hero-wordmark canvas")).toBeAttached();
+  await expect(page.locator(".hero-wordmark")).toHaveClass(/hero-wordmark--particles/);
 });
 
 test("a phone never downloads the portrait it cannot show", async ({ page }) => {
@@ -247,6 +274,10 @@ test("hero portrait stays crisp while scrolling and the surname keeps its accent
     glow: Number(getComputedStyle(frame.querySelector<HTMLElement>(".border-glow__glow")!).zIndex),
   }));
   expect(portraitLayers.content).toBeGreaterThan(portraitLayers.glow);
+  const portrait = page.locator(".hero-visual-frame");
+  expect((await portrait.boundingBox())!.width).toBeLessThanOrEqual(430);
+  await expect(portrait.locator(".hero-portrait--photo")).toHaveCSS("filter", /saturate\(1\.08\)/);
+  await expect(portrait.locator(".hero-fallback-scan, .hero-reticle")).toHaveCount(0);
   await page.evaluate(() => window.scrollTo(0, 420));
   await expect(page.locator(".hero-visual-frame")).toHaveCSS("opacity", "1");
 });
@@ -394,30 +425,19 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect(system).toHaveAttribute("aria-pressed", "false");
 });
 
-test("SYS keeps the real wordmark painted until the lazy particle canvas is ready", async ({ page }) => {
+test("SYS cross-fades the wordmark in both directions without dropping the canvas", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  let releaseParticles!: () => void;
-  const particlesReleased = new Promise<void>((resolve) => { releaseParticles = resolve; });
-  let markParticlesRequested!: () => void;
-  const particlesRequested = new Promise<void>((resolve) => { markParticlesRequested = resolve; });
-  await page.route("**/ParticleText-*.js", async (route) => {
-    markParticlesRequested();
-    await particlesReleased;
-    await route.continue();
-  });
-
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const wordmark = page.locator(".hero-wordmark");
+  await expect(wordmark.locator("canvas")).toHaveCount(0);
   await page.getByRole("button", { name: "Toggle system mode" }).click();
-  await particlesRequested;
-
-  await expect(wordmark).not.toHaveClass(/hero-wordmark--particles/);
-  expect(await wordmark.locator("[data-particle-line]").first().evaluate((node) => getComputedStyle(node).color)).not.toBe("rgba(0, 0, 0, 0)");
-
-  releaseParticles();
   await expect(wordmark.locator("canvas")).toBeAttached();
   await expect(wordmark).toHaveClass(/hero-wordmark--particles/);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(wordmark).not.toHaveClass(/hero-wordmark--particles/);
+  await expect(wordmark.locator("canvas")).toBeAttached();
+  await expect.poll(() => wordmark.locator("[data-particle-line]").first().evaluate((node) => getComputedStyle(node).color)).not.toBe("rgba(0, 0, 0, 0)");
 });
 
 test("hero keeps the photograph visible until the SYS portrait is ready", async ({ page }) => {
@@ -927,20 +947,22 @@ test("mobile browser chrome height changes do not reflow the page", async ({ bro
   await context.close();
 });
 
-test("visible capabilities advance on their own and the journey axis stays aligned", async ({ page }) => {
+test("capability selection follows scrolling and the journey axis stays aligned", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const expertise = page.locator("#expertise");
-  await expertise.scrollIntoViewIfNeeded();
-  await expect(expertise.locator('.expertise-item[data-active="true"]')).toHaveCount(1);
-  const firstActive = await expertise.locator('.expertise-item[data-active="true"]').getAttribute("data-index");
-  await expect.poll(async () => expertise.locator('.expertise-item[data-active="true"]').getAttribute("data-index"), { timeout: 3_500 }).not.toBe(firstActive);
-  const activeIsVisible = await expertise.locator('.expertise-item[data-active="true"]').evaluate((node) => {
-    const rect = node.getBoundingClientRect();
-    return rect.bottom > 0 && rect.top < window.innerHeight;
-  });
-  expect(activeIsVisible).toBe(true);
+  const rows = expertise.locator(".expertise-item");
+  for (let index = 0; index < 5; index += 1) {
+    await rows.nth(index).evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      window.scrollTo({ top: window.scrollY + rect.top + rect.height / 2 - window.innerHeight * 0.46, behavior: "auto" });
+    });
+    await expect(expertise.locator('.expertise-item[data-active="true"]')).toHaveAttribute("data-index", String(index));
+    await expect(expertise.locator(".capability-legend-row").nth(index)).toHaveAttribute("data-active", "true");
+  }
+  await expertise.getByRole("button", { name: /AI-Assisted Development/ }).click();
+  await expect(rows.nth(1)).toHaveAttribute("data-active", "true");
   await page.locator("[data-journey-rail]").scrollIntoViewIfNeeded();
   const alignment = await page.evaluate(() => {
     const axis = document.querySelector<HTMLElement>("[data-journey-axis]")?.getBoundingClientRect();
@@ -955,7 +977,7 @@ test("visible capabilities advance on their own and the journey axis stays align
   expect(alignment!.nodes.every((offset) => Math.abs(offset) <= 1)).toBe(true);
 });
 
-test("capability autoplay keeps rows stable after their reveal", async ({ browser }) => {
+test("capability scroll selection keeps rows stable after their reveal", async ({ browser }) => {
   for (const device of [
     { name: "mobile", hasTouch: true, viewport: { width: 390, height: 844 } },
     { name: "desktop", hasTouch: false, viewport: { width: 1440, height: 900 } },
@@ -987,13 +1009,17 @@ test("capability autoplay keeps rows stable after their reveal", async ({ browse
   }
 });
 
-test("capability autoplay and decorative motion stop with reduced motion", async ({ page }) => {
+test("capability selection stays stable and decorative motion stops with reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const expertise = page.locator("#expertise");
-  await expertise.scrollIntoViewIfNeeded();
+  await expertise.locator(".expertise-item").nth(2).evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    window.scrollTo({ top: window.scrollY + rect.top + rect.height / 2 - window.innerHeight * 0.46, behavior: "auto" });
+  });
+  await expect(expertise.locator('.expertise-item[data-active="true"]')).toHaveAttribute("data-index", "2");
   const active = await expertise.locator('.expertise-item[data-active="true"]').getAttribute("data-index");
   await page.waitForTimeout(2_500);
   await expect(expertise.locator('.expertise-item[data-active="true"]')).toHaveAttribute("data-index", active!);

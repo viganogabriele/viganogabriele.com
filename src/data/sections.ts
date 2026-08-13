@@ -69,7 +69,7 @@ export const certificationsSection = {
 
 export const heroCopy = {
   summary: "I run my own infrastructure, and the product for 500+ student group chats.",
-  portraitLabel: { idle: "PORTRAIT · ENTER SYS", active: "IDENTIFIED · TAP TO EXIT SYS" },
+  portraitLabel: { idle: "PORTRAIT · ENTER SYS", active: "SYS PORTRAIT · TAP TO EXIT" },
 };
 
 export const cvPageCopy = {

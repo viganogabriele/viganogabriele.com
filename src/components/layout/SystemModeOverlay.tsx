@@ -30,7 +30,7 @@ export function SystemModeOverlay({ active, transitionId, safeMode = false, lase
       {wipeId !== null && <div key={wipeId} data-system-wipe aria-hidden className="system-mode-wipe-container pointer-events-none fixed inset-0 z-[80]"><m.div initial={{ y: "-100%" }} animate={{ y: "100%" }} transition={{ duration: dur.mode, ease: ease.cinematic }} onAnimationComplete={() => setCompletedWipeId((completed) => Math.max(completed, wipeId))} className="system-mode-wipe absolute inset-0" /></div>}
     </AnimatePresence>
     <AnimatePresence>
-      {active && <m.div key="sys-overlay" initial={animated ? { opacity: 0 } : false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: animated ? 0.35 : 0 }} aria-hidden className={cn("system-overlay pointer-events-none fixed inset-0 z-[45]", safeMode && "system-overlay-safe", animated && "system-overlay-animated")}>
+      {active && <m.div key="sys-overlay" initial={animated ? { opacity: 0 } : false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: animated ? 0.22 : 0 }} aria-hidden className={cn("system-overlay pointer-events-none fixed inset-0 z-[45]", safeMode && "system-overlay-safe", animated && "system-overlay-animated")}>
         <div className="sys-overlay-glow absolute inset-0" />
         {!safeMode && <>
           <div className="absolute inset-0 sys-grid-overlay opacity-30 sm:opacity-55" />

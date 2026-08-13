@@ -88,14 +88,6 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
         </picture>
       </div>
       <span className="hero-fallback-grid" />
-      <span className="hero-fallback-scan" />
-      {/* Targeting reticle — CSS-only, appears in SYS mode */}
-      <div className="hero-reticle" aria-hidden="true">
-        <div className="hero-reticle-ring" />
-        <div className="hero-reticle-inner" />
-        <div className="hero-reticle-h" />
-        <div className="hero-reticle-v" />
-      </div>
     </div>
   );
 }

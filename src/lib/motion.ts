@@ -10,7 +10,7 @@ export const dur = {
   hover: 0.28,
   reveal: 0.6,
   section: 1.2,
-  mode: 0.7,
+  mode: 0.52,
   preloader: 0.65,
 } as const;
 

@@ -27,11 +27,14 @@ import { useEffect, useRef } from "react";
 const PAD = 130;
 const DENSITY = 3;
 const MAX_PARTICLES = 3200;
-const GATHER_MS = 850;
+const COMPACT_MAX_PARTICLES = 1200;
+const GATHER_MS = 480;
 /** Sweep left to right across the wordmark, so the field assembles like a scan
  *  rather than every particle leaving at once on a random delay. */
-const WAVE_MS = 450;
-const JITTER_MS = 120;
+const WAVE_MS = 230;
+const JITTER_MS = 65;
+const RELEASE_MS = 280;
+const TEXT_HIDE_DELAY_MS = 90;
 /** Kept under PAD: a particle that starts outside the canvas is clipped, and
  *  the clip drew the canvas's own rectangle across the hero mid-animation. */
 const SCATTER = 78;
@@ -73,8 +76,10 @@ function readAccents() {
   };
 }
 
-export function ParticleText() {
+export function ParticleText({ active, compact = false }: { active: boolean; compact?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const setActiveRef = useRef<(next: boolean) => void>(() => undefined);
+  const initialActive = useRef(active);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -90,10 +95,14 @@ export function ParticleText() {
     let height = 0;
     let gatherStart = 0;
     let gathering = false;
+    let releaseStart = 0;
+    let releasing = false;
+    let activeNow = initialActive.current;
+    let textTimer: number | null = null;
     let visible = true;
     let colors = readAccents();
 
-    const pointer = { active: false, x: 0, y: 0, smoothX: 0, smoothY: 0 };
+    const pointer = { active: false, clientX: 0, clientY: 0, x: 0, y: 0, smoothX: 0, smoothY: 0 };
 
     // Each line's own tint, drifting toward the accent across the width so the
     // field has some internal life instead of reading as flat fill. Recomputed
@@ -109,6 +118,11 @@ export function ParticleText() {
 
     const paint = (now: number) => {
       context.clearRect(0, 0, width, height);
+      if (pointer.active) {
+        const box = canvas.getBoundingClientRect();
+        pointer.x = pointer.clientX - box.left;
+        pointer.y = pointer.clientY - box.top;
+      }
       pointer.smoothX += (pointer.x - pointer.smoothX) * 0.18;
       pointer.smoothY += (pointer.y - pointer.smoothY) * 0.18;
 
@@ -117,14 +131,23 @@ export function ParticleText() {
         let x = particle.toX;
         let y = particle.toY;
         let progress = 1;
+        let alpha = 1;
 
         if (gathering) {
           progress = Math.min(Math.max((now - gatherStart - particle.delay) / GATHER_MS, 0), 1);
           const eased = easeOutCubic(progress);
           x = particle.fromX + (particle.toX - particle.fromX) * eased;
           y = particle.fromY + (particle.toY - particle.fromY) * eased;
+          alpha = progress * progress;
           if (progress < 1) settled = false;
-        } else {
+        } else if (releasing) {
+          progress = Math.min(Math.max((now - releaseStart) / RELEASE_MS, 0), 1);
+          const eased = easeOutCubic(progress) * 0.32;
+          x = particle.toX + (particle.fromX - particle.toX) * eased;
+          y = particle.toY + (particle.fromY - particle.toY) * eased;
+          alpha = (1 - progress) ** 2;
+          if (progress < 1) settled = false;
+        } else if (activeNow) {
           const clock = now * 0.001;
           x += Math.sin(clock * 0.9 + particle.seed * 10) * IDLE_DRIFT * particle.depth;
           y += Math.cos(clock * 0.75 + particle.depth * 10) * IDLE_DRIFT * particle.depth;
@@ -141,38 +164,101 @@ export function ParticleText() {
           }
         }
 
-        particle.x += (x - particle.x) * 0.22;
-        particle.y += (y - particle.y) * 0.22;
+        // Transition frames own exact coordinates. A second easing used to
+        // leave dots chasing the glyph grid after the timer had completed,
+        // creating a visible last-second shuffle on straight letter edges.
+        if (gathering || releasing) {
+          particle.x = x;
+          particle.y = y;
+        } else {
+          particle.x += (x - particle.x) * 0.22;
+          particle.y += (y - particle.y) * 0.22;
+        }
 
         // Colour is precomputed per particle; only the gather fades alpha, and
         // that rides globalAlpha rather than rebuilding a colour string for
         // every particle on every frame. Starting from zero means a particle is
         // still invisible while it is furthest out, which is the other half of
         // keeping the canvas's edge off the screen.
-        if (gathering) context.globalAlpha = progress * progress;
+        context.globalAlpha = alpha;
         context.fillStyle = particle.color;
         context.fillRect(particle.x - particle.size / 2, particle.y - particle.size / 2, particle.size, particle.size);
       }
       context.globalAlpha = 1;
 
-      if (gathering && settled) gathering = false;
+      if (gathering && settled) {
+        gathering = false;
+        for (const particle of particles) {
+          particle.x = particle.toX;
+          particle.y = particle.toY;
+        }
+      }
+      if (releasing && settled) {
+        releasing = false;
+        context.clearRect(0, 0, width, height);
+        frame = null;
+        return;
+      }
       frame = requestAnimationFrame(paint);
     };
 
     const run = () => {
-      if (frame === null && visible && particles.length) frame = requestAnimationFrame(paint);
+      if (frame === null && visible && particles.length && (activeNow || gathering || releasing)) frame = requestAnimationFrame(paint);
     };
     const park = () => {
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;
     };
 
+    const clearTextTimer = () => {
+      if (textTimer !== null) window.clearTimeout(textTimer);
+      textTimer = null;
+    };
+    const setActiveState = (next: boolean) => {
+      const wasVisible = activeNow || gathering || releasing || host.classList.contains("hero-wordmark--particles");
+      activeNow = next;
+      clearTextTimer();
+
+      if (!next) {
+        host.classList.remove("hero-wordmark--particles");
+        pointer.active = false;
+        gathering = false;
+        if (!wasVisible || particles.length === 0) {
+          releasing = false;
+          context.clearRect(0, 0, width, height);
+          park();
+          return;
+        }
+        releaseStart = performance.now();
+        releasing = true;
+        run();
+        return;
+      }
+
+      if (particles.length === 0) return;
+      releasing = false;
+      gatherStart = performance.now();
+      gathering = true;
+      for (const particle of particles) {
+        particle.x = particle.fromX;
+        particle.y = particle.fromY;
+      }
+      run();
+      // Let the first incoming dots overlap the readable wordmark before its
+      // colour fades. This prevents a blank phase on both entry and exit.
+      textTimer = window.setTimeout(() => {
+        textTimer = null;
+        if (activeNow) host.classList.add("hero-wordmark--particles");
+      }, TEXT_HIDE_DELAY_MS);
+    };
+    setActiveRef.current = setActiveState;
+
     const sample = async () => {
       const token = ++build;
-      // Keep the real text painted while the lazy chunk, fonts or a resize
-      // sample are pending. Hiding it any earlier leaves a blank wordmark on a
-      // slow connection because the canvas has nothing ready to replace it.
-      host.classList.remove("hero-wordmark--particles");
+      // Keep the real text painted while an inactive canvas is sampled. During
+      // active resizes the existing text/canvas cross-fade state is preserved,
+      // avoiding a one-frame flash of solid type.
+      if (!activeNow) host.classList.remove("hero-wordmark--particles");
       const lines = Array.from(host.querySelectorAll<HTMLElement>("[data-particle-line]"));
       if (!lines.length) return;
 
@@ -184,7 +270,7 @@ export function ParticleText() {
       width = Math.ceil(hostBox.width) + PAD * 2;
       height = Math.ceil(hostBox.height) + PAD * 2;
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 2);
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       // A canvas is a replaced element: with width:auto it takes its backing
@@ -235,15 +321,19 @@ export function ParticleText() {
         }
       };
 
-      // Each line is sampled on its own pass so its particles can carry that
-      // line's own tint, set from CSS via --particle-tint.
+      // Rasterise each line once. Widening the lattice below only changes the
+      // coordinates sampled from these cached masks; it never repeats the
+      // expensive canvas read for an identical line.
+      const masks = lines.map((line) => {
+        const tint = parseColor(getComputedStyle(line).getPropertyValue("--particle-tint"), colors.base);
+        stencilContext.clearRect(0, 0, width, height);
+        draw(line);
+        return { tint, pixels: stencilContext.getImageData(0, 0, stencil.width, stencil.height).data };
+      });
+
       const collect = (grid: number) => {
         const found: { x: number; y: number; tint: [number, number, number] }[] = [];
-        for (const line of lines) {
-          const tint = parseColor(getComputedStyle(line).getPropertyValue("--particle-tint"), colors.base);
-          stencilContext.clearRect(0, 0, width, height);
-          draw(line);
-          const pixels = stencilContext.getImageData(0, 0, stencil.width, stencil.height).data;
+        for (const { tint, pixels } of masks) {
           for (let y = 0; y < stencil.height; y += grid) {
             for (let x = 0; x < stencil.width; x += grid) {
               if (pixels[(y * stencil.width + x) * 4 + 3] > 40) found.push({ x: x / dpr, y: y / dpr, tint });
@@ -258,7 +348,8 @@ export function ParticleText() {
       // glyphs come out looking sketched rather than sampled.
       let step = Math.max(2, Math.round(DENSITY * dpr));
       let targets = collect(step);
-      while (targets.length > MAX_PARTICLES && step <= 24) {
+      const maxParticles = compact ? COMPACT_MAX_PARTICLES : MAX_PARTICLES;
+      while (targets.length > maxParticles && step <= 24) {
         step += 1;
         targets = collect(step);
       }
@@ -288,11 +379,7 @@ export function ParticleText() {
           };
         });
       recolor();
-
-      gatherStart = performance.now();
-      gathering = true;
-      host.classList.add("hero-wordmark--particles");
-      run();
+      setActiveState(activeNow);
     };
 
     const queueSample = () => {
@@ -304,9 +391,9 @@ export function ParticleText() {
     };
 
     const move = (event: PointerEvent) => {
-      const box = canvas.getBoundingClientRect();
-      pointer.x = event.clientX - box.left;
-      pointer.y = event.clientY - box.top;
+      if (!activeNow) return;
+      pointer.clientX = event.clientX;
+      pointer.clientY = event.clientY;
       pointer.active = true;
     };
     const leave = () => { pointer.active = false; };
@@ -330,24 +417,34 @@ export function ParticleText() {
 
     const resize = new ResizeObserver(queueSample);
     resize.observe(host);
-    window.addEventListener("pointermove", move, { passive: true });
-    window.addEventListener("pointerleave", leave);
+    if (!compact) {
+      window.addEventListener("pointermove", move, { passive: true });
+      window.addEventListener("pointerleave", leave);
+    }
     document.addEventListener("visibilitychange", onVisibility);
     void sample();
 
     return () => {
       build += 1;
+      setActiveRef.current = () => undefined;
+      clearTextTimer();
       host.classList.remove("hero-wordmark--particles");
       park();
       if (resample !== null) cancelAnimationFrame(resample);
       observer.disconnect();
       accents.disconnect();
       resize.disconnect();
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerleave", leave);
+      if (!compact) {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerleave", leave);
+      }
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, []);
+  }, [compact]);
 
-  return <canvas ref={canvasRef} aria-hidden className="pointer-events-none absolute left-0 top-0" />;
+  useEffect(() => {
+    setActiveRef.current(active);
+  }, [active]);
+
+  return <canvas ref={canvasRef} aria-hidden className="hero-particle-canvas pointer-events-none absolute left-0 top-0" />;
 }
