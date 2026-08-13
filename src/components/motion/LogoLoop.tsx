@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { stackLogos } from "../../data/stackLogos";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 
 /**
  * Adapted from ReactBits `LogoLoop` (MIT + Commons Clause).
@@ -24,6 +25,7 @@ const SPEED = 26;
 const HOVER_SPEED = 76;
 
 export function LogoLoop({ className = "" }: { className?: string }) {
+  const { level, prefersReducedMotion } = useMotionProfile();
   const container = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const sequence = useRef<HTMLUListElement>(null);
@@ -55,7 +57,7 @@ export function LogoLoop({ className = "" }: { className?: string }) {
     const node = track.current;
     const host = container.current;
     if (!node || !host || sequenceWidth <= 0) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (prefersReducedMotion || level === "static") {
       node.style.transform = "translate3d(0, 0, 0)";
       return;
     }
@@ -100,7 +102,7 @@ export function LogoLoop({ className = "" }: { className?: string }) {
       observer.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [sequenceWidth]);
+  }, [level, prefersReducedMotion, sequenceWidth]);
 
   const lists = useMemo(() => Array.from({ length: copies }, (_, copy) => (
     <ul

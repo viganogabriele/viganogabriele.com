@@ -18,10 +18,10 @@ export function CertRow({ certification, index }: { certification: Certification
     >
       <span className="font-mono text-[10px] tracking-[0.14em] text-zinc-600">{String(index + 1).padStart(2, "0")}</span>
       <Icon aria-hidden className="h-4 w-4 text-accent/70 transition-colors group-hover:text-accent" />
-      <span className="min-w-0 text-base tracking-[-0.02em] text-zinc-200 transition-colors group-hover:text-bone sm:text-lg">
+      <span className="col-start-2 col-end-4 row-start-2 min-w-0 text-base tracking-[-0.02em] text-zinc-200 transition-colors group-hover:text-bone sm:col-auto sm:row-auto sm:text-lg">
         {certification.title}
       </span>
-      <span className="col-start-2 col-end-4 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:col-auto sm:text-right">
+      <span className="col-start-2 col-end-4 row-start-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:col-auto sm:row-auto sm:text-right">
         {certification.issuer} · {certification.year}
       </span>
       <span className="col-start-3 row-start-1 flex items-center gap-2 justify-self-end font-mono text-[9px] uppercase tracking-[0.14em] text-accent/80 sm:col-auto sm:row-auto">

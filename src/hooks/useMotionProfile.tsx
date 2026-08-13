@@ -52,7 +52,7 @@ function readProfile(): MotionProfile {
 
   return {
     level,
-    canUsePointerEffects: finePointer && !prefersReducedMotion,
+    canUsePointerEffects: finePointer && canRunFullMotion,
     prefersReducedMotion,
     saveData,
     isCompact,

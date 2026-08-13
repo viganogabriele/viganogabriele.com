@@ -85,6 +85,15 @@ test("notes and certifications expose their destinations without relying on hove
   await expect(page.getByText("View credential").first()).toBeVisible();
 });
 
+test("certification rows keep their content out of the number track on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const fields = page.locator(".cert-row").first().locator(":scope > span");
+  await expect(fields.nth(1)).toHaveCSS("grid-column-start", "2");
+  await expect(fields.nth(1)).toHaveCSS("grid-row-start", "2");
+  await expect(fields.nth(2)).toHaveCSS("grid-row-start", "3");
+});
+
 test("skills carousel keeps a single readable active card and supports controls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -113,6 +122,12 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await expect(carousel.getByRole("button", { name: /Bring Code & markup to the front/ })).toHaveAttribute("data-active", "true");
   await page.getByRole("button", { name: "Show next skill group" }).click();
   await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
+  const marquee = page.locator(".tool-marquee");
+  await marquee.scrollIntoViewIfNeeded();
+  const track = marquee.locator(".logo-loop > div");
+  const parkedTransform = await track.evaluate((element) => getComputedStyle(element).transform);
+  await page.waitForTimeout(500);
+  await expect(track).toHaveCSS("transform", parkedTransform);
 });
 
 test("the toolkit logo loop uses legible large marks", async ({ page }) => {
@@ -350,6 +365,7 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await expect(page.locator("[data-custom-cursor]")).toHaveCount(0);
   await page.evaluate(() => { localStorage.setItem("gv-system-mode", "on"); });
   await page.reload();
   const system = page.getByRole("button", { name: "Toggle system mode" });
@@ -813,6 +829,12 @@ test("legacy note redirects stay covered until the canonical note is ready", asy
 });
 
 test("fine-pointer cursor works at compact desktop width and is absent on touch", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperties(navigator, {
+      deviceMemory: { configurable: true, get: () => 8 },
+      hardwareConcurrency: { configurable: true, get: () => 8 },
+    });
+  });
   await page.setViewportSize({ width: 676, height: 822 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);

@@ -45,7 +45,7 @@ export function BorderGlow({
   fillOpacity = 0.5,
   animated = false,
 }: BorderGlowProps) {
-  const { canUsePointerEffects, prefersReducedMotion } = useMotionProfile();
+  const { canUsePointerEffects, level } = useMotionProfile();
   const cardRef = useRef<HTMLDivElement>(null);
   // Repainting three conic masks is the expensive half of this effect. A
   // pointer creeping across the card can report a dozen frames that round to
@@ -85,8 +85,7 @@ export function BorderGlow({
 
   useEffect(() => {
     const card = cardRef.current;
-    if (!animated || !card) return;
-    if (prefersReducedMotion) return;
+    if (!animated || !card || level !== 'full') return;
 
     // The attribute both starts the keyframes and suppresses the hover
     // transition for their duration, so the sweep is not chasing itself.
@@ -102,7 +101,7 @@ export function BorderGlow({
       card.removeAttribute('data-sweep');
       card.removeEventListener('animationend', end);
     };
-  }, [animated, prefersReducedMotion]);
+  }, [animated, level]);
 
   return (
     <div
