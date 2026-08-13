@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { onViewportWidthChange } from "../lib/viewport";
 
@@ -81,8 +81,7 @@ export function MotionProfileProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value = useMemo(() => profile, [profile]);
-  return <MotionProfileContext.Provider value={value}>{children}</MotionProfileContext.Provider>;
+  return <MotionProfileContext.Provider value={profile}>{children}</MotionProfileContext.Provider>;
 }
 
 export function useMotionProfile() {

@@ -70,6 +70,7 @@ export function CircularCarousel<T>({
   const [announcement, setAnnouncement] = useState("");
   const [tickerRevision, setTickerRevision] = useState(0);
   const [inView, setInView] = useState(true);
+  const [pageVisible, setPageVisible] = useState(() => !document.hidden);
 
   // Call sites pass this inline, so reading it through a ref keeps updateCards
   // stable — it is a dependency of the idle loop, and a new identity on every
@@ -225,6 +226,12 @@ export function CircularCarousel<T>({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const syncVisibility = () => setPageVisible(!document.hidden);
+    document.addEventListener("visibilitychange", syncVisibility);
+    return () => document.removeEventListener("visibilitychange", syncVisibility);
+  }, []);
+
   // Unmount stops whichever driver holds the slot. The idle effect's own
   // cleanup deliberately only tears down the loop that same run started, so on
   // its own it leaves a selection animation or a momentum decay begun after it
@@ -236,7 +243,7 @@ export function CircularCarousel<T>({
   }, [stopAnimation]);
 
   useEffect(() => {
-    if (reducedMotion || !items.length || !inView) return;
+    if (reducedMotion || !items.length || !inView || !pageVisible) return;
     // A selection animation or a momentum decay owns the slot until it
     // finishes and bumps tickerRevision, which re-runs this effect. Starting a
     // second loop on top of one used to overwrite frameRef and orphan it: the
@@ -279,7 +286,7 @@ export function CircularCarousel<T>({
     // cleaned up another driver may already own the slot, and cancelling that
     // one would strand its rotation mid-arc with selectionTarget still set.
     return () => { if (run === runRef.current) stopAnimation(); };
-  }, [autoRotateSpeed, inView, items.length, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
+  }, [autoRotateSpeed, inView, items.length, pageVisible, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
 
   const select = useCallback((index: number) => {
     if (!items.length) return;

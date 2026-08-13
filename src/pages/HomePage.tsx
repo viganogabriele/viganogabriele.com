@@ -1,4 +1,3 @@
-import { useReducedMotion } from "framer-motion";
 import { memo, useCallback } from "react";
 import { About } from "../components/sections/About";
 import { Certifications } from "../components/sections/Certifications";
@@ -17,10 +16,11 @@ import { useSystemMode } from "../hooks/useSystemMode";
 import { homeMetadata, websitePersonJsonLd } from "../data/site";
 import { JsonLd, PageMeta } from "../lib/seo";
 import { useRouteReadyAfterImage } from "../hooks/useRouteReady";
+import { useMotionProfile } from "../hooks/useMotionProfile";
 import { HERO_PORTRAIT_MEDIA } from "../lib/viewport";
 
 export const HomePage = memo(function HomePage() {
-  const reduced = useReducedMotion();
+  const { prefersReducedMotion: reduced } = useMotionProfile();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
   const portraitVisible = window.matchMedia(HERO_PORTRAIT_MEDIA).matches;
   useRouteReadyAfterImage("[data-hero-portrait]", portraitVisible);

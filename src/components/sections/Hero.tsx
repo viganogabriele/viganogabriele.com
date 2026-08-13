@@ -1,4 +1,4 @@
-import { m, useReducedMotion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowUpRight, FileText, Mail } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -13,12 +13,11 @@ import { AdaptiveHeroObject } from "../ui/AdaptiveHeroObject";
 const ParticleText = lazy(() => import("../motion/ParticleText").then((module) => ({ default: module.ParticleText })));
 
 export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; onToggleSystem: () => void }) {
-  const reduced = useReducedMotion();
-  const { level, isCompact, prefersReducedMotion } = useMotionProfile();
+  const { level, isCompact, prefersReducedMotion: reduced } = useMotionProfile();
   // The wordmark is crisp type until SYS is switched on, and dissolves into the
   // particle field while it is: the effect belongs to the mode that takes the
   // site apart, rather than being the permanent state of Gabriele's name.
-  const particleWordmark = systemActive && !isCompact && !prefersReducedMotion;
+  const particleWordmark = systemActive && !isCompact && !reduced;
 
   // The portrait plays BorderGlow's sweep once the preloader hands the hero
   // over — the same signal the wordmark reveal waits for, so the light runs

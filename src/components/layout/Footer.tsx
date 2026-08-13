@@ -1,15 +1,15 @@
 import { AnimatePresence, m, useInView } from "framer-motion";
 import { ArrowUpRight, Check, Copy, Mail } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Magnetic } from "../motion/Magnetic";
 import { ScrollReveal } from "../motion/ScrollReveal";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { Link } from "react-router-dom";
 import { footerCopy } from "../../data/sections";
-
-const EMAIL = "info@viganogabriele.com";
+import { profile } from "../../data/profile";
 
 const HEADING = footerCopy.heading;
+const HEADING_PARTS = HEADING.split(/(\s+)/);
 
 const GitHubIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -28,12 +28,10 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
   const [copied, setCopied] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
   const [emailOpen, setEmailOpen] = useState(false);
-  const { level } = useMotionProfile();
+  const { level, canUsePointerEffects } = useMotionProfile();
   const disableMotion = level === "static";
   const headingRef = useRef<HTMLDivElement>(null);
   const headingInView = useInView(headingRef, { once: true, margin: "-60px" });
-
-  const words = useMemo(() => HEADING.split(/(\s+)/), []);
 
   const resetTimer = useRef<number | null>(null);
   useEffect(() => () => { if (resetTimer.current !== null) window.clearTimeout(resetTimer.current); }, []);
@@ -41,7 +39,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
   const copy = async () => {
     if (resetTimer.current !== null) window.clearTimeout(resetTimer.current);
     try {
-      await navigator.clipboard.writeText(EMAIL);
+      await navigator.clipboard.writeText(profile.email);
       setCopied(true);
       setCopyMessage("Email address copied.");
       resetTimer.current = window.setTimeout(() => {
@@ -53,9 +51,20 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
         setCopyMessage("");
       }, 1800);
     } catch {
-      setCopyMessage(`Copy unavailable. Email ${EMAIL}.`);
+      setCopyMessage(`Copy unavailable. Email ${profile.email}.`);
     }
   };
+  const sendEmailButton = (
+    <a
+      href={`mailto:${profile.email}`}
+      data-cursor="hover"
+      className="btn-solid group relative inline-flex min-h-12 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16]"
+    >
+      <Mail className="relative h-4 w-4" />
+      <span className="relative">Send email</span>
+      <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+    </a>
+  );
 
   return (
     <ScrollReveal>
@@ -82,7 +91,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
               </m.h2>
             ) : (
               <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[0.9] tracking-[-0.065em] text-bone sm:text-6xl lg:text-8xl">
-                {words.map((word, i) =>
+                {HEADING_PARTS.map((word, i) =>
                   word.trim().length === 0 ? (
                     <span key={i}>{word}</span>
                   ) : (
@@ -136,7 +145,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                       transition={{ duration: 0.25 }}
                       className="text-accent"
                     >
-                      connected / <button type="button" onClick={copy} data-cursor="hover" className="underline decoration-accent/35 underline-offset-4 transition-colors hover:text-white" aria-label="Copy email address">{EMAIL}</button>
+                      connected / <button type="button" onClick={copy} data-cursor="hover" className="underline decoration-accent/35 underline-offset-4 transition-colors hover:text-white" aria-label="Copy email address">{profile.email}</button>
                     </m.span>
                   )}
                 </AnimatePresence>
@@ -144,17 +153,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Magnetic>
-                <a
-                  href={`mailto:${EMAIL}`}
-                  data-cursor="hover"
-                  className="btn-solid group relative inline-flex min-h-12 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16]"
-                >
-                  <Mail className="relative h-4 w-4" />
-                  <span className="relative">Send email</span>
-                  <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </a>
-              </Magnetic>
+              {canUsePointerEffects ? <Magnetic>{sendEmailButton}</Magnetic> : sendEmailButton}
 
               <button
                 type="button"
@@ -173,7 +172,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                       className="inline-flex items-center gap-2"
                     >
                       <Check className="h-3.5 w-3.5 text-accent" />
-                      <span className="text-accent">{EMAIL}</span>
+                      <span className="text-accent">{profile.email}</span>
                     </m.span>
                   ) : (
                     <m.span
@@ -197,7 +196,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
 
           <div className="flex flex-col justify-end gap-5 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
             <a
-              href="https://github.com/viganogabriele"
+              href={profile.github}
               target="_blank"
               rel="noreferrer"
               data-cursor="hover"
@@ -206,7 +205,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
               GitHub <GitHubIcon className="h-4 w-4" />
             </a>
             <a
-              href="https://linkedin.com/in/viganogabriele"
+              href={profile.linkedIn}
               target="_blank"
               rel="noreferrer"
               data-cursor="hover"

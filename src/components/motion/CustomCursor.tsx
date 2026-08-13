@@ -1,13 +1,18 @@
 import { m, useMotionValue, useSpring } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 
-const FINE_POINTER_QUERY = "(hover: hover) and (pointer: fine)";
 const INTERACTIVE = "a, button, [role='button'], input, select, textarea, [data-cursor='hover']";
 const HOVERED_INTERACTIVE = "a:hover, button:hover, [role='button']:hover, input:hover, select:hover, textarea:hover, [data-cursor='hover']:hover";
 const TRAIL_LENGTH = 8;
 
 export function CustomCursor() {
+  const { canUsePointerEffects: enabled } = useMotionProfile();
+  return enabled ? <PointerCursor /> : null;
+}
+
+function PointerCursor() {
   const dot = useRef<HTMLDivElement>(null);
   const trailRefs = useRef<(HTMLDivElement | null)[]>(Array.from({ length: TRAIL_LENGTH }, () => null));
   const trailPositions = useRef<{ x: number; y: number }[]>([]);
@@ -15,17 +20,8 @@ export function CustomCursor() {
   const y = useMotionValue(0);
   const ringX = useSpring(x, { stiffness: 110, damping: 22 });
   const ringY = useSpring(y, { stiffness: 110, damping: 22 });
-  const [enabled, setEnabled] = useState(false);
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia(FINE_POINTER_QUERY);
-    const sync = () => setEnabled(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
 
   // `visible` only ever flips twice per visit, but it was being set from every
   // single mousemove. React discards the identical value, yet it still has to
@@ -34,7 +30,6 @@ export function CustomCursor() {
   const visibleRef = useRef(false);
 
   useEffect(() => {
-    if (!enabled) return;
     document.documentElement.classList.add("has-custom-cursor");
 
     const clearTrail = () => {
@@ -115,9 +110,7 @@ export function CustomCursor() {
       document.removeEventListener("pointerleave", reset);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [enabled, x, y]);
-
-  if (!enabled) return null;
+  }, [x, y]);
 
   return createPortal(
     <div data-custom-cursor data-visible={visible} data-active={active} aria-hidden="true">

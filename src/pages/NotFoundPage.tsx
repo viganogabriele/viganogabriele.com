@@ -8,6 +8,7 @@ import { ease } from "../lib/motion";
 import { PageMeta } from "../lib/seo";
 import { notFoundMetadata } from "../data/site";
 import { useRouteReady } from "../hooks/useRouteReady";
+import { profile } from "../data/profile";
 
 export function NotFoundPage() {
   const { level, prefersReducedMotion, isCompact } = useMotionProfile();
@@ -57,7 +58,7 @@ export function NotFoundPage() {
                 <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
                 <span>Return to the index</span>
               </Link>
-              <a href="mailto:info@viganogabriele.com" data-cursor="hover" className="group inline-flex min-h-12 items-center gap-3 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent/60 hover:text-accent-soft">
+              <a href={`mailto:${profile.email}`} data-cursor="hover" className="group inline-flex min-h-12 items-center gap-3 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent/60 hover:text-accent-soft">
                 Report a broken link
                 <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </a>

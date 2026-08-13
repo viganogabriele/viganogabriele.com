@@ -227,6 +227,11 @@ test("hero portrait stays crisp while scrolling and the surname keeps its accent
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /GABRIELE VIGANÒ/i })).toBeVisible();
+  const portraitLayers = await page.locator(".hero-visual-frame .border-glow").evaluate((frame) => ({
+    content: Number(getComputedStyle(frame.querySelector<HTMLElement>(".border-glow__content")!).zIndex),
+    glow: Number(getComputedStyle(frame.querySelector<HTMLElement>(".border-glow__glow")!).zIndex),
+  }));
+  expect(portraitLayers.content).toBeGreaterThan(portraitLayers.glow);
   await page.evaluate(() => window.scrollTo(0, 420));
   await expect(page.locator(".hero-visual-frame")).toHaveCSS("opacity", "1");
 });
@@ -242,7 +247,7 @@ test("hero makes Gabriele's current profile and contact path immediately availab
   await expect(hero.getByRole("link", { name: "LinkedIn" })).toHaveCount(0);
 });
 
-test("CV page keeps the document primary and gives mobile users a full-screen document path", async ({ page }) => {
+test("CV page keeps the document primary and gives mobile users a full-screen document path", async ({ page, browserName }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/cv");
   await expect(page).toHaveTitle("Gabriele Viganò · CV");
@@ -262,7 +267,15 @@ test("CV page keeps the document primary and gives mobile users a full-screen do
   await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
   await page.getByRole("button", { name: "Toggle system mode" }).click();
   await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
-  await expect(page.locator("[data-system-orbit]")).toBeVisible();
+  // WebKit deliberately gets the static safe overlay: its compositing path is
+  // tested as product behaviour, so this route must not require a desktop-only
+  // orbit that SystemModeOverlay intentionally omits there.
+  if (browserName === "webkit") {
+    await expect(page.locator(".system-overlay-safe")).toBeVisible();
+    await expect(page.locator("[data-system-orbit]")).toHaveCount(0);
+  } else {
+    await expect(page.locator("[data-system-orbit]")).toBeVisible();
+  }
   await expect(page.locator(".sys-hud")).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);

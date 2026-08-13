@@ -19,6 +19,7 @@
  */
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { usePointerFrames } from '../../hooks/usePointerFrames';
+import { useMotionProfile } from '../../hooks/useMotionProfile';
 
 interface BorderGlowProps {
   children?: ReactNode;
@@ -44,6 +45,7 @@ export function BorderGlow({
   fillOpacity = 0.5,
   animated = false,
 }: BorderGlowProps) {
+  const { canUsePointerEffects, prefersReducedMotion } = useMotionProfile();
   const cardRef = useRef<HTMLDivElement>(null);
   // Repainting three conic masks is the expensive half of this effect. A
   // pointer creeping across the card can report a dozen frames that round to
@@ -79,12 +81,12 @@ export function BorderGlow({
     card.style.setProperty('--bg-angle', `${degrees.toFixed(1)}deg`);
   }, []);
 
-  usePointerFrames({ target: () => cardRef.current, onPoint: handlePointerFrame });
+  usePointerFrames({ target: () => cardRef.current, onPoint: handlePointerFrame, enabled: canUsePointerEffects });
 
   useEffect(() => {
     const card = cardRef.current;
     if (!animated || !card) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (prefersReducedMotion) return;
 
     // The attribute both starts the keyframes and suppresses the hover
     // transition for their duration, so the sweep is not chasing itself.
@@ -100,7 +102,7 @@ export function BorderGlow({
       card.removeAttribute('data-sweep');
       card.removeEventListener('animationend', end);
     };
-  }, [animated]);
+  }, [animated, prefersReducedMotion]);
 
   return (
     <div

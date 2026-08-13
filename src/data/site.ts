@@ -1,4 +1,5 @@
-import type { NoteItem } from "./notes";
+import type { NoteItem } from "./notes.ts";
+import { profile } from "./profile.ts";
 
 export const site = {
   name: "Gabriele Viganò",
@@ -94,7 +95,7 @@ export const websitePersonJsonLd = {
       image: pageUrl(site.socialImage.path),
       jobTitle: "Computer Engineering Student",
       affiliation: { "@type": "CollegeOrUniversity", name: "Politecnico di Milano" },
-      sameAs: ["https://github.com/viganogabriele", "https://linkedin.com/in/viganogabriele"],
+      sameAs: [profile.github, profile.linkedIn],
     },
   ],
 } as const;

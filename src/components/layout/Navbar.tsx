@@ -1,11 +1,10 @@
-import { AnimatePresence, m, useReducedMotion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Menu, Power, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo-dark-small.webp";
 import { navItems } from "../../data/nav";
 import { profile } from "../../data/profile";
-import { useFeatureDetect } from "../../hooks/useFeatureDetect";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { cn } from "../../lib/cn";
 import { dur, ease } from "../../lib/motion";
@@ -15,9 +14,7 @@ export function Navbar({ onNavigate, systemActive, onToggleSystem }: { onNavigat
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState("#about");
-  const { isTelegramWebView, hasNoHover, isTouch } = useFeatureDetect();
-  const { level } = useMotionProfile();
-  const reduced = useReducedMotion();
+  const { level, canUsePointerEffects, prefersReducedMotion: reduced } = useMotionProfile();
   const navRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -115,10 +112,10 @@ export function Navbar({ onNavigate, systemActive, onToggleSystem }: { onNavigat
   // underneath this fixed bar on every frame — proven (profiled under CPU
   // throttling) to be a major source of mobile scroll jank. Touch devices
   // get the same opaque, blur-free treatment already used for lite/Telegram.
-  // isTouch (a real touch-screen check) rather than hasNoHover alone: Brave in
-  // desktop mode and in-app webviews report hover support on phones, which
-  // left the blur on exactly where it hurts most.
-  const noBlur = isTelegramWebView || level === "lite" || hasNoHover || isTouch;
+  // The shared profile treats a real touch screen as authoritative over media
+  // queries: Brave in desktop mode and in-app webviews can report hover support
+  // on phones, which otherwise leaves the blur on exactly where it hurts most.
+  const noBlur = level !== "full" || !canUsePointerEffects;
   const glass = noBlur ? "rgba(8,11,22,0.94)" : scrolled ? "rgba(8,11,22,0.78)" : "rgba(8,11,22,0.52)";
   return <>
     <m.nav ref={navRef} aria-label="Primary navigation" initial={reduced ? false : { y: -36, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.7, ease: ease.cinematic, delay: 0.12 }} className="safe-nav fixed left-1/2 top-3 z-[60] w-[calc(100%-1.25rem)] max-w-6xl -translate-x-1/2 sm:top-6 sm:w-[calc(100%-2rem)]">

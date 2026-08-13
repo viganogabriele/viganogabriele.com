@@ -13,6 +13,11 @@ import { HomePage } from "./pages/HomePage";
 const NotePage = lazy(() => loadNotePage().then((module) => ({ default: module.NotePage })));
 const CvPage = lazy(() => loadCvPage().then((module) => ({ default: module.CvPage })));
 const NotFoundPage = lazy(() => loadNotFoundPage().then((module) => ({ default: module.NotFoundPage })));
+// Readiness improves the handoff, but a stalled resource must never turn it
+// into an infinite loading screen or a permanent scroll-correction loop.
+const FONT_READY_TIMEOUT_MS = 3_000;
+const SCROLL_SETTLE_TIMEOUT_MS = 5_000;
+
 function useRoutePrefetching() {
   useEffect(() => {
     const prefetch = (event: Event) => {
@@ -91,7 +96,15 @@ function RouteScrollManager() {
 
   const markReady = useCallback((key: string) => {
     const fonts = document.fonts?.ready ?? Promise.resolve();
-    void fonts.then(() => setReadyKey(key), () => setReadyKey(key));
+    let settled = false;
+    const ready = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      setReadyKey(key);
+    };
+    const timeout = window.setTimeout(ready, FONT_READY_TIMEOUT_MS);
+    void fonts.then(ready, ready);
   }, []);
   const onSettled = useCallback((key: string) => setSettledKey(key), []);
   const onRouteError = useCallback((key: string) => {
@@ -151,6 +164,7 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
     let stableFrames = 0;
     let previousHeight = 0;
     let previousAnchorTop: number | null = null;
+    const startedAt = performance.now();
     const settle = () => {
       if (cancelled) return;
       const height = document.documentElement.scrollHeight;
@@ -174,7 +188,7 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
       stableFrames = canReach && exact && height === previousHeight && anchorStable && !anchorAnimating ? stableFrames + 1 : 0;
       previousHeight = height;
       previousAnchorTop = anchorDocumentTop;
-      if (stableFrames >= 2) {
+      if (stableFrames >= 2 || performance.now() - startedAt >= SCROLL_SETTLE_TIMEOUT_MS) {
         onSettled(location.key);
         return;
       }

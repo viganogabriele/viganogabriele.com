@@ -1,4 +1,4 @@
-import { m, useReducedMotion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowLeft, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -103,7 +103,7 @@ function CvDocumentViewer() {
   return (
       <div ref={viewerRef} className="overflow-hidden border border-white/[0.11] bg-surface/80 shadow-2xl shadow-black/20 fullscreen:h-[100dvh] fullscreen:w-[100dvw] fullscreen:border-0">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500 sm:px-5">
-        <span className="inline-flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-accent" /> Vigano_Gabriele_CV.pdf</span>
+        <span className="inline-flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-accent" /> {profile.cvFilename}</span>
         <span className="hidden sm:inline">Integrated PDF viewer</span><a href={profile.cvPath} className="text-accent transition-colors hover:text-white sm:hidden">Tap to view full screen</a>
       </div>
       <div className="hidden items-center justify-end gap-2 border-b border-white/[0.08] bg-background/45 px-4 py-2 sm:flex" aria-label="PDF viewer controls">
@@ -135,8 +135,7 @@ function CvDocumentViewer() {
 }
 
 export function CvPage() {
-  const reduced = useReducedMotion();
-  const { level } = useMotionProfile();
+  const { level, prefersReducedMotion: reduced } = useMotionProfile();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
   const [downloading, setDownloading] = useState(false);
   const entrance = reduced || level === "static" ? false : { opacity: 0, y: 16 };
@@ -155,7 +154,7 @@ export function CvPage() {
       const response = await fetch(profile.cvPath);
       if (!response.ok) throw new Error("CV download failed");
       const blob = await response.blob();
-      const file = new File([blob], "Vigano_Gabriele_CV.pdf", { type: "application/pdf" });
+      const file = new File([blob], profile.cvFilename, { type: "application/pdf" });
       if (navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title: "Gabriele Viganò CV" });
@@ -167,7 +166,7 @@ export function CvPage() {
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download = "Vigano_Gabriele_CV.pdf";
+      link.download = profile.cvFilename;
       document.body.append(link);
       link.click();
       link.remove();

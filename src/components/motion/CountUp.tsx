@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { animate, useInView, useReducedMotion } from "framer-motion";
+import { animate, useInView } from "framer-motion";
 import { useEffect, useMemo, useRef } from "react";
 import { cn } from "../../lib/cn";
 import { ease } from "../../lib/motion";
@@ -53,8 +53,7 @@ export function CountUp({
   // Keep the parsed value referentially stable. The page re-renders when SYS
   // changes state, but that must not tear down and restart an in-flight count.
   const parsed = useMemo(() => parseCountValue(value), [value]);
-  const reduced = useReducedMotion();
-  const { level } = useMotionProfile();
+  const { level, prefersReducedMotion: reduced } = useMotionProfile();
   const allowMotion = !reduced && level !== "static" && parsed !== null;
 
   // Own in-view detection used only when the caller doesn't pass a trigger.
