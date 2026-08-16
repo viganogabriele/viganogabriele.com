@@ -117,8 +117,24 @@ function RouteScrollManager() {
   // also runs on the pointer going down — always before a click's resulting
   // navigation, and cheap enough to run on every press since it is just a
   // handful of reads, not a re-render.
+  //
+  // Gated on `routeReady`, not attached from the first render of a route: on
+  // a mobile browser, mounting a shorter page than the one just left clamps
+  // `window.scrollY` down to fit — synchronously, mid-mutation, well before
+  // React has even decided this route is ready — and that clamp fires a real
+  // `scroll` event too. Attaching immediately meant this route's OWN listener
+  // (not the old route's, already covered above) caught that transient,
+  // pre-restore value and recorded it as if the reader had actually scrolled
+  // there, so a brand new route landed on whatever its momentarily-short
+  // layout happened to clamp to instead of the top. `RouteScrollCommit`'s own
+  // restore effect fires in the same commit `routeReady` flips true, and as a
+  // layout effect it always runs before this (a plain effect) does — so by
+  // the time this attaches, that route's one-time restore decision has
+  // already been made from whatever was captured during an earlier, settled
+  // visit, and cannot still be looking at a stale value from before this
+  // mount existed.
   useEffect(() => {
-    if (location.pathname.startsWith("/notes/")) return;
+    if (location.pathname.startsWith("/notes/") || !routeReady) return;
     const key = location.key;
     const pathname = location.pathname;
     const capture = () => {
@@ -133,7 +149,7 @@ function RouteScrollManager() {
       window.removeEventListener("resize", capture);
       window.removeEventListener("pointerdown", capture);
     };
-  }, [location.key, location.pathname]);
+  }, [location.key, location.pathname, routeReady]);
 
   useLayoutEffect(() => {
     if (HOME_PATHS.has(location.pathname) && routeReady) {

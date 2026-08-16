@@ -47,6 +47,10 @@ const TEXT_HIDE_DELAY_MS = 16;
  *  back to rest — long enough to read as a deliberate poke, short enough it
  *  never reads as a stuck, hover-like state. */
 const TOUCH_RIPPLE_MS = 320;
+/** Presses held past this read as a deliberate long press rather than a tap,
+ *  switching from the fixed pulse to continuous, hover-like finger tracking
+ *  for as long as the press lasts. */
+const LONG_PRESS_MS = 220;
 /** Kept under PAD: a particle that starts outside the canvas is clipped, and
  *  the clip drew the canvas's own rectangle across the hero mid-animation. */
 const SCATTER = 78;
@@ -410,18 +414,41 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
     };
     const leave = () => { pointer.active = false; };
 
-    // Mobile has no hover to repel from, so a tap/press stands in with a
-    // short-lived pulse at the touch point instead of tracking the finger —
-    // tracking would mean reacting to touchmove, which is exactly the signal
-    // a vertical page scroll starts from, and this must never compete with
-    // that. Listens on `host` (the heading), not `window`: the canvas itself
-    // is pointer-events:none, so the heading is what actually receives the
-    // tap, and scoping to it means a tap anywhere else on the page is a no-op
-    // here instead of triggering an unrelated repel.
+    // Mobile has no hover, so a press stands in for it. A quick tap gives the
+    // same short pulse as before; holding past LONG_PRESS_MS instead tracks
+    // the finger for as long as it stays down, the same way desktop `move`
+    // tracks the mouse, and lets go the instant it lifts rather than fading.
+    // The decision is made at release, not at press: scheduling the pulse's
+    // fade-out up front would end a still-held long press early once
+    // TOUCH_RIPPLE_MS elapsed. Tracking listens on `host` (the heading), not
+    // `window` — the canvas itself is pointer-events:none, so the heading is
+    // what actually receives the touch, and scoping to it means a press
+    // elsewhere on the page can't trigger an unrelated repel — but release is
+    // still caught on `window`, the same reason CircularCarousel's pointerup
+    // listener is global: a finger can drift off the heading before lifting.
     let rippleTimer: number | null = null;
     const clearRipple = () => {
       if (rippleTimer !== null) window.clearTimeout(rippleTimer);
       rippleTimer = null;
+    };
+    let pressStart = 0;
+    let pressedPointerId: number | null = null;
+    const trackPress = (event: PointerEvent) => {
+      if (event.pointerId !== pressedPointerId) return;
+      pointer.clientX = event.clientX;
+      pointer.clientY = event.clientY;
+    };
+    const endPress = (event: PointerEvent) => {
+      if (event.pointerId !== pressedPointerId) return;
+      pressedPointerId = null;
+      host.removeEventListener("pointermove", trackPress);
+      window.removeEventListener("pointerup", endPress);
+      window.removeEventListener("pointercancel", endPress);
+      if (performance.now() - pressStart < LONG_PRESS_MS) {
+        rippleTimer = window.setTimeout(() => { pointer.active = false; rippleTimer = null; }, TOUCH_RIPPLE_MS);
+      } else {
+        pointer.active = false;
+      }
     };
     const tap = (event: PointerEvent) => {
       if (event.pointerType === "mouse" || !activeNow) return;
@@ -438,7 +465,11 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
       pointer.active = true;
       run();
       clearRipple();
-      rippleTimer = window.setTimeout(() => { pointer.active = false; rippleTimer = null; }, TOUCH_RIPPLE_MS);
+      pressStart = performance.now();
+      pressedPointerId = event.pointerId;
+      host.addEventListener("pointermove", trackPress, { passive: true });
+      window.addEventListener("pointerup", endPress);
+      window.addEventListener("pointercancel", endPress);
     };
 
     const observer = new IntersectionObserver((entries) => {
@@ -484,6 +515,9 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
         window.removeEventListener("pointerleave", leave);
       } else {
         host.removeEventListener("pointerdown", tap);
+        host.removeEventListener("pointermove", trackPress);
+        window.removeEventListener("pointerup", endPress);
+        window.removeEventListener("pointercancel", endPress);
         clearRipple();
       }
       document.removeEventListener("visibilitychange", onVisibility);

@@ -31,6 +31,17 @@ interface BorderGlowProps {
   fillOpacity?: number;
   /** Plays the one-shot intro sweep. Retriggers whenever it flips back to true. */
   animated?: boolean;
+  /**
+   * Lets the sweep also play at the "lite" motion level, which every touch
+   * device is pinned to regardless of hardware (see useMotionProfile.tsx) —
+   * `level` there is a proxy for "skip continuous, cursor-driven work", not
+   * for "skip everything", and a carousel card becoming active from a swipe
+   * is exactly the kind of discrete, already-happening event the plain CSS
+   * sweep exists to mark. The cursor-tracked spotlight above stays "full"
+   * only: touch has no cursor to trace it with, only a press point, and a
+   * static point doesn't paint a moving conic gradient.
+   */
+  sweepAtLiteLevel?: boolean;
 }
 
 /** Name of the keyframes that own the sweep's lifetime, see index.css. */
@@ -44,6 +55,7 @@ export function BorderGlow({
   glowIntensity = 1,
   fillOpacity = 0.5,
   animated = false,
+  sweepAtLiteLevel = false,
 }: BorderGlowProps) {
   const { canUsePointerEffects, level } = useMotionProfile();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -85,7 +97,8 @@ export function BorderGlow({
 
   useEffect(() => {
     const card = cardRef.current;
-    if (!animated || !card || level !== 'full') return;
+    const sweepAllowed = level === 'full' || (sweepAtLiteLevel && level === 'lite');
+    if (!animated || !card || !sweepAllowed) return;
 
     // The attribute both starts the keyframes and suppresses the hover
     // transition for their duration, so the sweep is not chasing itself.
@@ -101,7 +114,7 @@ export function BorderGlow({
       card.removeAttribute('data-sweep');
       card.removeEventListener('animationend', end);
     };
-  }, [animated, level]);
+  }, [animated, level, sweepAtLiteLevel]);
 
   return (
     <div
