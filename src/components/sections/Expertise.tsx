@@ -38,9 +38,12 @@ function ExpertiseItem({
       transition={{ duration: dur.reveal, delay: index * 0.05, ease: ease.cinematic }}
       onPointerEnter={(event) => { if (event.pointerType === "mouse") onActivate(index); }}
       onPointerLeave={(event) => { if (event.pointerType === "mouse") onDeactivate(); }}
-      className={`expertise-item group grid gap-5 py-8 md:grid-cols-[auto_1fr_11rem] md:gap-7 md:py-10 ${activeIndex === index ? "is-focused" : ""}`}
+      className={`expertise-item group grid gap-5 py-9 pr-4 md:grid-cols-[auto_1fr_11rem] md:gap-7 md:py-10 md:pr-0 ${activeIndex === index ? "is-focused" : ""}`}
     >
       <span aria-hidden className="expertise-dot absolute" />
+      {/* Carries the row's hover wash and sweep. Its own box is what confines
+          them to the card, so neither reaches into the timeline gutter. */}
+      <span aria-hidden className="expertise-glow" />
       <div className="flex gap-3">
         <span className="font-mono text-[10px] text-zinc-600">{activity.index}</span>
         <Icon className="h-4 w-4 text-accent/75" />
@@ -71,12 +74,14 @@ function ExpertiseItem({
           {activity.description}
         </m.p>
         <m.div
-          className="mt-5 flex flex-wrap gap-x-3 gap-y-2 font-mono text-[9px] uppercase tracking-[0.1em] text-zinc-600"
+          className="mt-5 flex flex-wrap gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-zinc-200"
           initial={staticMotion ? false : { opacity: 0 }}
           animate={staticMotion ? undefined : inView ? { opacity: 1 } : { opacity: 0 }}
           transition={{ duration: 0.4, delay: 0.28, ease: ease.softSettle }}
         >
-          {activity.tags.map((tag) => <span key={tag}>/{tag}</span>)}
+          {/* Same framed badge the project and toolkit cards use, so a tag reads
+              the same way wherever it appears. */}
+          {activity.tags.map((tag) => <span key={tag} className="border border-accent/30 bg-accent/[0.06] px-2 py-1">{tag}</span>)}
         </m.div>
       </div>
       <div className="capability-artifact" data-capability-artifact={activity.artifact}>

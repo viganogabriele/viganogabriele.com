@@ -213,6 +213,28 @@ class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: stri
 }
 
 function RouteScrollCommit({ location, positions, ready, onSettled }: { location: Location; positions: RefObject<Map<string, ScrollSnapshot>>; ready: boolean; onSettled: (key: string) => void }) {
+  // A forward navigation to a route with nothing to restore has to land at the
+  // top, and it has to do so before the reader sees anything else. React
+  // applies the DOM swap for the new route first, and every route here is
+  // shorter than Home, so the browser clamps window.scrollY down to the new
+  // maximum in that same mutation. The restore below does correct it, but it is
+  // gated on `ready` — which waits on fonts and on the lazy route chunk — so
+  // until then the reader sat at the clamped position, i.e. the bottom of the
+  // CV page. Running in a layout effect from the same commit as the swap means
+  // that clamp is never painted.
+  //
+  // Deliberately narrow: anything that has a position to restore (a note
+  // return, a history entry with a snapshot, an explicit hash) is left wholly
+  // to the effect below, and home paths are skipped so this can never race
+  // takeQueuedNoteReturn, which consumes the value it reads.
+  useLayoutEffect(() => {
+    if (location.pathname.startsWith("/notes/") || HOME_PATHS.has(location.pathname)) return;
+    if (location.hash) return;
+    if (readNoteNavigationState(location.state) || getRegisteredNoteReturn(location.key)) return;
+    if (positions.current.get(location.key)) return;
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [location, positions]);
+
   useLayoutEffect(() => {
     if (!ready) return;
     if (location.pathname.startsWith("/notes/")) {

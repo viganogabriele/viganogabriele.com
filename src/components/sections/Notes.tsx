@@ -31,7 +31,7 @@ export function Notes() {
                 }}
                 data-scroll-anchor={`note-${note.slug}`}
                 data-cursor="hover"
-                className="group grid gap-3 pb-6 pt-4 transition-colors md:grid-cols-[3rem_1.25fr_.75fr_auto] md:items-center md:gap-6 md:pb-8 md:pt-5"
+                className="group grid gap-3 pb-6 pt-5 transition-colors md:grid-cols-[3rem_1.25fr_.75fr_auto] md:items-center md:gap-6 md:pb-8 md:pt-5"
               >
                 <span className="font-mono text-[10px] text-zinc-600">0{index + 1}</span>
                 <div>

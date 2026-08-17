@@ -455,6 +455,18 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   .note-row a:hover::before { height: 62%; }
 }
 
+/* Keyboard and touch readers never get the hover that reveals this marker. A
+   focused row gets it outright, and on a touch screen every row carries a
+   dimmer version permanently, so the affordance is not invisible to the people
+   who cannot hover at all. */
+.note-row a:focus-visible::before,
+.note-row a:active::before { height: 62%; }
+
+[data-touch] .note-row a::before { height: 62%; opacity: .4; }
+
+[data-touch] .note-row a:focus-visible::before,
+[data-touch] .note-row a:active::before { opacity: 1; }
+
 @media (max-width: 639px) {
   .hero-wordmark { font-size: clamp(3.4rem, 17vw, 4.6rem); }
   .hero-stat-grid { column-gap: .75rem; }
@@ -478,7 +490,9 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
     animation: none !important;
   }
   .hero-portrait-layer { transition: none; }
-  .note-row a::before { display: none; }
+  /* Was display:none, which also removed it as a focus affordance for anyone
+     browsing with reduced motion. Only the sliding growth is dropped. */
+  .note-row a::before { transition: none; }
 }
 
 .ambient-layer {
@@ -1179,6 +1193,15 @@ html[data-touch] .hero-viewport {
   transform: translateX(.3rem);
 }
 
+/* One column has no year/tag column to give the text room, so the row carries
+   the breathing space itself. Desktop keeps the tighter inset it had. */
+@media (max-width: 767px) {
+  .note-row a {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .note-row a { transition: background-color 200ms ease, color 200ms ease; }
   .note-row a:hover, .note-row a:focus-visible { transform: none; }
@@ -1450,24 +1473,34 @@ html[data-touch] .hero-viewport {
   isolation: isolate;
   transform: translateX(0);
   transition: border-color 300ms ease;
-  /* The sweep below is a band wider than the row, so the row has to clip. The
-     margin is what the two things that legitimately overhang need: the status
-     dot is centred on the left border (5px out) and the focused artifact
-     carries a 1.1rem drop-shadow. */
-  overflow: clip;
-  overflow-clip-margin: 26px;
 }
 
-.expertise-item::before,
-.expertise-item::after {
-  content: "";
+/* The hover wash and the sweep used to be the row's own pseudo-elements, which
+   forced the row itself to clip (a band wider than the row has to be cut off
+   somewhere) and to buy back the overhang it needed with
+   `overflow-clip-margin`. Two things went wrong with that. The status dot is
+   centred on the row's left border, so anywhere the clip margin was not
+   honoured the dot lost its outer half; and the highlight covered the whole
+   row, timeline gutter included, so it reached further left than the card it
+   was meant to mark. Both effects now live in their own box, inset past the
+   gutter, and the row clips nothing at all. */
+.expertise-glow {
   position: absolute;
-  inset: 0;
+  inset: 0 0 0 var(--expertise-gutter, 2rem);
   z-index: -1;
+  overflow: clip;
   pointer-events: none;
 }
 
-.expertise-item::before {
+.expertise-glow::before,
+.expertise-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.expertise-glow::before {
   opacity: 0;
   background:
     radial-gradient(circle at 86% 50%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 34%),
@@ -1475,10 +1508,9 @@ html[data-touch] .hero-viewport {
   transition: opacity 500ms ease;
 }
 
-/* A symmetric compositor-only band crosses exactly one row. Its final edge
-   lands on the card edge instead of moving a 220%-wide pseudo-element far past
-   the rail, which was especially obvious on narrow screens. */
-.expertise-item::after {
+/* A symmetric compositor-only band crosses exactly one card. Its own box clips
+   it, so it never reaches past the card on either side. */
+.expertise-glow::after {
   opacity: 0;
   inset: 0 auto 0 0;
   width: 48%;
@@ -1501,12 +1533,15 @@ html[data-touch] .hero-viewport {
 
 .expertise-item:last-child { border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
 
+/* Centred on the rail's hairline (which occupies x 0→1px, so its centre is at
+   0.5px) through `left` alone. A -50% transform put the same dot in the same
+   place, but as paint-time offset rather than layout, which is what let a
+   clipping ancestor cut it in half. */
 .expertise-dot {
-  left: 0;
+  left: calc(0.5px - 0.3125rem);
   top: 2.55rem;
   height: .625rem;
   width: .625rem;
-  transform: translateX(-50%);
   border: 1px solid #737d98;
   border-radius: 999px;
   background: var(--color-background);
@@ -1517,8 +1552,8 @@ html[data-touch] .hero-viewport {
   border-left-color: var(--accent);
 }
 
-.expertise-item.is-focused::before { opacity: 1; }
-.expertise-item.is-focused::after { animation: capability-row-scan 2.25s cubic-bezier(.2, .7, .2, 1) infinite; }
+.expertise-item.is-focused .expertise-glow::before { opacity: 1; }
+.expertise-item.is-focused .expertise-glow::after { animation: capability-row-scan 2.25s cubic-bezier(.2, .7, .2, 1) infinite; }
 
 @keyframes capability-row-scan {
   0% { opacity: 0; transform: translate3d(-100%, 0, 0); }
@@ -1671,7 +1706,7 @@ html[data-touch] .hero-viewport {
   .capability-legend-row,
   .capability-legend-row::before { transition: none; }
   .capability-legend-row::after,
-  .expertise-item::after,
+  .expertise-glow::after,
   .expertise-dot::after,
   .capability-artifact,
   .capability-artifact .artifact-flow,
@@ -1691,7 +1726,7 @@ html[data-touch] .hero-viewport {
 #expertise:not([data-inview]) .capability-artifact .artifact-scan-line,
 #expertise:not([data-inview]) .capability-artifact .artifact-cursor,
 #expertise:not([data-inview]) .capability-artifact .artifact-check,
-#expertise:not([data-inview]) .expertise-item::after,
+#expertise:not([data-inview]) .expertise-glow::after,
 #expertise:not([data-inview]) .expertise-dot::after,
 #expertise:not([data-inview]) .capability-legend-row::after {
   animation-play-state: paused;
@@ -1700,6 +1735,20 @@ html[data-touch] .hero-viewport {
 @media (min-width: 768px) {
   .expertise-rail { --expertise-gutter: 2.5rem; }
   .capability-artifact { width: 100%; min-height: 7rem; }
+}
+
+/* On one column the artifact has no text column to sit beside, so pinning it to
+   the right edge just left it stranded there. It centres under the copy
+   instead, at a size that reads as an illustration rather than an icon, and the
+   gutter widens so the prose is not pressed against the timeline. */
+@media (max-width: 767px) {
+  .expertise-rail { --expertise-gutter: 2.25rem; }
+  .capability-artifact {
+    width: min(12rem, 58vw);
+    min-height: 6.5rem;
+    justify-self: center;
+  }
+  .capability-artifact .artifact-svg { max-height: 7.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

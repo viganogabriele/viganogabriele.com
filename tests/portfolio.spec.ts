@@ -708,7 +708,7 @@ test("SYS mode stays active and in sync across Home, the CV page and a note", as
   await page.getByRole("link", { name: "Read note", exact: false }).first().click();
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
-  await page.getByRole("button", { name: "Close note and return to notes" }).click();
+  await page.getByRole("button", { name: "Close note and return to home" }).click();
 
   await expect(homeToggle).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
@@ -1398,7 +1398,7 @@ test("closing a note restores its exact position on desktop and iPhone", async (
     // without Playwright's locator auto-scroll changing the captured offset.
     await note.evaluate((element) => element.click());
     await expect(page.getByRole("heading", { name: /The Prompt Was Never the Hard Part/i })).toBeVisible();
-    await page.getByRole("button", { name: "Close note and return to notes" }).click();
+    await page.getByRole("button", { name: "Close note and return to home" }).click();
     await expect(note).toBeVisible();
     await expect(page.locator("[data-preloader]")).toHaveCount(0);
     for (const delay of [100, 600, 2500]) {
@@ -1563,7 +1563,7 @@ test("direct note close falls back to the notes section without replaying the pr
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/notes/noticing-what-the-association-wasnt-using");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await page.getByRole("button", { name: "Close note and return to notes" }).click();
+  await page.getByRole("button", { name: "Close note and return to home" }).click();
   await expect(page).toHaveURL(/\/#notes$/);
   await expect(page.locator("#notes")).toBeInViewport();
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
