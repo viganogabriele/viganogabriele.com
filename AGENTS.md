@@ -11,7 +11,8 @@ The repository is intentionally design- and interaction-heavy. Preserve responsi
 - `npm run dev` — start the Vite development server.
 - `npm run build` — type-check and produce the production build.
 - `npm run lint` — run ESLint.
-- `npm run test:e2e` — build, serve, and run Playwright tests in Chromium, Firefox, and WebKit.
+- `npm run test:e2e` — build, serve, and run Playwright tests in Chromium, Firefox, and WebKit. On Arch Linux, WebKit cannot launch natively (missing/ABI-incompatible system libraries such as ICU and libxml2); use `npm run test:e2e:docker` for WebKit coverage on this machine.
+- `npm run test:e2e:docker` — run the full Playwright suite (Chromium, Firefox, WebKit) inside the official `mcr.microsoft.com/playwright` container, matched to the installed `@playwright/test` version. Requires Docker.
 - `npm run test:e2e:update` — update Playwright snapshots when intentional visual assertions change.
 - `npm run generate:og-card` — regenerate the Open Graph card asset from `scripts/assets/`.
 
@@ -45,4 +46,4 @@ Use npm consistently for routine commands: `package-lock.json` is the only lockf
 
 ## Verification
 
-For most source changes, run `npm run lint` and `npm run build`. Run `npm run test:e2e` for changes affecting layout, navigation, interaction, SEO/static output, or browser compatibility. The e2e suite launches a local production preview automatically.
+For most source changes, run `npm run lint` and `npm run build`. Run `npm run test:e2e` for changes affecting layout, navigation, interaction, SEO/static output, or browser compatibility. The e2e suite launches a local production preview automatically. When WebKit coverage matters (e.g. Safari-specific rendering paths) and you are on a machine where WebKit can't launch natively, use `npm run test:e2e:docker` instead.

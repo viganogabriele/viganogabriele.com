@@ -14,17 +14,22 @@ export function CertRow({ certification, index }: { certification: Certification
       target="_blank"
       rel="noreferrer"
       data-cursor="hover"
-      className="cert-row group grid min-h-16 grid-cols-[auto_1fr_auto] items-center gap-x-5 gap-y-1 border-b border-white/[0.08] px-3 py-4 sm:grid-cols-[auto_auto_1fr_auto_auto] sm:py-5"
+      className="cert-row group grid min-h-16 grid-cols-[auto_auto_1fr_auto] items-center gap-x-3 border-b border-white/[0.08] px-3 py-4 sm:grid-cols-[auto_auto_1fr_auto_auto] sm:gap-x-5 sm:py-5"
     >
       <span className="font-mono text-[10px] tracking-[0.14em] text-zinc-600">{String(index + 1).padStart(2, "0")}</span>
       <Icon aria-hidden className="h-4 w-4 text-accent/70 transition-colors group-hover:text-accent" />
-      <span className="col-start-2 col-end-4 row-start-2 min-w-0 text-base tracking-[-0.02em] text-zinc-200 transition-colors group-hover:text-bone sm:col-auto sm:row-auto sm:text-lg">
-        {certification.title}
-      </span>
-      <span className="col-start-2 col-end-4 row-start-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:col-auto sm:row-auto sm:text-right">
-        {certification.issuer} · {certification.year}
-      </span>
-      <span className="col-start-3 row-start-1 flex items-center gap-2 justify-self-end font-mono text-[9px] uppercase tracking-[0.14em] text-accent/80 sm:col-auto sm:row-auto">
+      {/* One row on mobile — icon beside the text block, not above it. `contents`
+          on sm+ dissolves this wrapper so title and issuer resume being their
+          own grid columns, same as the desktop layout before. */}
+      <div className="min-w-0 sm:contents">
+        <span className="block min-w-0 text-base tracking-[-0.02em] text-zinc-200 transition-colors group-hover:text-bone sm:text-lg">
+          {certification.title}
+        </span>
+        <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 sm:mt-0 sm:text-right">
+          {certification.issuer} · {certification.year}
+        </span>
+      </div>
+      <span className="flex items-center gap-2 justify-self-end font-mono text-[9px] uppercase tracking-[0.14em] text-accent/80">
         <span className="hidden lg:inline">View credential</span>
         <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
       </span>

@@ -332,15 +332,14 @@ html[data-hero-reveal] .hero-wordmark-line + .hero-wordmark-line > span { animat
   object-position: 50% 12%;
 }
 
-/* The SYS render was framed a little tighter and higher than the source
-   photograph. Normalize their subject scale and vertical anchor so the
-   cross-fade reads as one portrait changing state, rather than two shots.
-   Re-tuned against the SYS render's actual apparent size — the mismatch was
-   mostly scale, not just position, measured against a stable reference (the
-   lapel pin, and the shoulder line's width) rather than the subjective read
-   of a single screenshot. */
+/* Restored to the lighter crop: a later pass pushed this to translate(1%, -3%)
+   scale(1.25) to line the photo up scale-for-scale with the SYS render during
+   their cross-fade, but the heavier zoom cut off much more of the portrait and
+   read as off-centre. The SYS portrait (below) is untouched, so the two frames
+   won't match quite as precisely mid cross-fade — a smaller mismatch than a
+   portrait that looks cropped on every normal visit. */
 .hero-portrait--photo {
-  transform: translate(1%, -3%) scale(1.25);
+  transform: translate(1%, -1%) scale(1.065);
   transform-origin: 50% 50%;
 }
 
@@ -1486,7 +1485,11 @@ html[data-touch] .hero-viewport {
    gutter, and the row clips nothing at all. */
 .expertise-glow {
   position: absolute;
-  inset: 0 0 0 var(--expertise-gutter, 2rem);
+  /* Inset just past the status dot (which sits ±5px either side of the rail),
+     not all the way out to the text gutter — flush with the text left the
+     card reading as if it had no left padding of its own; this keeps the
+     highlight reaching almost to the line without covering it. */
+  inset: 0 0 0 0.5rem;
   z-index: -1;
   overflow: clip;
   pointer-events: none;

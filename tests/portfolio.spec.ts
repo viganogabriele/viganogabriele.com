@@ -188,13 +188,19 @@ test("notes and certifications expose their destinations without relying on hove
   await expect(page.getByText("View credential").first()).toBeVisible();
 });
 
-test("certification rows keep their content out of the number track on mobile", async ({ page }) => {
+test("certification rows put the icon beside the title on mobile, not above it", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  const fields = page.locator(".cert-row").first().locator(":scope > span");
-  await expect(fields.nth(1)).toHaveCSS("grid-column-start", "2");
-  await expect(fields.nth(1)).toHaveCSS("grid-row-start", "2");
-  await expect(fields.nth(2)).toHaveCSS("grid-row-start", "3");
+  const row = page.locator(".cert-row").first();
+  const icon = row.locator("svg").first();
+  const title = row.locator("span", { hasText: "Leadership" }).first();
+  const [iconBox, titleBox] = await Promise.all([icon.boundingBox(), title.boundingBox()]);
+  expect(iconBox).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  // Side by side, not stacked: vertical centres line up, and the title sits
+  // to the icon's right rather than below it.
+  expect(Math.abs(iconBox!.y + iconBox!.height / 2 - (titleBox!.y + titleBox!.height / 2))).toBeLessThanOrEqual(12);
+  expect(titleBox!.x).toBeGreaterThan(iconBox!.x + iconBox!.width);
 });
 
 test("skills carousel keeps a single readable active card and supports controls", async ({ page }) => {
@@ -526,7 +532,9 @@ test("hero portrait stays crisp while scrolling and the surname keeps its accent
   }));
   expect(portraitLayers.content).toBeGreaterThan(portraitLayers.glow);
   const portrait = page.locator(".hero-visual-frame");
-  expect((await portrait.boundingBox())!.width).toBeLessThanOrEqual(430);
+  // The frame is capped at max-w-[34rem] (544px) — restored to its original,
+  // larger size after a later revision shrank it to max-w-[26.5rem].
+  expect((await portrait.boundingBox())!.width).toBeLessThanOrEqual(560);
   await expect(portrait.locator(".hero-portrait--photo")).toHaveCSS("filter", /saturate\(1\.08\)/);
   await expect(portrait.locator(".hero-fallback-scan, .hero-reticle")).toHaveCount(0);
   await page.evaluate(() => window.scrollTo(0, 420));
