@@ -204,7 +204,7 @@ export function CvPage() {
               <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400">{cvPageCopy.summary}</p>
             </div>
             <div className="flex flex-wrap gap-3" aria-label="CV actions">
-              <button type="button" onClick={() => void downloadCv()} disabled={downloading} data-cursor="hover" className="btn-solid inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-[#080b16] disabled:cursor-wait disabled:opacity-70"><Download className="h-4 w-4" /> <span>{downloading ? "Preparing…" : "Download CV"}</span></button>
+              <button type="button" onClick={() => void downloadCv()} disabled={downloading} data-cursor="hover" className="btn-solid inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-background disabled:cursor-wait disabled:opacity-70"><Download className="h-4 w-4" /> <span>{downloading ? "Preparing…" : "Download CV"}</span></button>
               <a href={profile.cvPath} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent hover:text-white"><ExternalLink className="h-3.5 w-3.5" /> Open in new tab</a>
             </div>
           </div>

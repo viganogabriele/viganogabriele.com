@@ -55,7 +55,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
     <a
       href={`mailto:${profile.email}`}
       data-cursor="hover"
-      className="btn-solid group relative inline-flex min-h-11 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-[#080b16]"
+      className="btn-solid group relative inline-flex min-h-11 items-center gap-3 overflow-hidden bg-bone px-5 text-sm font-semibold text-background"
     >
       <Mail className="relative h-4 w-4" />
       <span className="relative">Get in touch</span>
