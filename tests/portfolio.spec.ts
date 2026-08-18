@@ -532,9 +532,7 @@ test("hero portrait stays crisp while scrolling and the surname keeps its accent
   }));
   expect(portraitLayers.content).toBeGreaterThan(portraitLayers.glow);
   const portrait = page.locator(".hero-visual-frame");
-  // The frame is capped at max-w-[34rem] (544px) — restored to its original,
-  // larger size after a later revision shrank it to max-w-[26.5rem].
-  expect((await portrait.boundingBox())!.width).toBeLessThanOrEqual(560);
+  expect((await portrait.boundingBox())!.width).toBeLessThanOrEqual(430);
   await expect(portrait.locator(".hero-portrait--photo")).toHaveCSS("filter", /saturate\(1\.08\)/);
   await expect(portrait.locator(".hero-fallback-scan, .hero-reticle")).toHaveCount(0);
   await page.evaluate(() => window.scrollTo(0, 420));

@@ -66,7 +66,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
     <section id="top" className="hero-grid hero-viewport relative flex items-center overflow-hidden border-b border-white/[0.07] pb-8 pt-24 sm:pt-28 lg:pt-32">
       <div className="hero-scanlines absolute inset-0 opacity-80" />
 
-      <div className="relative mx-auto grid w-full max-w-7xl gap-7 px-5 pb-12 sm:px-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-10 lg:px-10">
+      <div className="relative mx-auto grid w-full max-w-7xl gap-7 px-5 pb-12 sm:px-8 lg:grid-cols-[1.24fr_0.76fr] lg:items-center lg:gap-10 lg:px-10">
         <div className="relative z-10">
           <m.p
             initial={reduced ? false : { opacity: 0, y: 10 }}
@@ -140,7 +140,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
           initial={reduced ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.34, duration: 0.75, ease: ease.cinematic }}
-          className="hero-visual-frame relative mx-auto hidden w-full max-w-[34rem] sm:block sm:aspect-[5/6] sm:min-h-[22rem] lg:aspect-[4/5] lg:min-h-[34rem]"
+          className="hero-visual-frame relative mx-auto hidden w-full max-w-[26.5rem] sm:block sm:aspect-[5/6] sm:min-h-[20rem] lg:aspect-[4/5] lg:min-h-[27rem]"
         >
           <BorderGlow className="h-full w-full" backgroundColor="#080b16" glowRadius={46} glowIntensity={1.65} fillOpacity={0.44} animated={portraitSweep}>
             <div className="relative h-full w-full overflow-hidden">
