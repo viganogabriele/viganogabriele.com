@@ -27,7 +27,7 @@ export const aboutSection = {
   ] as Array<{ value: string; label: string; link?: string }>,
   principles: [
     "A rebuild that grows while it rebuilds never ships.",
-    "The safest service is the one that isn’t listening.",
+    "The safest service is the one that isn't listening.",
     "Verifying the output is the job.",
   ],
 };
@@ -64,24 +64,18 @@ export const notesSection = {
 export const certificationsSection = {
   index: "07 / Recognition",
   title: "Credentials, lightly held.",
-  // Sits beside the list, where the other sections put a subtitle.
-  aside: "Worth listing, not worth leading with. The work above is the evidence.",
+  subtitle: "Worth listing, not worth leading with. The work above is the evidence.",
 };
 
 export const heroCopy = {
   summary: "I run my own infrastructure, and the product for 500+ student group chats.",
-  portraitLabel: { idle: "PORTRAIT · ENTER SYS", active: "IDENTIFIED · TAP TO EXIT SYS" },
+  portraitLabel: { idle: "PORTRAIT · ENTER SYS", active: "SYS PORTRAIT · TAP TO EXIT" },
 };
 
 export const cvPageCopy = {
   eyebrow: "Document / CV",
   title: "Curriculum\nVitae.",
   summary: "One page, because a CV has to be one page. The detail it had to cut is on the rest of this site.",
-  systemAside: {
-    eyebrow: "SYS / trace available",
-    text: "Every line on that page has a longer version. Here are three of them.",
-    link: "Explore selected work",
-  },
 };
 
 export const footerCopy = {

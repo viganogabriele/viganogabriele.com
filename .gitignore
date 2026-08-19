@@ -27,5 +27,6 @@ test-results/
 .env*
 
 # Private reference material — never commit
-docs/cv-AI.md
+docs/
 /gabriele/
+

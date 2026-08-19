@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { onViewportWidthChange } from "../lib/viewport";
 
@@ -52,7 +52,7 @@ function readProfile(): MotionProfile {
 
   return {
     level,
-    canUsePointerEffects: finePointer && !prefersReducedMotion,
+    canUsePointerEffects: finePointer && canRunFullMotion,
     prefersReducedMotion,
     saveData,
     isCompact,
@@ -74,15 +74,19 @@ export function MotionProfileProvider({ children }: { children: ReactNode }) {
     // Nothing this profile reads can change from a width-unchanged resize
     // (the mobile URL bar collapsing) — skip the matchMedia work then.
     const removeResizeListener = onViewportWidthChange(refresh);
+    // WebKit can expose its final media-query values one frame after React's
+    // lazy initializer. Reconcile once after mount so the shared profile does
+    // not leave every consumer in a stale reduced/static state until resize.
+    const frame = requestAnimationFrame(refresh);
     return () => {
+      cancelAnimationFrame(frame);
       reduced.removeEventListener("change", refresh);
       pointer.removeEventListener("change", refresh);
       removeResizeListener();
     };
   }, []);
 
-  const value = useMemo(() => profile, [profile]);
-  return <MotionProfileContext.Provider value={value}>{children}</MotionProfileContext.Provider>;
+  return <MotionProfileContext.Provider value={profile}>{children}</MotionProfileContext.Provider>;
 }
 
 export function useMotionProfile() {

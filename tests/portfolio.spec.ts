@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { devices, expect, test } from "@playwright/test";
 
 const viewports = [
   { name: "phone-320", width: 320, height: 568 },
@@ -79,10 +79,128 @@ test("every carousel step counts when the presses overlap the animation", async 
   await expect(page.locator("[data-project-detail]")).toContainText("Homelab & Remote Dev");
 });
 
+test.describe("carousel card glow on touch", () => {
+  // useMotionProfile pins every touch device to the "lite" motion level
+  // regardless of hardware, and BorderGlow's one-shot sweep used to gate on
+  // "full" — so becoming the active card, which happens from a swipe or a
+  // button press exactly as much on touch as with a mouse, never lit up on a
+  // phone. BorderGlow.tsx's `sweepAtLiteLevel` prop (passed from
+  // Projects.tsx/TechStack.tsx) is the fix; this needs a real device profile,
+  // not just a resized viewport, since the motion level reads `hasTouch`.
+  const iPhone13 = devices["iPhone 13"];
+  test.use({
+    userAgent: iPhone13.userAgent,
+    viewport: iPhone13.viewport,
+    deviceScaleFactor: iPhone13.deviceScaleFactor,
+    isMobile: iPhone13.isMobile,
+    hasTouch: iPhone13.hasTouch,
+  });
+
+  test("the newly active project card plays its sweep on touch", async ({ page, browserName }) => {
+    await page.goto("/");
+    await page.waitForFunction(() => document.querySelectorAll("[data-preloader]").length === 0);
+    const carousel = page.getByRole("region", { name: "Selected projects" });
+    await carousel.scrollIntoViewIfNeeded();
+    await carousel.getByRole("button", { name: "Show next project" }).tap();
+
+    const activeCard = () => page.locator('[data-carousel-card][data-active="true"] .project-carousel-card');
+    await expect(activeCard()).toHaveAttribute("data-sweep", "true");
+    // Headless WebKit doesn't reliably advance a keyframe-driven registered
+    // custom property without continuous automation-driven input (the same
+    // gap the marquee hover test already routes around) — the attribute
+    // assertion above already proves the sweep was allowed to start; only
+    // Chromium/Firefox additionally confirm it actually animates open.
+    if (browserName !== "webkit") {
+      await expect
+        .poll(() => activeCard().evaluate((element) => Number(getComputedStyle(element).getPropertyValue("--bg-edge"))))
+        .toBeGreaterThan(0.9);
+    }
+  });
+});
+
+test("a mostly horizontal carousel drag locks the axis and blocks vertical scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const carousel = page.getByRole("region", { name: "Selected projects" });
+  await carousel.scrollIntoViewIfNeeded();
+  const position = carousel.locator(".circular-carousel__controls span");
+  await expect(position).toHaveText("01 / 04");
+
+  // Dispatched, not real touch emulation (this project runs Chromium/Firefox/
+  // WebKit without a `hasTouch` context), so this checks the same thing the
+  // fix actually does: once the drag's axis resolves horizontal, the
+  // pointermove that locks it — and every one after — must come back with
+  // defaultPrevented, which is what stops a real browser from also starting
+  // its own vertical pan underneath the drag.
+  const horizontalResult = await carousel.evaluate((root) => {
+    const box = root.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    const fire = (type: string, clientX: number, clientY: number) => {
+      const event = new PointerEvent(type, { pointerId: 7, pointerType: "touch", clientX, clientY, bubbles: true, cancelable: true });
+      root.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    fire("pointerdown", x, y);
+    const lockPrevented = fire("pointermove", x - 40, y + 5);
+    const continuedPrevented = fire("pointermove", x - 90, y + 6);
+    fire("pointerup", x - 90, y + 6);
+    return { lockPrevented, continuedPrevented };
+  });
+  // The resulting card index depends on drag distance and release momentum,
+  // which isn't the point here — only that the axis lock actually suppressed
+  // the browser's own scroll handling for the gesture is asserted above.
+  expect(horizontalResult.lockPrevented).toBe(true);
+  expect(horizontalResult.continuedPrevented).toBe(true);
+});
+
+test("a mostly vertical drag on the carousel hands off to page scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const carousel = page.getByRole("region", { name: "Selected projects" });
+  await carousel.scrollIntoViewIfNeeded();
+  const position = carousel.locator(".circular-carousel__controls span");
+  await expect(position).toHaveText("01 / 04");
+
+  const verticalPrevented = await carousel.evaluate((root) => {
+    const box = root.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    const fire = (type: string, clientX: number, clientY: number) => {
+      const event = new PointerEvent(type, { pointerId: 8, pointerType: "touch", clientX, clientY, bubbles: true, cancelable: true });
+      root.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    fire("pointerdown", x, y);
+    const prevented = fire("pointermove", x + 4, y - 60);
+    fire("pointerup", x + 4, y - 60);
+    return prevented;
+  });
+  expect(verticalPrevented).toBe(false);
+  await expect(position).toHaveText("01 / 04");
+});
+
 test("notes and certifications expose their destinations without relying on hover", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Read note").first()).toBeVisible();
   await expect(page.getByText("View credential").first()).toBeVisible();
+});
+
+test("certification rows put the icon beside the title on mobile, not above it", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const row = page.locator(".cert-row").first();
+  const icon = row.locator("svg").first();
+  const title = row.locator("span", { hasText: "Leadership" }).first();
+  const [iconBox, titleBox] = await Promise.all([icon.boundingBox(), title.boundingBox()]);
+  expect(iconBox).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  // Side by side, not stacked: vertical centres line up, and the title sits
+  // to the icon's right rather than below it.
+  expect(Math.abs(iconBox!.y + iconBox!.height / 2 - (titleBox!.y + titleBox!.height / 2))).toBeLessThanOrEqual(12);
+  expect(titleBox!.x).toBeGreaterThan(iconBox!.x + iconBox!.width);
 });
 
 test("skills carousel keeps a single readable active card and supports controls", async ({ page }) => {
@@ -113,6 +231,138 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await expect(carousel.getByRole("button", { name: /Bring Code & markup to the front/ })).toHaveAttribute("data-active", "true");
   await page.getByRole("button", { name: "Show next skill group" }).click();
   await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
+  const marquee = page.locator(".tool-marquee");
+  await marquee.scrollIntoViewIfNeeded();
+  const track = marquee.locator(".logo-loop > div");
+  const parkedTransform = await track.evaluate((element) => getComputedStyle(element).transform);
+  await page.waitForTimeout(500);
+  await expect(track).toHaveCSS("transform", parkedTransform);
+});
+
+test("the toolkit logo loop uses legible large marks", async ({ page, browserName }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const marquee = page.locator(".tool-marquee");
+  await marquee.scrollIntoViewIfNeeded();
+  await expect(marquee.locator("svg").first()).toBeVisible();
+  const geometry = await marquee.evaluate((node) => ({
+    strip: node.getBoundingClientRect().height,
+    mark: node.querySelector("svg")?.getBoundingClientRect().height ?? 0,
+  }));
+  expect(geometry.strip).toBeGreaterThanOrEqual(60);
+  expect(geometry.mark).toBeGreaterThanOrEqual(34);
+
+  const track = marquee.locator(".logo-loop > div");
+  const readX = () => track.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
+  const start = await readX();
+  await page.waitForTimeout(400);
+  const normalDistance = Math.abs((await readX()) - start);
+  // A margin from both edges, not just "fully visible": the strip keeps
+  // scrolling, so a mark picked right at the boundary (rect.left === 0) can
+  // drift out from under the mouse — clipped by the container's own
+  // overflow:hidden — before the hover transition has time to land, losing
+  // :hover moments after this measurement and never reaching scale.
+  const markIndex = await marquee.locator(".logo-loop-item").evaluateAll((items) => items.findIndex((item) => {
+    const rect = item.getBoundingClientRect();
+    return rect.left >= 60 && rect.right <= window.innerWidth - 60;
+  }));
+  const mark = marquee.locator(".logo-loop-item").nth(markIndex);
+  // Re-centers on every iteration rather than hovering once and polling: the
+  // strip keeps translating, and hovering an item is exactly what speeds the
+  // strip up to HOVER_SPEED — so a single static mouse position can lose
+  // :hover to the item's own accelerated drift before the 180ms CSS
+  // transition has had continuous coverage long enough to finish, especially
+  // right after entering with little of the item's width still ahead of the
+  // cursor. Chasing its live boundingBox each tick keeps the pointer over it
+  // however fast it moves.
+  let scale = 1;
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    const liveBox = await mark.boundingBox();
+    if (!liveBox) break;
+    await page.mouse.move(liveBox.x + liveBox.width / 2, liveBox.y + liveBox.height / 2);
+    scale = await mark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a);
+    if (scale > 1.2) break;
+    await page.waitForTimeout(30);
+  }
+  expect(scale).toBeGreaterThan(1.2);
+  await expect(mark).toHaveCSS("filter", "none");
+  await page.waitForTimeout(150);
+  const fastStart = await readX();
+  await page.waitForTimeout(400);
+  const fastDistance = Math.abs((await readX()) - fastStart);
+  // Headless WebKit only delivers an isolated rAF when driven by automation,
+  // so validate the interactive CSS there and measure loop velocity in the
+  // two engines whose test clocks continuously advance animation frames.
+  if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+});
+
+test("a press on a marquee logo accelerates it and grows the mark, then releases on pointerup", async ({ page, browserName }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const marquee = page.locator(".tool-marquee");
+  await marquee.scrollIntoViewIfNeeded();
+  const track = marquee.locator(".logo-loop > div");
+  const readX = () => track.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
+
+  const item = marquee.locator(".logo-loop-item").first();
+  const fire = (type: string) => item.evaluate((element, eventType) => {
+    element.dispatchEvent(new PointerEvent(eventType, { pointerId: 11, pointerType: "touch", bubbles: true, cancelable: true }));
+  }, type);
+  const start = await readX();
+  await page.waitForTimeout(400);
+  const normalDistance = Math.abs((await readX()) - start);
+
+  await fire("pointerdown");
+  await expect(item).toHaveClass(/logo-loop-item--pressed/);
+  // Headless WebKit doesn't reliably recompute style for a script-dispatched
+  // PointerEvent the way it does for a real Playwright-driven action (the
+  // class lands and stays, provably, but getComputedStyle keeps answering
+  // with the pre-transition value) — the same automation gap the hover
+  // version of this test already routes around below by skipping the
+  // velocity check there. The class assertion above already proves the
+  // press was recognized; this only additionally confirms what it renders
+  // to, so skip it on the one engine that can't reflect it back here.
+  if (browserName !== "webkit") {
+    await expect
+      .poll(() => item.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a))
+      .toBeGreaterThan(1.2);
+  }
+
+  const fastStart = await readX();
+  await page.waitForTimeout(400);
+  const fastDistance = Math.abs((await readX()) - fastStart);
+  // Same headless-WebKit rAF caveat as the hover version of this assertion.
+  if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+
+  await fire("pointerup");
+  await expect(item).not.toHaveClass(/logo-loop-item--pressed/);
+  const releasedStart = await readX();
+  await page.waitForTimeout(400);
+  const releasedDistance = Math.abs((await readX()) - releasedStart);
+  if (browserName !== "webkit") expect(releasedDistance).toBeLessThan(fastDistance);
+});
+
+test("a marquee press that never gets a pointerup still releases on its own", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const marquee = page.locator(".tool-marquee");
+  await marquee.scrollIntoViewIfNeeded();
+  const item = marquee.locator(".logo-loop-item").first();
+
+  await item.evaluate((element) => {
+    element.dispatchEvent(new PointerEvent("pointerdown", { pointerId: 12, pointerType: "touch", bubbles: true, cancelable: true }));
+  });
+  await expect(item).toHaveClass(/logo-loop-item--pressed/);
+  // No pointerup/pointercancel ever arrives — the safety timeout in
+  // LogoLoop.tsx (PRESS_MS) is the only thing that can clear this, which is
+  // the guarantee this test exists to hold: a dropped release event must
+  // never leave the marquee stuck accelerated.
+  await expect(item).not.toHaveClass(/logo-loop-item--pressed/, { timeout: 2000 });
 });
 
 test("mobile hero omits the portrait while preserving the SYS control", async ({ page }) => {
@@ -125,6 +375,71 @@ test("mobile hero omits the portrait while preserving the SYS control", async ({
   await expect(system).toBeVisible();
   await system.click();
   await expect(system).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".hero-wordmark canvas")).toBeAttached();
+  await expect(page.locator(".hero-wordmark")).toHaveClass(/hero-wordmark--particles/);
+});
+
+test("a tap on the mobile particle wordmark never blocks page scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  const wordmark = page.locator(".hero-wordmark");
+  await expect(wordmark).toHaveClass(/hero-wordmark--particles/);
+
+  // The tap ripple is compact-only and listens on the heading, not the canvas
+  // (which is pointer-events:none). This is the same touch-vs-mouse and
+  // never-preventDefault contract the carousel fix relies on: whatever the
+  // repel effect does internally, it must never be able to swallow the
+  // gesture and stop the page from scrolling underneath a press.
+  const results = await wordmark.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const clientX = box.left + box.width / 2;
+    const clientY = box.top + box.height / 2;
+    const down = new PointerEvent("pointerdown", { pointerId: 21, pointerType: "touch", clientX, clientY, bubbles: true, cancelable: true });
+    element.dispatchEvent(down);
+    const up = new PointerEvent("pointerup", { pointerId: 21, pointerType: "touch", clientX, clientY, bubbles: true, cancelable: true });
+    element.dispatchEvent(up);
+    return { downPrevented: down.defaultPrevented, upPrevented: up.defaultPrevented };
+  });
+  expect(results.downPrevented).toBe(false);
+  expect(results.upPrevented).toBe(false);
+  await expect(page.locator(".hero-wordmark canvas")).toBeAttached();
+});
+
+test("a long press on the mobile particle wordmark tracks the finger like hover, still without blocking scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  const wordmark = page.locator(".hero-wordmark");
+  await expect(wordmark).toHaveClass(/hero-wordmark--particles/);
+
+  // A hold past LONG_PRESS_MS switches from the fixed tap pulse to
+  // continuous tracking (ParticleText.tsx), ending the moment the finger
+  // lifts rather than fading — the same contract as desktop hover, just
+  // driven by a held press instead of the mouse. `pointerup` is dispatched
+  // on `window`, not the element: the tracking release listener is global on
+  // purpose, mirroring CircularCarousel's, since a finger can drift off the
+  // heading during a long press without ever lifting off it.
+  const result = await wordmark.evaluate(async (element) => {
+    const box = element.getBoundingClientRect();
+    const startX = box.left + box.width / 2;
+    const startY = box.top + box.height / 2;
+    const down = new PointerEvent("pointerdown", { pointerId: 22, pointerType: "touch", clientX: startX, clientY: startY, bubbles: true, cancelable: true });
+    element.dispatchEvent(down);
+    await new Promise((resolve) => setTimeout(resolve, 260));
+    const move = new PointerEvent("pointermove", { pointerId: 22, pointerType: "touch", clientX: startX + 15, clientY: startY + 10, bubbles: true, cancelable: true });
+    element.dispatchEvent(move);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    const up = new PointerEvent("pointerup", { pointerId: 22, pointerType: "touch", clientX: startX + 15, clientY: startY + 10, bubbles: true, cancelable: true });
+    window.dispatchEvent(up);
+    return { downPrevented: down.defaultPrevented, movePrevented: move.defaultPrevented, upPrevented: up.defaultPrevented };
+  });
+  expect(result.downPrevented).toBe(false);
+  expect(result.movePrevented).toBe(false);
+  expect(result.upPrevented).toBe(false);
+  await expect(page.locator(".hero-wordmark canvas")).toBeAttached();
 });
 
 test("a phone never downloads the portrait it cannot show", async ({ page }) => {
@@ -211,6 +526,15 @@ test("hero portrait stays crisp while scrolling and the surname keeps its accent
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /GABRIELE VIGANÒ/i })).toBeVisible();
+  const portraitLayers = await page.locator(".hero-visual-frame .border-glow").evaluate((frame) => ({
+    content: Number(getComputedStyle(frame.querySelector<HTMLElement>(".border-glow__content")!).zIndex),
+    glow: Number(getComputedStyle(frame.querySelector<HTMLElement>(".border-glow__glow")!).zIndex),
+  }));
+  expect(portraitLayers.content).toBeGreaterThan(portraitLayers.glow);
+  const portrait = page.locator(".hero-visual-frame");
+  expect((await portrait.boundingBox())!.width).toBeLessThanOrEqual(430);
+  await expect(portrait.locator(".hero-portrait--photo")).toHaveCSS("filter", /saturate\(1\.08\)/);
+  await expect(portrait.locator(".hero-fallback-scan, .hero-reticle")).toHaveCount(0);
   await page.evaluate(() => window.scrollTo(0, 420));
   await expect(page.locator(".hero-visual-frame")).toHaveCSS("opacity", "1");
 });
@@ -226,21 +550,36 @@ test("hero makes Gabriele's current profile and contact path immediately availab
   await expect(hero.getByRole("link", { name: "LinkedIn" })).toHaveCount(0);
 });
 
-test("CV page keeps the document primary and gives mobile users a full-screen document path", async ({ page }) => {
+test("CV page keeps the document primary and gives mobile users a full-screen document path", async ({ page, browserName }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/cv");
   await expect(page).toHaveTitle("Gabriele Viganò · CV");
   await expect(page.getByRole("heading", { name: "Curriculum Vitae." })).toBeVisible();
+  await expect(page.locator("#cv-title")).toHaveAttribute("data-split-text", "char");
+  await expect(page.locator("#cv-title > span[aria-hidden]")).toHaveCount(17);
+  await expect.poll(() => page.locator("#cv-title > span[aria-hidden]").first().evaluate((span) => ({
+    opacity: getComputedStyle(span).opacity,
+    transform: getComputedStyle(span).transform,
+  }))).toEqual({ opacity: "1", transform: "none" });
   await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
   await expect(page.getByRole("button", { name: "Download CV" })).toBeEnabled();
   await expect(page.getByRole("link", { name: "Open in new tab" })).toHaveAttribute("target", "_blank");
   await expect(page.getByRole("link", { name: "Tap to view full screen" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
-  await expect(page.locator("canvas").first()).toBeVisible();
+  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Explore further." })).toHaveCount(0);
   await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
   await page.getByRole("button", { name: "Toggle system mode" }).click();
-  await expect(page.getByLabel("System mode discovery")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Explore selected work" })).toHaveAttribute("href", "/#projects");
+  await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
+  // WebKit deliberately gets the static safe overlay: its compositing path is
+  // tested as product behaviour, so this route must not require a desktop-only
+  // orbit that SystemModeOverlay intentionally omits there.
+  if (browserName === "webkit") {
+    await expect(page.locator(".system-overlay-safe")).toBeVisible();
+    await expect(page.locator("[data-system-orbit]")).toHaveCount(0);
+  } else {
+    await expect(page.locator("[data-system-orbit]")).toBeVisible();
+  }
+  await expect(page.locator(".sys-hud")).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });
@@ -314,6 +653,7 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await expect(page.locator("[data-custom-cursor]")).toHaveCount(0);
   await page.evaluate(() => { localStorage.setItem("gv-system-mode", "on"); });
   await page.reload();
   const system = page.getByRole("button", { name: "Toggle system mode" });
@@ -335,10 +675,74 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect.poll(() => page.locator("html").getAttribute("data-test-system-wipe-observed")).toBe("true");
   await expect(system).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
-  await expect(page.getByText("SYS / violet trace")).toBeVisible();
+  await expect(page.locator("[data-system-orbit]")).toBeVisible();
+  await expect(page.getByText(/System layer active|SYS \/ violet trace|Structure visible/i)).toHaveCount(0);
   await expect(page.locator("[data-system-wipe]")).toHaveCount(1);
   await page.reload();
   await expect(system).toHaveAttribute("aria-pressed", "false");
+});
+
+test("SYS mode stays active and in sync across Home, the CV page and a note", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const homeToggle = page.getByRole("button", { name: "Toggle system mode" });
+  await homeToggle.click();
+  await expect(homeToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+  await expect(page.locator(".hero-wordmark")).toHaveClass(/hero-wordmark--particles/);
+
+  // CV mounts its own useSystemMode() instance. Without the shared in-memory
+  // flag it started at false every time, so the accent (driven off the same
+  // html[data-system-mode] attribute everywhere) snapped back to blue the
+  // moment this route's own mount effect ran, and CV's own SYS button read
+  // as off while every other SYS-tinted element on the page was still violet.
+  await page.getByRole("link", { name: "View CV" }).first().click();
+  await expect(page).toHaveURL(/\/cv$/);
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const cvToggle = page.getByRole("button", { name: "Toggle system mode" });
+  await expect(cvToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+  // No replayed wipe on a route that merely inherits the state — that
+  // animation belongs to an actual toggle, not to mounting already-on.
+  await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
+
+  // Notes intentionally have no SYS toggle of their own (see the comment in
+  // NotePage.tsx) but must not clear the ambient attribute either.
+  await page.getByRole("link", { name: "Back to home" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.getByRole("link", { name: "Read note", exact: false }).first().click();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+  await page.getByRole("button", { name: "Close note and return to home" }).click();
+
+  await expect(homeToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+  await expect(page.locator(".hero-wordmark")).toHaveClass(/hero-wordmark--particles/);
+  await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
+
+  // Turning it off from wherever it's currently active still works, and a
+  // full reload — the one case this is meant to reset on — goes back to off.
+  await homeToggle.click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-system-mode", "on");
+  await page.reload();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await expect(homeToggle).toHaveAttribute("aria-pressed", "false");
+});
+
+test("SYS cross-fades the wordmark in both directions without dropping the canvas", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const wordmark = page.locator(".hero-wordmark");
+  await expect(wordmark.locator("canvas")).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(wordmark.locator("canvas")).toBeAttached();
+  await expect(wordmark).toHaveClass(/hero-wordmark--particles/);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(wordmark).not.toHaveClass(/hero-wordmark--particles/);
+  await expect(wordmark.locator("canvas")).toBeAttached();
+  await expect.poll(() => wordmark.locator("[data-particle-line]").first().evaluate((node) => getComputedStyle(node).color)).not.toBe("rgba(0, 0, 0, 0)");
 });
 
 test("hero keeps the photograph visible until the SYS portrait is ready", async ({ page }) => {
@@ -681,7 +1085,7 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   await expect(page.getByRole("heading", { name: /Curriculum/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /Download CV/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /Open in new tab/i })).toBeVisible();
-  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator("[data-cv-viewport] canvas")).toHaveCount(0);
   await expect(page.getByText(/Loading document|Rendering page/i)).toBeVisible();
 
   // The viewport is sized whether or not the canvas has landed, so nothing
@@ -695,13 +1099,13 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   const heightBefore = await viewportHeight();
   expect(heightBefore).toBeGreaterThan(0);
   releasePdf();
-  await expect(page.locator("canvas").first()).toBeVisible();
+  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
   expect(await viewportHeight()).toBe(heightBefore);
 });
 
 test("the CV's own PDF links are announceable", async ({ page }) => {
   await page.goto("/cv");
-  await expect(page.locator("canvas").first()).toBeVisible();
+  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
   const annotations = page.locator(".annotationLayer a[href]");
   await expect.poll(() => annotations.count()).toBeGreaterThan(0);
   const audit = await annotations.evaluateAll((links) => links.map((link) => ({
@@ -750,6 +1154,12 @@ test("legacy note redirects stay covered until the canonical note is ready", asy
 });
 
 test("fine-pointer cursor works at compact desktop width and is absent on touch", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperties(navigator, {
+      deviceMemory: { configurable: true, get: () => 8 },
+      hardwareConcurrency: { configurable: true, get: () => 8 },
+    });
+  });
   await page.setViewportSize({ width: 676, height: 822 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
@@ -842,15 +1252,22 @@ test("mobile browser chrome height changes do not reflow the page", async ({ bro
   await context.close();
 });
 
-test("capability selection and journey axis stay deterministic while scrolling", async ({ page }) => {
+test("capability selection follows scrolling and the journey axis stays aligned", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await page.locator('[data-index="4"]').evaluate((node) => {
-    window.scrollTo({ top: node.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.42 + 48, behavior: "auto" });
-    window.dispatchEvent(new Event("scroll"));
-  });
-  await expect(page.locator('[data-index="4"]')).toHaveAttribute("data-active", "true");
+  const expertise = page.locator("#expertise");
+  const rows = expertise.locator(".expertise-item");
+  for (let index = 0; index < 5; index += 1) {
+    await rows.nth(index).evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      window.scrollTo({ top: window.scrollY + rect.top + rect.height / 2 - window.innerHeight * 0.46, behavior: "auto" });
+    });
+    await expect(expertise.locator('.expertise-item[data-active="true"]')).toHaveAttribute("data-index", String(index));
+    await expect(expertise.locator(".capability-legend-row").nth(index)).toHaveAttribute("data-active", "true");
+  }
+  await expertise.getByRole("button", { name: /AI-Assisted Development/ }).click();
+  await expect(rows.nth(1)).toHaveAttribute("data-active", "true");
   await page.locator("[data-journey-rail]").scrollIntoViewIfNeeded();
   const alignment = await page.evaluate(() => {
     const axis = document.querySelector<HTMLElement>("[data-journey-axis]")?.getBoundingClientRect();
@@ -865,7 +1282,7 @@ test("capability selection and journey axis stay deterministic while scrolling",
   expect(alignment!.nodes.every((offset) => Math.abs(offset) <= 1)).toBe(true);
 });
 
-test("capability focus does not flash the row after its reveal", async ({ browser }) => {
+test("capability scroll selection keeps rows stable after their reveal", async ({ browser }) => {
   for (const device of [
     { name: "mobile", hasTouch: true, viewport: { width: 390, height: 844 } },
     { name: "desktop", hasTouch: false, viewport: { width: 1440, height: 900 } },
@@ -886,22 +1303,32 @@ test("capability focus does not flash the row after its reveal", async ({ browse
         window.dispatchEvent(new Event("scroll"));
       });
       await expect(row).toHaveCSS("opacity", "1");
-      await expect(row).toHaveAttribute("data-active", "false");
       await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-
-      await row.evaluate((element) => {
-        const top = element.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo(0, top - window.innerHeight * 0.42 + 10);
-        window.dispatchEvent(new Event("scroll"));
-      });
-      await expect(row).toHaveAttribute("data-active", "true");
-      await page.waitForTimeout(700);
+      await expect(row.locator("[data-capability-artifact]")).toBeVisible();
+      await page.waitForTimeout(2_500);
       await expect(row).toHaveCSS("opacity", "1");
       await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 
       await context.close();
     });
   }
+});
+
+test("capability selection stays stable and decorative motion stops with reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const expertise = page.locator("#expertise");
+  await expertise.locator(".expertise-item").nth(2).evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    window.scrollTo({ top: window.scrollY + rect.top + rect.height / 2 - window.innerHeight * 0.46, behavior: "auto" });
+  });
+  await expect(expertise.locator('.expertise-item[data-active="true"]')).toHaveAttribute("data-index", "2");
+  const active = await expertise.locator('.expertise-item[data-active="true"]').getAttribute("data-index");
+  await page.waitForTimeout(2_500);
+  await expect(expertise.locator('.expertise-item[data-active="true"]')).toHaveAttribute("data-index", active!);
+  await expect(expertise.locator("[data-capability-artifact]").first()).toHaveCSS("animation-name", "none");
 });
 
 test("home loads without browser console errors", async ({ page }) => {
@@ -977,7 +1404,7 @@ test("closing a note restores its exact position on desktop and iPhone", async (
     // without Playwright's locator auto-scroll changing the captured offset.
     await note.evaluate((element) => element.click());
     await expect(page.getByRole("heading", { name: /The Prompt Was Never the Hard Part/i })).toBeVisible();
-    await page.getByRole("button", { name: "Close note and return to notes" }).click();
+    await page.getByRole("button", { name: "Close note and return to home" }).click();
     await expect(note).toBeVisible();
     await expect(page.locator("[data-preloader]")).toHaveCount(0);
     for (const delay of [100, 600, 2500]) {
@@ -1012,11 +1439,137 @@ test("browser back still restores the exact note position", async ({ page }) => 
   await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(2);
 });
 
+test("browser back also restores position across a Home <-> CV round trip", async ({ page }) => {
+  // The CV route has no explicit nav-state snapshot the way opening a note
+  // does — it falls back entirely to RouteScrollManager's own tracking. That
+  // fallback used to be captured after the new route had already committed
+  // (getScrollSnapshot() read the page being navigated TO, not the one being
+  // left), which this pair only worked by accident for notes and silently
+  // mis-recorded Home's position for every other route pair. This is the
+  // case that regressed without the continuous, ref-based capture.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  // The footer's own "View CV" link, not the hero's: a Playwright `.click()`
+  // auto-scrolls its target into view first, and the hero's copy sits near
+  // the top of the page — clicking it would itself scroll the page back up
+  // before navigating, which is exactly the ordinary way a reader would have
+  // to reach it too, but defeats a test that wants to hold a specific,
+  // unrelated scroll position at the moment of navigating away. The DOM click
+  // below sidesteps this the same way the note-restoration tests do.
+  // A plain `window.scrollTo`, not Playwright's own scrollIntoViewIfNeeded:
+  // the latter doesn't reliably raise a real `scroll` event in WebKit right
+  // after a fresh SPA mount, which is exactly the signal RouteScrollManager's
+  // capture listens for.
+  const cvLink = page.locator("footer").getByRole("link", { name: "View CV" });
+  await cvLink.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 200, behavior: "auto" }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(800);
+  const expectedY = await page.evaluate(() => window.scrollY);
+
+  await cvLink.evaluate((element) => { element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); (element as HTMLElement).click(); });
+  await expect(page).toHaveURL(/\/cv$/);
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  // A looser tolerance than the note-restoration tests use: the footer link
+  // isn't itself a `data-scroll-anchor`, so the restore falls back to
+  // whichever real section sits closest to it, and a few px of sub-pixel
+  // layout variance between two independent mounts of Home shows up in that
+  // handoff near the very bottom of the page in a way it doesn't for a note
+  // row's own precise anchor. What matters here — that the fallback recorded
+  // and replayed a real position instead of dropping back to 0 — holds well
+  // inside this margin.
+  await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(24);
+});
+
+test("a deep-linked CV visit still restores Home's position on the way back", async ({ page }) => {
+  // Landing directly on /cv (no prior Home visit this session) exercises the
+  // same continuous capture from a cold start rather than a route the reader
+  // navigated away from — the fix must not depend on how the route pair was
+  // first reached.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/cv");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.getByRole("link", { name: "Back to home" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  // Arriving at Home fresh from another route grows its content in from a
+  // shorter initial layout as later sections settle, which can flip the
+  // preloader gate back on for a beat right after the first check clears it.
+  // Confirming it twice, a moment apart, avoids catching that in-between dip.
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.waitForTimeout(300);
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const cvLink = page.locator("footer").getByRole("link", { name: "View CV" });
+  await cvLink.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 200, behavior: "auto" }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(600);
+  const expectedY = await page.evaluate(() => window.scrollY);
+
+  await cvLink.evaluate((element) => { element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); (element as HTMLElement).click(); });
+  await expect(page).toHaveURL(/\/cv$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  // See the tolerance note in the round-trip version of this test above.
+  await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(24);
+});
+
+test.describe("mobile CV navigation via the hamburger menu", () => {
+  // A real device profile, not just a resized desktop viewport: `.tap()`
+  // dispatches genuine touch input, which is what actually exposed this —
+  // mounting a shorter route than the one just left lets the browser clamp
+  // `window.scrollY` down to fit mid-mutation, synchronously, well before
+  // React marks the new route ready. A raw `.click()`/dispatchEvent never
+  // reproduced it.
+  // `defaultBrowserType` deliberately left out: it would force this describe
+  // block onto its own worker running only WebKit, dropping it from the
+  // Chromium/Firefox projects this suite otherwise runs everything under.
+  const iPhone13 = devices["iPhone 13"];
+  test.use({
+    userAgent: iPhone13.userAgent,
+    viewport: iPhone13.viewport,
+    deviceScaleFactor: iPhone13.deviceScaleFactor,
+    isMobile: iPhone13.isMobile,
+    hasTouch: iPhone13.hasTouch,
+  });
+
+  test("landing on CV for the first time starts at the top, not wherever Home's shorter initial layout clamped to", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForFunction(() => document.querySelectorAll("[data-preloader]").length === 0);
+    await page.evaluate(() => window.scrollTo({ top: 1200, behavior: "auto" }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+
+    await page.getByRole("button", { name: "Toggle navigation" }).tap();
+    await page.getByRole("link", { name: "CV", exact: true }).tap();
+    await expect(page).toHaveURL(/\/cv$/);
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    // Polled well past the point the preloader clears: the clamp this
+    // regressed happens before the route is marked ready, so it could still
+    // be sitting at a stale non-zero value even once the preloader is gone.
+    await page.waitForTimeout(1000);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  });
+
+  test("going back from CV to Home restores where the reader was, via the same menu", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForFunction(() => document.querySelectorAll("[data-preloader]").length === 0);
+    await page.evaluate(() => window.scrollTo({ top: 1200, behavior: "auto" }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+    const expectedY = await page.evaluate(() => window.scrollY);
+
+    await page.getByRole("button", { name: "Toggle navigation" }).tap();
+    await page.getByRole("link", { name: "CV", exact: true }).tap();
+    await expect(page).toHaveURL(/\/cv$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/$/);
+    await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(2);
+  });
+});
+
 test("direct note close falls back to the notes section without replaying the preloader", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/notes/noticing-what-the-association-wasnt-using");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await page.getByRole("button", { name: "Close note and return to notes" }).click();
+  await page.getByRole("button", { name: "Close note and return to home" }).click();
   await expect(page).toHaveURL(/\/#notes$/);
   await expect(page.locator("#notes")).toBeInViewport();
   await expect(page.locator("[data-preloader]")).toHaveCount(0);

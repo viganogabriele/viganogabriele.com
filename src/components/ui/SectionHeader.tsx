@@ -31,7 +31,6 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
       >
         <span>{index}</span>
         <span className="h-px w-10 bg-zinc-700" />
-        <span className="section-anchor-label text-accent">GRID / {index}</span>
       </m.div>
 
       <div className="relative mt-4 overflow-hidden pb-2">

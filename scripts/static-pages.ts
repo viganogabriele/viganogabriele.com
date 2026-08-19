@@ -3,10 +3,17 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
-import { notes } from "../src/data/notes";
-import { cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site";
+import { notes } from "../src/data/notes.ts";
+import { cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site.ts";
 
 const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^>]*>\s*|<meta\s+(?:name|property)="(?:description|robots|twitter:[^"]+|og:[^"]+|article:[^"]+)"[^>]*>\s*|<script\s+type="application\/ld\+json"\s+data-jsonld="[^"]+">[\s\S]*?<\/script>\s*/g;
+
+// The hero portrait is HomePage-only; the raw shell preloads it (see index.html)
+// so the home route gets it at high priority pre-hydration. Every other route
+// shell is built from that same string, so without this it would also
+// high-priority-fetch a photo it never paints, competing with that page's
+// actual LCP resource. Stripped here, then re-added for the home shell alone.
+const heroPreloadPattern = /<link\s+rel="preload"\s+as="image"[^>]*>\s*/;
 
 function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -112,17 +119,22 @@ function sitemap() {
 async function generateStaticPages(outDir: string) {
   const indexPath = resolve(outDir, "index.html");
   const index = await readFile(indexPath, "utf8");
+  // Fail the build rather than silently shipping the preload everywhere if
+  // the emitted tag ever stops matching (attribute order, a second image
+  // preload, a Vite change to how it rewrites the asset URL).
+  if (!heroPreloadPattern.test(index)) throw new Error("static-pages: hero image preload not found in the built shell; update heroPreloadPattern.");
+  const otherShell = index.replace(heroPreloadPattern, "");
   const home = withMetadata(index, homeMetadata, { id: "website-person", data: websitePersonJsonLd });
   await writeFile(indexPath, home);
-  await writeFile(resolve(outDir, "cv.html"), withMetadata(index, cvMetadata));
-  await writeFile(resolve(outDir, "404.html"), withMetadata(index, notFoundMetadata));
+  await writeFile(resolve(outDir, "cv.html"), withMetadata(otherShell, cvMetadata));
+  await writeFile(resolve(outDir, "404.html"), withMetadata(otherShell, notFoundMetadata));
 
   await Promise.all(notes.map(async (note) => {
     const directory = resolve(outDir, "notes");
     await mkdir(directory, { recursive: true });
     await writeFile(
       resolve(directory, `${note.slug}.html`),
-      withMetadata(index, noteMetadata(note), { id: `note-${note.slug}`, data: noteJsonLd(note) }),
+      withMetadata(otherShell, noteMetadata(note), { id: `note-${note.slug}`, data: noteJsonLd(note) }),
     );
   }));
   await writeFile(resolve(outDir, "sitemap.xml"), sitemap());

@@ -36,10 +36,18 @@ function isDesktopSafari() {
   );
 }
 
+// Shared across every `useSystemMode()` instance for the life of the tab, but
+// deliberately never written to storage. Home and the CV page each mount
+// their own instance (unmounting one loses its local `active` state), and
+// without this a route change bounced the accent back to blue until the
+// reader toggled it again. Restoring it from storage during hydration was
+// tried and reverted: the transition then replayed on a fresh page load the
+// reader never asked for. In-memory-only gets cross-route continuity within a
+// session without that replay, since a full reload always starts from false.
+let sharedSystemActive = false;
+
 export function useSystemMode() {
-  // System mode is deliberately transient. Restoring it during hydration made
-  // its transition run without a user action on later visits.
-  const [active, setActive] = useState(false);
+  const [active, setActive] = useState(sharedSystemActive);
   const [transitionId, setTransitionId] = useState(0);
   const activeRef = useRef(active);
   const [webkitSafeMode] = useState(usesAppleWebKit);
@@ -80,7 +88,7 @@ export function useSystemMode() {
         if (!activeRef.current) {
           document.documentElement.removeAttribute("data-system-mode");
         }
-      }, 620);
+      }, 460);
       return () => clearTimeout(timer);
     }
 
@@ -92,6 +100,7 @@ export function useSystemMode() {
   const toggle = useCallback(() => {
     const next = !activeRef.current;
     activeRef.current = next;
+    sharedSystemActive = next;
 
     // Apply the accent synchronously with the interaction, before React's
     // post-render effects, so the laser and all SYS UI share one transition.

@@ -1,17 +1,28 @@
 import { m } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
-import { useState } from "react";
+import { lazy, Suspense, useState, type ComponentType } from "react";
 import { projects } from "../../data/projects";
 import { projectsSection } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
-import { CircularCarousel } from "../ui/CircularCarousel";
+import { BorderGlow } from "../motion/BorderGlow";
+import type { CircularCarouselProps } from "../ui/CircularCarousel";
 import { SectionHeader } from "../ui/SectionHeader";
 
 type ProjectItem = typeof projects[number];
 
+// Below-the-fold and carries its own drag/inertia rAF loop (unlike the other
+// sections, which mount straight from the entry chunk): lazy, like LogoLoop.
+// React.lazy can't preserve the generic on CircularCarousel, so the default
+// export is narrowed once, here, to the concrete item type this file uses.
+const CircularCarousel = lazy(() =>
+  import("../ui/CircularCarousel").then((module) => ({
+    default: module.CircularCarousel as unknown as ComponentType<CircularCarouselProps<ProjectItem>>,
+  })),
+);
+
 function ProjectCard({ project, active }: { project: ProjectItem; active: boolean }) {
   return (
-    <div className="project-carousel-card h-full p-5 sm:p-6">
+    <BorderGlow className="project-carousel-card h-full p-5 sm:p-6" backgroundColor="#0e1223" animated={active} sweepAtLiteLevel glowRadius={34} fillOpacity={0.32}>
       <div className="flex items-start justify-between gap-4 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500">
         <span>{project.index} / work</span>
         <span className="text-accent">{active ? "selected" : project.status}</span>
@@ -20,7 +31,7 @@ function ProjectCard({ project, active }: { project: ProjectItem; active: boolea
       <div className="mt-4 flex flex-wrap gap-1.5 border-t border-white/[0.08] pt-3 font-mono text-[8px] tracking-[0.08em] text-zinc-200">
         {project.stack.map((item) => <span key={item} className="border border-accent/30 bg-accent/[0.06] px-1.5 py-0.5">{item}</span>)}
       </div>
-    </div>
+    </BorderGlow>
   );
 }
 
@@ -63,7 +74,7 @@ function ProjectDetail({ project }: { project: ProjectItem }) {
             {project.stack.map((item) => <span key={item} className="border border-accent/30 bg-accent/[0.06] px-2 py-1">{item}</span>)}
           </div>
         </div>
-        {project.link && <a href={project.link} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:border-accent hover:bg-accent/[0.08] hover:text-white">Open on GitHub <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" /></a>}
+        {project.link && <a href={project.link} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:border-accent hover:bg-accent/[0.08] hover:text-white">Open on GitHub <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" /></a>}
       </div>
     </m.article>
   );
@@ -82,22 +93,24 @@ export function Projects() {
           <span>Browse / selected work</span>
           <span className="text-accent">Select a card</span>
         </div>
-        <CircularCarousel
-          items={projects}
-          ariaLabel="Selected projects"
-          getItemLabel={(project) => `${project.title.replace("\n", " ")} project`}
-          renderCard={(project, _index, active) => <ProjectCard project={project} active={active} />}
-          reducedMotion={prefersReducedMotion || level === "static"}
-          radiusScale={0.68}
-          autoRotateSpeed={5}
-          dragSensitivity={0.34}
-          momentumStrength={1.15}
-          pauseDuration={3000}
-          previousControlLabel="Show previous project"
-          nextControlLabel="Show next project"
-          onActiveIndexChange={setActiveIndex}
-          className="project-carousel"
-        />
+        <Suspense fallback={<div className="circular-carousel project-carousel" aria-hidden="true"><div className="circular-carousel__stage" /><div className="circular-carousel__controls" style={{ height: "2.75rem" }} /></div>}>
+          <CircularCarousel
+            items={projects}
+            ariaLabel="Selected projects"
+            getItemLabel={(project) => `${project.title.replace("\n", " ")} project`}
+            renderCard={(project, _index, active) => <ProjectCard project={project} active={active} />}
+            reducedMotion={prefersReducedMotion || level === "static"}
+            radiusScale={0.68}
+            autoRotateSpeed={5}
+            dragSensitivity={0.34}
+            momentumStrength={1.15}
+            pauseDuration={3000}
+            previousControlLabel="Show previous project"
+            nextControlLabel="Show next project"
+            onActiveIndexChange={setActiveIndex}
+            className="project-carousel"
+          />
+        </Suspense>
       </div>
       <ProjectDetail project={activeProject} />
     </section>

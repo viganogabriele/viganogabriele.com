@@ -64,7 +64,7 @@ export function About() {
                   look like a different kind of thing rather than like a link;
                   the arrow and the underline carry that job now. */}
               {item.link ? (
-                <a href={item.link} target="_blank" rel="noreferrer" data-cursor="hover" className="group mt-auto flex min-h-11 items-end py-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-zinc-500 transition-colors hover:text-accent">
+                <a href={item.link} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="group mt-auto flex min-h-11 items-end py-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-zinc-500 transition-colors hover:text-accent">
                   {/* The arrow trails the last word inline rather than sitting
                       at the cell's far edge, which on a wrapped label read as a
                       stray mark instead of part of the link. */}

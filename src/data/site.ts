@@ -1,4 +1,5 @@
-import type { NoteItem } from "./notes";
+import type { NoteItem } from "./notes.ts";
+import { profile } from "./profile.ts";
 
 export const site = {
   name: "Gabriele Viganò",
@@ -94,7 +95,7 @@ export const websitePersonJsonLd = {
       image: pageUrl(site.socialImage.path),
       jobTitle: "Computer Engineering Student",
       affiliation: { "@type": "CollegeOrUniversity", name: "Politecnico di Milano" },
-      sameAs: ["https://github.com/viganogabriele", "https://linkedin.com/in/viganogabriele"],
+      sameAs: [profile.github, profile.linkedIn],
     },
   ],
 } as const;
@@ -113,6 +114,11 @@ export function noteJsonLd(note: NoteItem) {
     datePublished: note.datePublished,
     dateModified: note.datePublished,
     inLanguage: site.language,
-    author: { "@id": `${site.url}/#person` },
+    // A plain @id reference only resolves if the referencing document also
+    // defines that node. Notes ship as their own static page, never paired
+    // with the Person node from websitePersonJsonLd (home-only), so structured
+    // data parsers evaluating a note in isolation can't follow the reference —
+    // inlined here instead so each note's Article stands on its own.
+    author: { "@type": "Person", name: site.name, url: pageUrl("/") },
   } as const;
 }

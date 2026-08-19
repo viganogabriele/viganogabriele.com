@@ -1,13 +1,18 @@
 import { m, useMotionValue, useSpring } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 
-const FINE_POINTER_QUERY = "(hover: hover) and (pointer: fine)";
 const INTERACTIVE = "a, button, [role='button'], input, select, textarea, [data-cursor='hover']";
 const HOVERED_INTERACTIVE = "a:hover, button:hover, [role='button']:hover, input:hover, select:hover, textarea:hover, [data-cursor='hover']:hover";
 const TRAIL_LENGTH = 8;
 
 export function CustomCursor() {
+  const { canUsePointerEffects: enabled } = useMotionProfile();
+  return enabled ? <PointerCursor /> : null;
+}
+
+function PointerCursor() {
   const dot = useRef<HTMLDivElement>(null);
   const trailRefs = useRef<(HTMLDivElement | null)[]>(Array.from({ length: TRAIL_LENGTH }, () => null));
   const trailPositions = useRef<{ x: number; y: number }[]>([]);
@@ -15,20 +20,16 @@ export function CustomCursor() {
   const y = useMotionValue(0);
   const ringX = useSpring(x, { stiffness: 110, damping: 22 });
   const ringY = useSpring(y, { stiffness: 110, damping: 22 });
-  const [enabled, setEnabled] = useState(false);
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState(false);
 
-  useEffect(() => {
-    const media = window.matchMedia(FINE_POINTER_QUERY);
-    const sync = () => setEnabled(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
+  // `visible` only ever flips twice per visit, but it was being set from every
+  // single mousemove. React discards the identical value, yet it still has to
+  // be told about it — the schedule, the bail-out check and the hook bookkeeping
+  // all ran hundreds of times a second for a boolean that was already true.
+  const visibleRef = useRef(false);
 
   useEffect(() => {
-    if (!enabled) return;
     document.documentElement.classList.add("has-custom-cursor");
 
     const clearTrail = () => {
@@ -43,7 +44,7 @@ export function CustomCursor() {
       // with the `scale` property (CSS applies translate then scale, so the
       // translation distance isn't multiplied by the scale factor).
       dot.current?.style.setProperty("translate", `${event.clientX}px ${event.clientY}px`);
-      setVisible(true);
+      if (!visibleRef.current) { visibleRef.current = true; setVisible(true); }
 
       // Update trail only when SYS mode is active — read the attribute directly
       // to avoid re-registering the effect when SYS state changes.
@@ -65,15 +66,28 @@ export function CustomCursor() {
       }
     };
 
+    // HOVERED_INTERACTIVE is a seven-clause :hover selector. The `.closest()`
+    // fast path below is cheap and stays synchronous; the full-document
+    // fallback query only runs when that fast path misses, and is coalesced
+    // to one per frame since `mouseover` re-fires on every element boundary
+    // crossed (nested spans/icons/text over ordinary markup).
+    let hoverFrame = 0;
     const updateTarget = (event: MouseEvent) => {
       const target = event.target instanceof Element ? event.target : null;
-      setActive(Boolean(target?.closest(INTERACTIVE) || document.querySelector(HOVERED_INTERACTIVE)));
+      if (target?.closest(INTERACTIVE)) {
+        if (hoverFrame) { cancelAnimationFrame(hoverFrame); hoverFrame = 0; }
+        setActive(true);
+        return;
+      }
+      if (hoverFrame) return;
+      hoverFrame = requestAnimationFrame(() => {
+        hoverFrame = 0;
+        setActive(Boolean(document.querySelector(HOVERED_INTERACTIVE)));
+      });
     };
 
-    const reset = () => { setActive(false); setVisible(false); clearTrail(); };
-    // HOVERED_INTERACTIVE is a seven-clause :hover selector; running it
-    // straight off the scroll event meant a full document match per event,
-    // several times a frame on a trackpad. Coalesce to one per frame.
+    const reset = () => { setActive(false); visibleRef.current = false; setVisible(false); clearTrail(); };
+    // Same reasoning as updateTarget above: coalesce to one per frame.
     let scrollFrame = 0;
     const onScroll = () => {
       if (scrollFrame) return;
@@ -101,6 +115,7 @@ export function CustomCursor() {
     return () => {
       document.documentElement.classList.remove("has-custom-cursor");
       if (scrollFrame) cancelAnimationFrame(scrollFrame);
+      if (hoverFrame) cancelAnimationFrame(hoverFrame);
       observer.disconnect();
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseover", updateTarget);
@@ -109,9 +124,7 @@ export function CustomCursor() {
       document.removeEventListener("pointerleave", reset);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [enabled, x, y]);
-
-  if (!enabled) return null;
+  }, [x, y]);
 
   return createPortal(
     <div data-custom-cursor data-visible={visible} data-active={active} aria-hidden="true">

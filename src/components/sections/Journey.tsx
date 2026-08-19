@@ -29,10 +29,12 @@ function JourneyItem({
       ref={ref as never}
       className="relative pb-12 last:pb-0"
     >
+      {/* Centred on the axis hairline's own centre (0.5px) by taking half its
+          16px width off in `left`, instead of with a -50% translate. */}
       <span
         data-journey-node
-        className={`absolute top-1 h-4 w-4 -translate-x-1/2 rounded-full border ${item.current ? "border-accent bg-accent/20 shadow-[0_0_0_5px_color-mix(in_srgb,var(--accent)_10%,transparent)]" : "border-zinc-600 bg-background"}`}
-        style={{ left: "calc(var(--journey-gutter) * -1)" }}
+        className={`absolute top-1 h-4 w-4 rounded-full border ${item.current ? "border-accent bg-accent/20 shadow-[0_0_0_5px_color-mix(in_srgb,var(--accent)_10%,transparent)]" : "border-zinc-600 bg-background"}`}
+        style={{ left: "calc(var(--journey-gutter) * -1 - 7.5px)" }}
       >
         {item.current && level === "full" && <span className="absolute inset-1 animate-ping rounded-full bg-accent/50 motion-reduce:animate-none" />}
       </span>
@@ -128,19 +130,25 @@ export function Journey() {
         data-journey-rail
         className="journey-rail relative ml-4 pl-[var(--journey-gutter)] [--journey-axis-x:0px] [--journey-gutter:2rem] md:ml-[15%] md:[--journey-gutter:3rem]"
       >
-        <span data-journey-axis aria-hidden className="pointer-events-none absolute top-0 h-full w-px -translate-x-1/2 bg-white/[0.1]" style={{ left: "var(--journey-axis-x)" }} />
+        {/* The axis is a 1px hairline, so it is the one thing here that has to
+            land on whole pixels: half-shifting it with -translate-x-1/2 left it
+            straddling a device-pixel boundary and rendering as a soft two-pixel
+            smear, which is what made a crisp checkpoint ring beside it look
+            off-centre. It now occupies x 0→1px and everything else centres on
+            0.5px to match. */}
+        <span data-journey-axis aria-hidden className="pointer-events-none absolute top-0 h-full w-px bg-white/[0.1]" style={{ left: "var(--journey-axis-x)" }} />
         {!staticMotion && (
           <>
             <m.span
               aria-hidden
-              className="pointer-events-none absolute top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-blue via-accent to-violet"
+              className="pointer-events-none absolute top-0 h-full w-px bg-gradient-to-b from-blue via-accent to-violet"
               style={{ left: "var(--journey-axis-x)", scaleY: fillScale, originY: 0 }}
             />
             <m.span
               aria-hidden
               data-journey-indicator
               className="pointer-events-none absolute top-0 h-2 w-2 rounded-full bg-accent shadow-[0_0_12px_color-mix(in_srgb,var(--accent)_85%,transparent)]"
-              style={{ left: "var(--journey-axis-x)", x: "-50%", y: indicatorY }}
+              style={{ left: "var(--journey-axis-x)", x: -3.5, y: indicatorY }}
             />
           </>
         )}
