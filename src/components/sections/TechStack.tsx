@@ -1,16 +1,24 @@
 import { Bot, Code2, PanelsTopLeft, Server } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
 import { toolGroups } from "../../data/techStack";
 import { techStackSection } from "../../data/sections";
 import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { BorderGlow } from "../motion/BorderGlow";
 import { ScrollReveal } from "../motion/ScrollReveal";
-import { CircularCarousel } from "../ui/CircularCarousel";
+import type { CircularCarouselProps } from "../ui/CircularCarousel";
 import { SectionHeader } from "../ui/SectionHeader";
 
 const LogoLoop = lazy(() => import("../motion/LogoLoop").then((module) => ({ default: module.LogoLoop })));
 
 type ToolGroupType = typeof toolGroups[number];
+
+// See Projects.tsx for why this is lazy and why the generic needs narrowing
+// at the import site.
+const CircularCarousel = lazy(() =>
+  import("../ui/CircularCarousel").then((module) => ({
+    default: module.CircularCarousel as unknown as ComponentType<CircularCarouselProps<ToolGroupType>>,
+  })),
+);
 
 const groupIcons = [Code2, Server, PanelsTopLeft, Bot];
 
@@ -52,14 +60,16 @@ export function TechStack() {
             <span>Bench / toolkit</span>
             <span className="text-accent">Practical systems</span>
           </div>
-          <CircularCarousel
-            items={toolGroups}
-            ariaLabel="Skill groups"
-            getItemLabel={(group) => group.label}
-            renderCard={(group, index, active) => <ToolGroupCard group={group} index={index} active={active} />}
-            reducedMotion={prefersReducedMotion || level === "static"}
-            className="tool-carousel"
-          />
+          <Suspense fallback={<div className="circular-carousel tool-carousel" aria-hidden="true"><div className="circular-carousel__stage" /></div>}>
+            <CircularCarousel
+              items={toolGroups}
+              ariaLabel="Skill groups"
+              getItemLabel={(group) => group.label}
+              renderCard={(group, index, active) => <ToolGroupCard group={group} index={index} active={active} />}
+              reducedMotion={prefersReducedMotion || level === "static"}
+              className="tool-carousel"
+            />
+          </Suspense>
         </div>
       </ScrollReveal>
     </section>
