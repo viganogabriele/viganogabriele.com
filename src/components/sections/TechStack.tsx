@@ -60,7 +60,7 @@ export function TechStack() {
             <span>Bench / toolkit</span>
             <span className="text-accent">Practical systems</span>
           </div>
-          <Suspense fallback={<div className="circular-carousel tool-carousel" aria-hidden="true"><div className="circular-carousel__stage" /></div>}>
+          <Suspense fallback={<div className="circular-carousel tool-carousel" aria-hidden="true"><div className="circular-carousel__stage" /><div className="circular-carousel__controls" style={{ height: "2.75rem" }} /></div>}>
             <CircularCarousel
               items={toolGroups}
               ariaLabel="Skill groups"

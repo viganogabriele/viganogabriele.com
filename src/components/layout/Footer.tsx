@@ -145,7 +145,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                       transition={{ duration: 0.25 }}
                       className="text-accent"
                     >
-                      connected / <button type="button" onClick={copy} data-cursor="hover" className="underline decoration-accent/35 underline-offset-4 transition-colors hover:text-white" aria-label="Copy email address">{profile.email}</button>
+                      connected / <button type="button" onClick={copy} data-cursor="hover" className="inline-flex items-center gap-1.5 underline decoration-accent/35 underline-offset-4 transition-colors hover:text-white" aria-label="Copy email address">{copied && <Check aria-hidden="true" className="h-3 w-3 shrink-0" />}{profile.email}</button>
                     </m.span>
                   )}
                 </AnimatePresence>
@@ -198,7 +198,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
             <a
               href={profile.github}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               data-cursor="hover"
               className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white"
             >
@@ -207,7 +207,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
             <a
               href={profile.linkedIn}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               data-cursor="hover"
               className="flex min-h-12 items-center justify-between border-b border-white/[0.08] hover:text-white"
             >

@@ -66,15 +66,28 @@ function PointerCursor() {
       }
     };
 
+    // HOVERED_INTERACTIVE is a seven-clause :hover selector. The `.closest()`
+    // fast path below is cheap and stays synchronous; the full-document
+    // fallback query only runs when that fast path misses, and is coalesced
+    // to one per frame since `mouseover` re-fires on every element boundary
+    // crossed (nested spans/icons/text over ordinary markup).
+    let hoverFrame = 0;
     const updateTarget = (event: MouseEvent) => {
       const target = event.target instanceof Element ? event.target : null;
-      setActive(Boolean(target?.closest(INTERACTIVE) || document.querySelector(HOVERED_INTERACTIVE)));
+      if (target?.closest(INTERACTIVE)) {
+        if (hoverFrame) { cancelAnimationFrame(hoverFrame); hoverFrame = 0; }
+        setActive(true);
+        return;
+      }
+      if (hoverFrame) return;
+      hoverFrame = requestAnimationFrame(() => {
+        hoverFrame = 0;
+        setActive(Boolean(document.querySelector(HOVERED_INTERACTIVE)));
+      });
     };
 
     const reset = () => { setActive(false); visibleRef.current = false; setVisible(false); clearTrail(); };
-    // HOVERED_INTERACTIVE is a seven-clause :hover selector; running it
-    // straight off the scroll event meant a full document match per event,
-    // several times a frame on a trackpad. Coalesce to one per frame.
+    // Same reasoning as updateTarget above: coalesce to one per frame.
     let scrollFrame = 0;
     const onScroll = () => {
       if (scrollFrame) return;
@@ -102,6 +115,7 @@ function PointerCursor() {
     return () => {
       document.documentElement.classList.remove("has-custom-cursor");
       if (scrollFrame) cancelAnimationFrame(scrollFrame);
+      if (hoverFrame) cancelAnimationFrame(hoverFrame);
       observer.disconnect();
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseover", updateTarget);

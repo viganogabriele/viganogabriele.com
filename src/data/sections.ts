@@ -27,7 +27,7 @@ export const aboutSection = {
   ] as Array<{ value: string; label: string; link?: string }>,
   principles: [
     "A rebuild that grows while it rebuilds never ships.",
-    "The safest service is the one that isn’t listening.",
+    "The safest service is the one that isn't listening.",
     "Verifying the output is the job.",
   ],
 };

@@ -120,7 +120,7 @@ function CvDocumentViewer() {
         className="relative h-auto overflow-hidden bg-[#151a2b] p-2 sm:h-[min(84svh,72rem)] sm:min-h-[44rem] sm:overflow-auto sm:p-4 fullscreen:h-[calc(100dvh-3.75rem)] fullscreen:max-h-none"
       >
         {failed ? (
-          <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
+          <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noopener noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
         ) : (
           <div className="flex min-w-fit items-start justify-center sm:min-h-full">
             <Document file={profile.cvPath} externalLinkTarget="_blank" onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
@@ -205,7 +205,7 @@ export function CvPage() {
             </div>
             <div className="flex flex-wrap gap-3" aria-label="CV actions">
               <button type="button" onClick={() => void downloadCv()} disabled={downloading} data-cursor="hover" className="btn-solid inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-background disabled:cursor-wait disabled:opacity-70"><Download className="h-4 w-4" /> <span>{downloading ? "Preparing…" : "Download CV"}</span></button>
-              <a href={profile.cvPath} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent hover:text-white"><ExternalLink className="h-3.5 w-3.5" /> Open in new tab</a>
+              <a href={profile.cvPath} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent hover:text-white"><ExternalLink className="h-3.5 w-3.5" /> Open in new tab</a>
             </div>
           </div>
         </m.section>

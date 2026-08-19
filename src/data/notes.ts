@@ -73,6 +73,8 @@ export const notes: NoteItem[] = [
 
 export const noteBySlug = new Map(notes.map((note) => [note.slug, note]));
 
+// Mirrored in vercel.json's `redirects` so crawlers and no-JS requests get a
+// real 301 instead of the client-side navigate() below serving a 404 shell.
 export const legacySlugRedirects: Record<string, string> = {
   "homelab-security-first": "vpn-off-by-default",
   "portfolio-vibe-coding-to-production": "the-prompt-was-never-the-hard-part",

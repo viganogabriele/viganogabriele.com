@@ -14,7 +14,7 @@ const loadParticleText = () => import("../motion/ParticleText").then((module) =>
 const ParticleText = lazy(loadParticleText);
 
 export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; onToggleSystem: () => void }) {
-  const { level, isCompact, prefersReducedMotion: reduced } = useMotionProfile();
+  const { level, isCompact, canUsePointerEffects, prefersReducedMotion: reduced } = useMotionProfile();
   // Arm the canvas on the first explicit SYS interaction and keep it mounted
   // afterwards so leaving the mode can dissolve the particles over the real
   // type instead of dropping the canvas in one frame. Mobile gets a smaller
@@ -130,7 +130,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
             </m.dl>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              {reduced || level === "static" ? ctaButton : <Magnetic>{ctaButton}</Magnetic>}
+              {canUsePointerEffects ? <Magnetic>{ctaButton}</Magnetic> : ctaButton}
               <Link to="/cv" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.12] px-5 text-sm text-zinc-300 transition-colors hover:border-blue/50 hover:text-white"><FileText className="h-4 w-4" /> View CV</Link>
             </div>
           </m.div>

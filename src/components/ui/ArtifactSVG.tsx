@@ -12,5 +12,9 @@ export function ArtifactSVG({ type, className }: { type: Artifact; className?: s
   if (type === "network") return <svg viewBox="0 0 280 170" className={`artifact-svg ${className ?? ""}`} fill="none" aria-hidden><g stroke="currentColor" strokeWidth="1"><path d="M35 122 96 58l65 32 75-57" opacity=".62"/><path d="m35 122 76 20 50-52 75 21" opacity=".32"/><circle cx="35" cy="122" r="9"/><circle cx="96" cy="58" r="12"/><circle cx="161" cy="90" r="8"/><circle cx="236" cy="33" r="11"/><circle cx="236" cy="111" r="7"/><circle cx="111" cy="142" r="6"/></g></svg>;
   if (type === "portfolio") return <svg viewBox="0 0 280 170" className={`artifact-svg ${className ?? ""}`} fill="none" aria-hidden><g stroke="currentColor" strokeWidth="1"><rect x="31" y="22" width="218" height="125" rx="1"/><path d="M31 52h218M62 52v95M62 81h187M91 81v66M121 22v30M188 52v95" opacity=".6"/><path d="M75 101h79M75 114h45M75 127h63" opacity=".35"/><circle cx="215" cy="106" r="20"/><circle cx="215" cy="106" r="4" fill="currentColor"/></g></svg>;
   if (type === "studyquest") return <svg viewBox="0 0 280 170" className={`artifact-svg ${className ?? ""}`} fill="none" aria-hidden><g stroke="currentColor" strokeWidth="1"><path d="M42 31h196v108H42z"/><path d="M63 55h89M63 72h58M63 102h53M63 118h76" opacity=".55"/><circle cx="198" cy="87" r="27"/><path d="m186 88 8 8 17-20M198 45v15M198 114v15M156 87h15M225 87h15"/></g><text x="63" y="93" fill="currentColor" fontSize="9" letterSpacing="2">NEXT REVIEW</text></svg>;
-  return null;
+  // Every Artifact member is handled above; this makes an unhandled addition
+  // to ExpertiseArtifact/ProjectArtifact a build-time type error instead of a
+  // silently empty card.
+  const exhaustive: never = type;
+  return exhaustive;
 }

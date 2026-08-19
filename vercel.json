@@ -8,7 +8,10 @@
     { "source": "/index.html", "destination": "/", "permanent": true },
     { "source": "/viganogabriele.com", "destination": "/", "permanent": true },
     { "source": "/viganogabriele.com/", "destination": "/", "permanent": true },
-    { "source": "/viganogabriele.com/index.html", "destination": "/", "permanent": true }
+    { "source": "/viganogabriele.com/index.html", "destination": "/", "permanent": true },
+    { "source": "/notes/homelab-security-first", "destination": "/notes/vpn-off-by-default", "permanent": true },
+    { "source": "/notes/portfolio-vibe-coding-to-production", "destination": "/notes/the-prompt-was-never-the-hard-part", "permanent": true },
+    { "source": "/notes/event-operations-from-zero", "destination": "/notes/noticing-what-the-association-wasnt-using", "permanent": true }
   ],
   "headers": [
     {
@@ -17,7 +20,8 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" }
       ]
     },
     {

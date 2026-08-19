@@ -74,7 +74,7 @@ function ProjectDetail({ project }: { project: ProjectItem }) {
             {project.stack.map((item) => <span key={item} className="border border-accent/30 bg-accent/[0.06] px-2 py-1">{item}</span>)}
           </div>
         </div>
-        {project.link && <a href={project.link} target="_blank" rel="noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:border-accent hover:bg-accent/[0.08] hover:text-white">Open on GitHub <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" /></a>}
+        {project.link && <a href={project.link} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:border-accent hover:bg-accent/[0.08] hover:text-white">Open on GitHub <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" /></a>}
       </div>
     </m.article>
   );
@@ -93,7 +93,7 @@ export function Projects() {
           <span>Browse / selected work</span>
           <span className="text-accent">Select a card</span>
         </div>
-        <Suspense fallback={<div className="circular-carousel project-carousel" aria-hidden="true"><div className="circular-carousel__stage" /></div>}>
+        <Suspense fallback={<div className="circular-carousel project-carousel" aria-hidden="true"><div className="circular-carousel__stage" /><div className="circular-carousel__controls" style={{ height: "2.75rem" }} /></div>}>
           <CircularCarousel
             items={projects}
             ariaLabel="Selected projects"

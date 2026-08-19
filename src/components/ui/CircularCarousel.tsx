@@ -443,7 +443,7 @@ export function CircularCarousel<T>({
       <div className="circular-carousel__stage">
         {items.map((item, index) => (
           <article
-            key={getItemLabel(item, index)}
+            key={index}
             ref={(element) => { cardRefs.current[index] = element; }}
             className="circular-carousel__card"
             data-carousel-card

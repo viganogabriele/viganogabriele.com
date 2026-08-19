@@ -114,6 +114,11 @@ export function noteJsonLd(note: NoteItem) {
     datePublished: note.datePublished,
     dateModified: note.datePublished,
     inLanguage: site.language,
-    author: { "@id": `${site.url}/#person` },
+    // A plain @id reference only resolves if the referencing document also
+    // defines that node. Notes ship as their own static page, never paired
+    // with the Person node from websitePersonJsonLd (home-only), so structured
+    // data parsers evaluating a note in isolation can't follow the reference —
+    // inlined here instead so each note's Article stands on its own.
+    author: { "@type": "Person", name: site.name, url: pageUrl("/") },
   } as const;
 }

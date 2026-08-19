@@ -12,7 +12,7 @@ export function CertRow({ certification, index }: { certification: Certification
     <a
       href={certification.link}
       target="_blank"
-      rel="noreferrer"
+      rel="noopener noreferrer"
       data-cursor="hover"
       className="cert-row group grid min-h-16 grid-cols-[auto_auto_1fr_auto] items-center gap-x-3 border-b border-white/[0.08] px-3 py-4 sm:grid-cols-[auto_auto_1fr_auto_auto] sm:gap-x-5 sm:py-5"
     >
