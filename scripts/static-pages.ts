@@ -22,6 +22,17 @@ const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^
 // actual LCP resource. Stripped here, then re-added for the home shell alone.
 const heroPreloadPattern = /<link\s+rel="preload"\s+as="image"[^>]*>\s*/;
 
+interface BuildManifestChunk {
+  file: string;
+  css?: string[];
+}
+
+type BuildManifest = Record<string, BuildManifestChunk>;
+
+interface StaticPagesOptions {
+  cvVersion: string;
+}
+
 function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -117,9 +128,22 @@ function headFor(metadata: PageMetadata, structuredData?: { id: string; data: Re
   return tags.join("\n    ");
 }
 
-function withMetadata(shell: string, metadata: PageMetadata, structuredData?: { id: string; data: Record<string, unknown> }) {
-  const head = headFor(metadata, structuredData);
+function withMetadata(shell: string, metadata: PageMetadata, structuredData?: { id: string; data: Record<string, unknown> }, resourceHints = "") {
+  const head = [resourceHints, headFor(metadata, structuredData)].filter(Boolean).join("\n    ");
   return shell.replace(managedTagPattern, "").replace("</head>", `    ${head}\n  </head>`);
+}
+
+function cvResourceHints(manifest: BuildManifest, cvVersion: string) {
+  const cvChunk = manifest["src/pages/CvPage.tsx"];
+  const worker = manifest["node_modules/pdfjs-dist/build/pdf.worker.min.mjs"];
+  if (!cvChunk || !worker) throw new Error("static-pages: CV route or PDF worker missing from the Vite manifest.");
+
+  return [
+    `<link rel="modulepreload" crossorigin href="/${cvChunk.file}">`,
+    ...(cvChunk.css ?? []).map((file) => `<link rel="preload" as="style" href="/${file}">`),
+    `<link rel="preload" as="fetch" type="text/javascript" crossorigin href="/${worker.file}">`,
+    `<link rel="preload" as="fetch" type="application/pdf" crossorigin href="${profile.cvPath}?v=${cvVersion}">`,
+  ].join("\n    ");
 }
 
 /**
@@ -183,10 +207,14 @@ async function validateLegacyRedirects() {
   }
 }
 
-async function generateStaticPages(outDir: string) {
+async function generateStaticPages(outDir: string, options: StaticPagesOptions) {
   await validateLegacyRedirects();
   const indexPath = resolve(outDir, "index.html");
-  const index = await readFile(indexPath, "utf8");
+  const [index, manifestSource] = await Promise.all([
+    readFile(indexPath, "utf8"),
+    readFile(resolve(outDir, ".vite", "manifest.json"), "utf8"),
+  ]);
+  const manifest = JSON.parse(manifestSource) as BuildManifest;
   // Fail the build rather than silently shipping the preload everywhere if
   // the emitted tag ever stops matching (attribute order, a second image
   // preload, a Vite change to how it rewrites the asset URL).
@@ -194,7 +222,7 @@ async function generateStaticPages(outDir: string) {
   const otherShell = index.replace(heroPreloadPattern, "");
   const home = withMetadata(staticContent(index, homeStaticContent()), homeMetadata, { id: "website-person", data: websitePersonJsonLd });
   await writeFile(indexPath, home);
-  await writeFile(resolve(outDir, "cv.html"), withMetadata(otherShell, cvMetadata));
+  await writeFile(resolve(outDir, "cv.html"), withMetadata(otherShell, cvMetadata, undefined, cvResourceHints(manifest, options.cvVersion)));
   await writeFile(resolve(outDir, "404.html"), withMetadata(otherShell, notFoundMetadata));
 
   await Promise.all(notes.map(async (note) => {
@@ -210,11 +238,11 @@ async function generateStaticPages(outDir: string) {
 }
 
 /** Emits crawlable route shells while retaining the React SPA at runtime. */
-export function staticPages(): Plugin {
+export function staticPages(options: StaticPagesOptions): Plugin {
   return {
     name: "static-pages",
     async closeBundle() {
-      await generateStaticPages(resolve(process.cwd(), "dist"));
+      await generateStaticPages(resolve(process.cwd(), "dist"), options);
     },
     configurePreviewServer(server) {
       return () => {

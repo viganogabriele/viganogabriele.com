@@ -1,9 +1,10 @@
 import { m } from "framer-motion";
 import { ArrowLeft, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import { useEffect, useRef, useState } from "react";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 import { Link } from "react-router-dom";
 import { Footer } from "../components/layout/Footer";
 import { AppShell } from "../components/layout/AppShell";
@@ -14,9 +15,11 @@ import { cvMetadata } from "../data/site";
 import { cvPageCopy } from "../data/sections";
 import { useMotionProfile } from "../hooks/useMotionProfile";
 import { useSystemMode } from "../hooks/useSystemMode";
+import { cvUrl, pdfWorkerUrl } from "../lib/cvAssets";
 import { ease } from "../lib/motion";
 import { PageMeta } from "../lib/seo";
 import { useRouteReady } from "../hooks/useRouteReady";
+import "../styles/cv-pdf.css";
 
 // `new URL("pdfjs-dist/...", import.meta.url)` does no module resolution: a bare
 // specifier is just concatenated onto the importing file's URL, so in the built
@@ -60,6 +63,7 @@ function CvDocumentViewer() {
   const [viewportWidth, setViewportWidth] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [pageAspect, setPageAspect] = useState(0);
+  const [numPages, setNumPages] = useState<number | null>(null);
   const [failed, setFailed] = useState(false);
   const horizontalInset = viewportWidth >= 640 ? 32 : 16;
   const verticalInset = viewportWidth >= 640 ? 32 : 16;
@@ -88,7 +92,7 @@ function CvDocumentViewer() {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const nameAnnotations = () => {
-      for (const link of viewport.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+      for (const link of viewport.querySelectorAll<HTMLAnchorElement>(".annotationLayer a[href]")) {
         if (link.getAttribute("aria-hidden") === "true") continue;
         if (link.textContent?.trim() || link.getAttribute("aria-label")) continue;
         link.setAttribute("aria-label", describeAnnotation(link));
@@ -100,11 +104,26 @@ function CvDocumentViewer() {
     return () => observer.disconnect();
   }, []);
 
+  const loadDocument = async (document: PDFDocumentProxy) => {
+    try {
+      const firstPage = await document.getPage(1);
+      const viewport = firstPage.getViewport({ scale: 1 });
+      setPageAspect(viewport.width / viewport.height);
+      setNumPages(document.numPages);
+      setFailed(false);
+    } catch {
+      setFailed(true);
+      setNumPages(null);
+    }
+  };
+
+  const pageCountLabel = numPages === null ? "Reading page count…" : `${numPages} ${numPages === 1 ? "page" : "pages"}`;
+
   return (
       <div ref={viewerRef} className="overflow-hidden border border-white/[0.11] bg-surface/80 shadow-2xl shadow-black/20 fullscreen:h-[100dvh] fullscreen:w-[100dvw] fullscreen:border-0">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500 sm:px-5">
         <span className="inline-flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-accent" /> {profile.cvFilename}</span>
-        <span className="hidden sm:inline">Integrated PDF viewer</span><a href={profile.cvPath} className="text-accent transition-colors hover:text-white sm:hidden">Tap to view full screen</a>
+        <span data-cv-page-count aria-live="polite" className="hidden sm:inline">{pageCountLabel} · Integrated PDF viewer</span><a href={cvUrl} className="text-accent transition-colors hover:text-white sm:hidden">Tap to view full screen</a>
       </div>
       <div className="hidden items-center justify-end gap-2 border-b border-white/[0.08] bg-background/45 px-4 py-2 sm:flex" aria-label="PDF viewer controls">
         <div className="inline-flex items-center rounded-full border border-white/[0.1] bg-surface/60 p-1">
@@ -120,15 +139,17 @@ function CvDocumentViewer() {
         className="relative h-auto overflow-hidden bg-[#151a2b] p-2 sm:h-[min(84svh,72rem)] sm:min-h-[44rem] sm:overflow-auto sm:p-4 fullscreen:h-[calc(100dvh-3.75rem)] fullscreen:max-h-none"
       >
         {failed ? (
-          <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noopener noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
+          <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={cvUrl} target="_blank" rel="noopener noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
         ) : (
           <div className="flex min-w-fit items-start justify-center sm:min-h-full">
-            <Document file={profile.cvPath} externalLinkTarget="_blank" onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
-              {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer={false} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Rendering page…</span>} />}
+            <Document className="flex flex-col items-center gap-4" file={cvUrl} externalLinkTarget="_blank" onLoadSuccess={(document) => { void loadDocument(document); }} onLoadError={() => { setFailed(true); setNumPages(null); }} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
+              {viewportWidth > 0 && numPages !== null && Array.from({ length: numPages }, (_, index) => {
+                const pageNumber = index + 1;
+                return <div key={pageNumber} data-cv-page={pageNumber} role="group" aria-label={`Page ${pageNumber} of ${numPages}`}><Page className="cv-pdf-page" pageNumber={pageNumber} width={pageWidth} renderAnnotationLayer renderTextLayer loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Rendering page {pageNumber}…</span>} /></div>;
+              })}
             </Document>
           </div>
         )}
-        {!failed && <a href={profile.cvPath} className="absolute inset-0 z-10 sm:hidden" tabIndex={-1} aria-hidden="true" />}
       </div>
     </div>
   );
@@ -151,7 +172,7 @@ export function CvPage() {
   const downloadCv = async () => {
     setDownloading(true);
     try {
-      const response = await fetch(profile.cvPath);
+      const response = await fetch(cvUrl);
       if (!response.ok) throw new Error("CV download failed");
       const blob = await response.blob();
       const file = new File([blob], profile.cvFilename, { type: "application/pdf" });
@@ -172,7 +193,7 @@ export function CvPage() {
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
     } catch {
-      window.location.assign(profile.cvPath);
+      window.location.assign(cvUrl);
     } finally {
       setDownloading(false);
     }
@@ -205,7 +226,7 @@ export function CvPage() {
             </div>
             <div className="flex flex-wrap gap-3" aria-label="CV actions">
               <button type="button" onClick={() => void downloadCv()} disabled={downloading} data-cursor="hover" className="btn-solid inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-background disabled:cursor-wait disabled:opacity-70"><Download className="h-4 w-4" /> <span>{downloading ? "Preparing…" : "Download CV"}</span></button>
-              <a href={profile.cvPath} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent hover:text-white"><ExternalLink className="h-3.5 w-3.5" /> Open in new tab</a>
+              <a href={cvUrl} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent hover:text-white"><ExternalLink className="h-3.5 w-3.5" /> Open in new tab</a>
             </div>
           </div>
         </m.section>

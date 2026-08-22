@@ -32,8 +32,20 @@
     },
     {
       "source": "/cv/(.*)",
+      "has": [
+        { "type": "query", "key": "v" }
+      ],
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/cv/(.*)",
+      "missing": [
+        { "type": "query", "key": "v" }
+      ],
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     },
     {

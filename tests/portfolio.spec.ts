@@ -1,5 +1,33 @@
 import AxeBuilder from "@axe-core/playwright";
 import { devices, expect, test } from "@playwright/test";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+
+function twoPagePdf() {
+  const stream = (text: string) => `<< /Length ${Buffer.byteLength(text)} >>\nstream\n${text}\nendstream`;
+  const pageOne = "BT /F1 24 Tf 72 720 Td (Synthetic page one) Tj ET";
+  const pageTwo = "BT /F1 24 Tf 72 720 Td (Synthetic page two) Tj ET";
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 4 0 R >>",
+    stream(pageOne),
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 6 0 R >>",
+    stream(pageTwo),
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let source = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(source));
+    source += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = Buffer.byteLength(source);
+  source += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  source += offsets.slice(1).map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("");
+  source += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(source, "ascii");
+}
 
 const viewports = [
   { name: "phone-320", width: 320, height: 568 },
@@ -569,8 +597,8 @@ test("CV page keeps the document primary and gives mobile users a full-screen do
   await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
   await expect(page.getByRole("button", { name: "Download CV" })).toBeEnabled();
   await expect(page.getByRole("link", { name: "Open in new tab" })).toHaveAttribute("target", "_blank");
-  await expect(page.getByRole("link", { name: "Tap to view full screen" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
-  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Tap to view full screen" })).toHaveAttribute("href", /\/cv\/Vigano_Gabriele_CV\.pdf\?v=[a-f0-9]{12}$/);
+  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "Explore further." })).toHaveCount(0);
   await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
   await page.getByRole("button", { name: "Toggle system mode" }).click();
@@ -1099,7 +1127,7 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   const pdfReleased = new Promise<void>((resolve) => { releasePdf = resolve; });
   let markPdfRequested!: () => void;
   const pdfRequested = new Promise<void>((resolve) => { markPdfRequested = resolve; });
-  await page.route("**/cv/Vigano_Gabriele_CV.pdf", async (route) => {
+  await page.route("**/cv/Vigano_Gabriele_CV.pdf*", async (route) => {
     markPdfRequested();
     await pdfReleased;
     await route.continue();
@@ -1135,7 +1163,7 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
 
 test("the CV's own PDF links are announceable", async ({ page }) => {
   await page.goto("/cv");
-  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
+  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible({ timeout: 20_000 });
   const annotations = page.locator(".annotationLayer a[href]");
   await expect.poll(() => annotations.count()).toBeGreaterThan(0);
   const audit = await annotations.evaluateAll((links) => links.map((link) => ({
@@ -1157,11 +1185,140 @@ test("the CV's own PDF links are announceable", async ({ page }) => {
   expect(audit.filter((link) => link.href?.startsWith("http") && link.target !== "_blank")).toEqual([]);
 });
 
+test("the PDF text layer stays selectable and aligned with links above it through zoom", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/cv");
+  const pdfPage = page.locator("[data-cv-page='1']");
+  const canvas = pdfPage.locator("canvas");
+  const textLayer = pdfPage.locator(".textLayer");
+  const annotationLayer = pdfPage.locator(".annotationLayer");
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await expect.poll(() => textLayer.locator("span").count()).toBeGreaterThan(100);
+  await expect.poll(() => textLayer.textContent()).toMatch(/Gabriele/i);
+
+  const selected = await textLayer.evaluate((layer) => {
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(layer);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    return selection?.toString() ?? "";
+  });
+  expect(selected.length).toBeGreaterThan(1_000);
+
+  const geometry = () => pdfPage.evaluate((node) => {
+    const rect = (selector: string) => {
+      const layer = node.querySelector<HTMLElement>(selector);
+      if (!layer) throw new Error(`Missing ${selector}`);
+      const box = layer.getBoundingClientRect();
+      return { width: box.width, height: box.height };
+    };
+    return { canvas: rect("canvas"), text: rect(".textLayer"), annotations: rect(".annotationLayer") };
+  });
+  const initial = await geometry();
+  expect(Math.abs(initial.canvas.width - initial.text.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(initial.canvas.height - initial.text.height)).toBeLessThanOrEqual(1);
+  expect(Math.abs(initial.canvas.width - initial.annotations.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(initial.canvas.height - initial.annotations.height)).toBeLessThanOrEqual(1);
+
+  await page.evaluate(() => window.getSelection()?.removeAllRanges());
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await expect(page.getByText("125%", { exact: true })).toBeVisible();
+  await expect.poll(async () => (await geometry()).canvas.width).toBeGreaterThan(initial.canvas.width * 1.2);
+  await expect.poll(async () => {
+    const zoomed = await geometry();
+    return [
+      Math.abs(zoomed.canvas.width - zoomed.text.width),
+      Math.abs(zoomed.canvas.height - zoomed.text.height),
+      Math.abs(zoomed.canvas.width - zoomed.annotations.width),
+      Math.abs(zoomed.canvas.height - zoomed.annotations.height),
+    ].every((difference) => difference <= 1);
+  }, { timeout: 20_000 }).toBe(true);
+
+  const firstPdfLink = annotationLayer.locator("a[href]").first();
+  await firstPdfLink.scrollIntoViewIfNeeded();
+  await expect(firstPdfLink).toHaveAttribute("aria-label", /.+/);
+  expect(await firstPdfLink.evaluate((link) => {
+    const box = link.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    return hit === link || link.contains(hit);
+  })).toBe(true);
+});
+
+test("the viewer renders the PDF's reported page count instead of assuming one page", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route("**/cv/Vigano_Gabriele_CV.pdf*", (route) => route.fulfill({ contentType: "application/pdf", body: twoPagePdf() }));
+  await page.goto("/cv");
+  await expect(page.locator("[data-cv-page-count]")).toContainText("2 pages");
+  await expect(page.getByRole("group", { name: "Page 1 of 2" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Page 2 of 2" })).toBeAttached();
+  await expect(page.locator("[data-cv-page] canvas")).toHaveCount(2);
+  await expect(page.locator("[data-cv-page='1'] .textLayer")).toContainText("Synthetic page one");
+  await expect(page.locator("[data-cv-page='2'] .textLayer")).toContainText("Synthetic page two");
+});
+
+test("the direct CV shell and cache rules use the PDF content digest", async ({ request }) => {
+  const pdf = await readFile(new URL("../public/cv/Vigano_Gabriele_CV.pdf", import.meta.url));
+  const version = createHash("sha256").update(pdf).digest("hex").slice(0, 12);
+  const response = await request.get("/cv");
+  const html = await response.text();
+  expect(html).toContain(`<link rel="modulepreload" crossorigin href="/assets/CvPage-`);
+  expect(html).toMatch(/<link rel="preload" as="fetch" type="text\/javascript" crossorigin href="\/assets\/pdf\.worker\.min-[^"]+\.mjs">/);
+  expect(html).toContain(`<link rel="preload" as="fetch" type="application/pdf" crossorigin href="/cv/Vigano_Gabriele_CV.pdf?v=${version}">`);
+
+  const config = JSON.parse(await readFile(new URL("../vercel.json", import.meta.url), "utf8")) as { headers: Array<Record<string, unknown>> };
+  const cvHeaders = config.headers.filter((entry) => entry.source === "/cv/(.*)");
+  expect(cvHeaders).toEqual(expect.arrayContaining([
+    expect.objectContaining({ has: [{ type: "query", key: "v" }], headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] }),
+    expect.objectContaining({ missing: [{ type: "query", key: "v" }], headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }] }),
+  ]));
+});
+
+test("direct and intent-prefetched CV resources transfer once", async ({ browser, browserName, baseURL }) => {
+  test.skip(browserName !== "chromium", "Resource Timing transferSize is the Chromium network measurement used here");
+  const measurements: Record<string, unknown> = {};
+
+  for (const scenario of ["direct", "intent"] as const) {
+    const context = await browser.newContext({ baseURL });
+    const page = await context.newPage();
+    if (scenario === "intent") {
+      await page.goto("/");
+      await expect(page.locator("[data-preloader]")).toHaveCount(0);
+      await page.evaluate(() => performance.clearResourceTimings());
+      await page.locator("#top").getByRole("link", { name: "View CV" }).hover();
+      await expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => /CvPage-.*\.js|pdf\.worker\.min-.*\.mjs|Vigano_Gabriele_CV\.pdf/.test(entry.name)).length)).toBeGreaterThanOrEqual(3);
+      await page.locator("#top").getByRole("link", { name: "View CV" }).click();
+    } else {
+      await page.goto("/cv");
+    }
+    await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
+
+    const resources = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => /CvPage-.*\.js|pdf\.worker\.min-.*\.mjs|Vigano_Gabriele_CV\.pdf/.test(entry.name))
+      .map((entry) => {
+        const timing = entry as PerformanceResourceTiming;
+        return { name: new URL(entry.name).pathname, initiatorType: timing.initiatorType, transferSize: timing.transferSize, encodedBodySize: timing.encodedBodySize, duration: timing.duration };
+      }));
+    for (const pattern of [/CvPage-.*\.js$/, /pdf\.worker\.min-.*\.mjs$/, /Vigano_Gabriele_CV\.pdf$/]) {
+      const matching = resources.filter((entry) => pattern.test(entry.name));
+      expect(matching.length, `${scenario}: no timing for ${pattern}`).toBeGreaterThan(0);
+      // Chromium reports a 300-byte Resource Timing entry when the consumer
+      // reuses the warmed HTTP cache. Count payload transfers, not that cache
+      // bookkeeping entry: each of these bodies is comfortably above 1 KB.
+      expect(matching.filter((entry) => entry.transferSize > 1_000), `${scenario}: ${pattern} body transferred more than once`).toHaveLength(1);
+    }
+    measurements[scenario] = resources;
+    await context.close();
+  }
+
+  await test.info().attach("cv-network-measurements", { body: JSON.stringify(measurements, null, 2), contentType: "application/json" });
+});
+
 test("likely internal destinations prefetch on intent", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const cvRequest = page.waitForRequest((request) => request.url().includes("CvPage-") && request.url().endsWith(".js"));
-  const pdfRequest = page.waitForRequest((request) => request.url().endsWith("/cv/Vigano_Gabriele_CV.pdf"));
+  const pdfRequest = page.waitForRequest((request) => request.url().includes("/cv/Vigano_Gabriele_CV.pdf?v="));
   await page.locator("#top").getByRole("link", { name: "View CV" }).hover();
   await Promise.all([cvRequest, pdfRequest]);
 });
