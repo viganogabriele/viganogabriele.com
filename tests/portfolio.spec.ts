@@ -264,44 +264,39 @@ test("the toolkit logo loop uses legible large marks", async ({ page, browserNam
   const start = await readX();
   await page.waitForTimeout(400);
   const normalDistance = Math.abs((await readX()) - start);
-  // A margin from both edges, not just "fully visible": the strip keeps
-  // scrolling, so a mark picked right at the boundary (rect.left === 0) can
-  // drift out from under the mouse — clipped by the container's own
-  // overflow:hidden — before the hover transition has time to land, losing
-  // :hover moments after this measurement and never reaching scale.
-  const markIndex = await marquee.locator(".logo-loop-item").evaluateAll((items) => items.findIndex((item) => {
-    const rect = item.getBoundingClientRect();
-    return rect.left >= 60 && rect.right <= window.innerWidth - 60;
-  }));
-  const mark = marquee.locator(".logo-loop-item").nth(markIndex);
-  // Re-centers on every iteration rather than hovering once and polling: the
-  // strip keeps translating, and hovering an item is exactly what speeds the
-  // strip up to HOVER_SPEED — so a single static mouse position can lose
-  // :hover to the item's own accelerated drift before the 180ms CSS
-  // transition has had continuous coverage long enough to finish, especially
-  // right after entering with little of the item's width still ahead of the
-  // cursor. Chasing its live boundingBox each tick keeps the pointer over it
-  // however fast it moves.
-  let scale = 1;
-  const deadline = Date.now() + 8000;
-  while (Date.now() < deadline) {
-    const liveBox = await mark.boundingBox();
-    if (!liveBox) break;
-    await page.mouse.move(liveBox.x + liveBox.width / 2, liveBox.y + liveBox.height / 2);
-    scale = await mark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a);
-    if (scale > 1.2) break;
-    await page.waitForTimeout(30);
-  }
-  expect(scale).toBeGreaterThan(1.2);
+  // Park the imperative track before checking :hover. Chasing the centre of a
+  // moving mark with repeated mouse.move calls is itself racy: hover speeds up
+  // that same track, and compositor hit testing can move the target between a
+  // bounding-box read and the synthetic pointer event. Reduced motion is a
+  // real supported state and gives the CSS interaction a stable hit target.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(track).toHaveAttribute("style", /transform: translate3d\(0px?, 0px?, 0px?\)/);
+  const mark = marquee.locator(".logo-loop-item").first();
+  await mark.hover();
+  await expect.poll(() => mark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a)).toBeGreaterThan(1.2);
   await expect(mark).toHaveCSS("filter", "none");
-  await page.waitForTimeout(150);
-  const fastStart = await readX();
-  await page.waitForTimeout(400);
-  const fastDistance = Math.abs((await readX()) - fastStart);
+
   // Headless WebKit only delivers an isolated rAF when driven by automation,
   // so validate the interactive CSS there and measure loop velocity in the
   // two engines whose test clocks continuously advance animation frames.
-  if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+  if (browserName !== "webkit") {
+    // Resume ordinary motion while the pointer remains inside the strip. The
+    // velocity deliberately eases up from zero, so wait for measured movement
+    // to reach the accelerated range before starting the comparison window.
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    let previousX = await readX();
+    await expect.poll(async () => {
+      await page.waitForTimeout(120);
+      const currentX = await readX();
+      const distance = Math.abs(currentX - previousX);
+      previousX = currentX;
+      return distance;
+    }).toBeGreaterThan(9);
+    const fastStart = await readX();
+    await page.waitForTimeout(400);
+    const fastDistance = Math.abs((await readX()) - fastStart);
+    expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+  }
 });
 
 test("a press on a marquee logo accelerates it and grows the mark, then releases on pointerup", async ({ page, browserName }) => {
