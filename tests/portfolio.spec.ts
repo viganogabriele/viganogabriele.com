@@ -642,6 +642,31 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
   const xml = await sitemap.text();
   expect(xml).toContain("https://www.viganogabriele.com/notes/vpn-off-by-default");
   expect(xml).not.toContain("motion-performance");
+
+  // Metadata-only shells still force crawlers and no-JS readers to infer the
+  // page from an empty #root. The build output should carry the same semantic
+  // content the React route renders, sourced from the same data modules.
+  const homeHtml = await (await request.get("/")).text();
+  expect(homeHtml).toContain('<main data-static-route="home"');
+  expect(homeHtml).toContain("I keep 16TB of storage alive for six people");
+  expect(homeHtml).toContain('href="/notes/vpn-off-by-default"');
+  expect(homeHtml).toContain("Why my home VPN is off by default");
+
+  const noteHtml = await (await request.get("/notes/vpn-off-by-default")).text();
+  expect(noteHtml).toContain('<main data-static-route="note"');
+  expect(noteHtml).toContain("A tunnel left running is an open door");
+  expect(noteHtml).toContain('href="/"');
+
+  const feed = await request.get("/feed.xml");
+  expect(feed.status()).toBe(200);
+  const atom = await feed.text();
+  expect(atom).toContain('<feed xmlns="http://www.w3.org/2005/Atom">');
+  expect(atom).toContain('<link href="https://www.viganogabriele.com/feed.xml" rel="self" type="application/atom+xml"/>');
+  expect(atom.match(/<entry>/g)).toHaveLength(4);
+
+  const legacy = await request.get("/notes/homelab-security-first", { maxRedirects: 0 });
+  expect(legacy.status()).toBe(308);
+  expect(legacy.headers().location).toBe("/notes/vpn-off-by-default");
 });
 
 test("SYS mode starts clean, then activates only after an explicit control interaction", async ({ page }) => {

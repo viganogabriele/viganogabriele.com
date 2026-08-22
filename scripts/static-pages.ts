@@ -3,8 +3,15 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
-import { notes } from "../src/data/notes.ts";
+import { activities } from "../src/data/activities.ts";
+import { certifications } from "../src/data/certifications.ts";
+import { legacySlugRedirects, notes, type NoteItem } from "../src/data/notes.ts";
+import { profile } from "../src/data/profile.ts";
+import { projects } from "../src/data/projects.ts";
+import { aboutSection, certificationsSection, expertiseSection, footerCopy, heroCopy, journeySection, notesSection, projectsSection, techStackSection } from "../src/data/sections.ts";
 import { cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site.ts";
+import { toolGroups } from "../src/data/techStack.ts";
+import { timelineItems } from "../src/data/timeline.ts";
 
 const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^>]*>\s*|<meta\s+(?:name|property)="(?:description|robots|twitter:[^"]+|og:[^"]+|article:[^"]+)"[^>]*>\s*|<script\s+type="application\/ld\+json"\s+data-jsonld="[^"]+">[\s\S]*?<\/script>\s*/g;
 
@@ -25,6 +32,47 @@ function meta(attribute: "name" | "property", name: string, content: string) {
 
 function jsonLd(id: string, data: Record<string, unknown>) {
   return `<script type="application/ld+json" data-jsonld="${id}">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
+}
+
+function lines(value: string) {
+  return escapeHtml(value).replace(/\n/g, "<br>");
+}
+
+function staticContent(shell: string, content: string) {
+  const root = '<div id="root"></div>';
+  if (!shell.includes(root)) throw new Error("static-pages: empty root marker not found; update staticContent.");
+  return shell.replace(root, `<div id="root">${content}</div>`);
+}
+
+function staticSection(id: string, eyebrow: string, title: string, content: string) {
+  return `<section id="${id}"><p class="static-route__eyebrow">${escapeHtml(eyebrow)}</p><h2>${lines(title)}</h2>${content}</section>`;
+}
+
+/**
+ * Semantic no-JavaScript output for the content React progressively enhances.
+ * All editorial text comes from the same data modules as the interactive page;
+ * this is visible fallback content, not a hidden keyword-only duplicate.
+ */
+function homeStaticContent() {
+  const profileFacts = `<dl><div><dt>Current role</dt><dd>${escapeHtml(profile.currentRole)}</dd></div><div><dt>Studying</dt><dd>${escapeHtml(profile.education)}</dd></div></dl>`;
+  const about = [
+    `<p>${escapeHtml(aboutSection.body)}</p>`,
+    `<p><strong>${escapeHtml(aboutSection.curiosity.label)}:</strong> ${escapeHtml(aboutSection.curiosity.text)}</p>`,
+    `<ul>${aboutSection.stats.map((stat) => `<li>${stat.link ? `<a href="${escapeHtml(stat.link)}">${escapeHtml(stat.value)} — ${escapeHtml(stat.label)}</a>` : `${escapeHtml(stat.value)} — ${escapeHtml(stat.label)}`}</li>`).join("")}</ul>`,
+    `<ul>${aboutSection.principles.map((principle) => `<li>${escapeHtml(principle)}</li>`).join("")}</ul>`,
+  ].join("");
+  const expertise = `<div class="static-route__grid">${activities.map((activity) => `<article><p class="static-route__eyebrow">${escapeHtml(activity.index)} / ${escapeHtml(activity.role)}</p><h3>${escapeHtml(activity.title)}</h3><p>${escapeHtml(activity.description)}</p><p>${activity.tags.map(escapeHtml).join(" · ")}</p></article>`).join("")}</div>`;
+  const work = `<div class="static-route__grid">${projects.map((project) => `<article><p class="static-route__eyebrow">${escapeHtml(project.index)} / ${escapeHtml(project.eyebrow)}</p><h3>${lines(project.title)}</h3><p>${escapeHtml(project.description)}</p><p><strong>${escapeHtml(project.role)}</strong></p><p>${escapeHtml(project.contribution)}</p><p>${escapeHtml(project.outcome)}</p>${project.link ? `<a href="${escapeHtml(project.link)}">View project</a>` : ""}</article>`).join("")}</div>`;
+  const stack = `<div class="static-route__grid">${toolGroups.map((group) => `<article><h3>${escapeHtml(group.label)}</h3><p>${escapeHtml(group.description)}</p><ul>${group.tools.map((tool) => `<li>${escapeHtml(tool)}</li>`).join("")}</ul></article>`).join("")}</div>`;
+  const journey = `<ol>${timelineItems.map((item) => `<li><p class="static-route__eyebrow">${escapeHtml(item.year)}</p><h3>${escapeHtml(item.title)}</h3><p><strong>${escapeHtml(item.subtitle)}</strong></p><p>${escapeHtml(item.description)}</p></li>`).join("")}</ol>`;
+  const fieldNotes = `<div class="static-route__grid">${notes.map((note) => `<article><p class="static-route__eyebrow">${escapeHtml(note.date)} / ${escapeHtml(note.readingTime)}</p><h3><a href="/notes/${escapeHtml(note.slug)}">${escapeHtml(note.title)}</a></h3><p>${escapeHtml(note.preview)}</p><p>${note.tags.map(escapeHtml).join(" · ")}</p></article>`).join("")}</div>`;
+  const credentials = `<ul>${certifications.map((certification) => `<li><a href="${escapeHtml(certification.link)}">${escapeHtml(certification.title)} — ${escapeHtml(certification.issuer)}, ${escapeHtml(certification.year)}</a></li>`).join("")}</ul>`;
+
+  return `<main data-static-route="home" id="main-content" class="static-route"><header><p class="static-route__eyebrow">${escapeHtml(profile.location)}</p><h1>GABRIELE VIGANÒ</h1><p class="static-route__lead">${escapeHtml(heroCopy.summary)}</p>${profileFacts}<p><a href="mailto:${escapeHtml(profile.email)}">Get in touch</a> · <a href="/cv">View CV</a></p></header>${staticSection("about", aboutSection.header.index, aboutSection.header.title, about)}${staticSection("expertise", expertiseSection.index, expertiseSection.title, expertise)}${staticSection("projects", projectsSection.index, projectsSection.title, work)}${staticSection("stack", techStackSection.index, techStackSection.title, stack)}${staticSection("journey", journeySection.index, journeySection.title, journey)}${staticSection("notes", notesSection.index, notesSection.title, fieldNotes)}${staticSection("certifications", certificationsSection.index, certificationsSection.title, credentials)}<footer><h2>${escapeHtml(footerCopy.heading)}</h2><p><a href="mailto:${escapeHtml(profile.email)}">${escapeHtml(profile.email)}</a> · <a href="${escapeHtml(profile.github)}">GitHub</a> · <a href="${escapeHtml(profile.linkedIn)}">LinkedIn</a></p></footer></main>`;
+}
+
+function noteStaticContent(note: NoteItem) {
+  return `<main data-static-route="note" id="main-content" class="static-route static-route--note"><p><a href="/">Back to home</a></p><article><p class="static-route__eyebrow">${escapeHtml(note.date)} / ${escapeHtml(note.readingTime)}</p><p>${note.tags.map(escapeHtml).join(" · ")}</p><h1>${escapeHtml(note.title)}</h1>${note.body.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</article><footer><h2>${escapeHtml(footerCopy.heading)}</h2><p><a href="mailto:${escapeHtml(profile.email)}">${escapeHtml(profile.email)}</a></p></footer></main>`;
 }
 
 function headFor(metadata: PageMetadata, structuredData?: { id: string; data: Record<string, unknown> }) {
@@ -116,7 +164,27 @@ function sitemap() {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
 }
 
+function atomFeed() {
+  const updated = notes.reduce((latest, note) => note.datePublished > latest ? note.datePublished : latest, "1970-01-01");
+  const entries = notes.map((note) => {
+    const url = pageUrl(`/notes/${note.slug}`);
+    return `<entry><title>${escapeHtml(note.title)}</title><link href="${url}"/><id>${url}</id><published>${note.datePublished}T00:00:00Z</published><updated>${note.datePublished}T00:00:00Z</updated><summary>${escapeHtml(note.preview)}</summary></entry>`;
+  }).join("");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<feed xmlns="http://www.w3.org/2005/Atom"><title>${escapeHtml(site.name)} · Field Notes</title><subtitle>${escapeHtml(site.description)}</subtitle><link href="${pageUrl("/feed.xml")}" rel="self" type="application/atom+xml"/><link href="${pageUrl("/")}"/><id>${pageUrl("/")}#field-notes</id><updated>${updated}T00:00:00Z</updated><author><name>${escapeHtml(site.name)}</name></author>${entries}</feed>\n`;
+}
+
+async function validateLegacyRedirects() {
+  const config = JSON.parse(await readFile(resolve(process.cwd(), "vercel.json"), "utf8")) as { redirects?: Array<{ source?: string; destination?: string; permanent?: boolean }> };
+  for (const [legacy, canonical] of Object.entries(legacySlugRedirects)) {
+    const source = `/notes/${legacy}`;
+    const destination = `/notes/${canonical}`;
+    const valid = config.redirects?.some((redirect) => redirect.source === source && redirect.destination === destination && redirect.permanent === true);
+    if (!valid) throw new Error(`static-pages: vercel.json is missing the permanent redirect ${source} -> ${destination}.`);
+  }
+}
+
 async function generateStaticPages(outDir: string) {
+  await validateLegacyRedirects();
   const indexPath = resolve(outDir, "index.html");
   const index = await readFile(indexPath, "utf8");
   // Fail the build rather than silently shipping the preload everywhere if
@@ -124,7 +192,7 @@ async function generateStaticPages(outDir: string) {
   // preload, a Vite change to how it rewrites the asset URL).
   if (!heroPreloadPattern.test(index)) throw new Error("static-pages: hero image preload not found in the built shell; update heroPreloadPattern.");
   const otherShell = index.replace(heroPreloadPattern, "");
-  const home = withMetadata(index, homeMetadata, { id: "website-person", data: websitePersonJsonLd });
+  const home = withMetadata(staticContent(index, homeStaticContent()), homeMetadata, { id: "website-person", data: websitePersonJsonLd });
   await writeFile(indexPath, home);
   await writeFile(resolve(outDir, "cv.html"), withMetadata(otherShell, cvMetadata));
   await writeFile(resolve(outDir, "404.html"), withMetadata(otherShell, notFoundMetadata));
@@ -134,10 +202,11 @@ async function generateStaticPages(outDir: string) {
     await mkdir(directory, { recursive: true });
     await writeFile(
       resolve(directory, `${note.slug}.html`),
-      withMetadata(otherShell, noteMetadata(note), { id: `note-${note.slug}`, data: noteJsonLd(note) }),
+      withMetadata(staticContent(otherShell, noteStaticContent(note)), noteMetadata(note), { id: `note-${note.slug}`, data: noteJsonLd(note) }),
     );
   }));
   await writeFile(resolve(outDir, "sitemap.xml"), sitemap());
+  await writeFile(resolve(outDir, "feed.xml"), atomFeed());
 }
 
 /** Emits crawlable route shells while retaining the React SPA at runtime. */
@@ -151,6 +220,14 @@ export function staticPages(): Plugin {
       return () => {
         const routeStaticPage = (request: IncomingMessage, response: ServerResponse, next: (error?: unknown) => void) => {
           const pathname = new URL(request.url ?? "/", "http://preview.local").pathname;
+          const legacyMatch = pathname.match(/^\/notes\/([^/]+)\/?$/);
+          const legacyDestination = legacyMatch ? legacySlugRedirects[legacyMatch[1]] : undefined;
+          if (legacyDestination) {
+            response.statusCode = 308;
+            response.setHeader("Location", `/notes/${legacyDestination}`);
+            response.end();
+            return;
+          }
           if (pathname === "/cv" || pathname === "/cv/") {
             request.url = "/cv.html";
           } else if (pathname.startsWith("/notes/") && !pathname.endsWith(".html")) {
