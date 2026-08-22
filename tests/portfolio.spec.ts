@@ -225,18 +225,23 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".tool-carousel");
+  // The Suspense placeholder intentionally shares the layout class, but it is
+  // replaced when the lazy carousel resolves. Target the accessible region so
+  // Playwright waits for the interactive component instead of attaching to a
+  // placeholder that can disappear while scrollIntoViewIfNeeded is running.
+  const carousel = page.getByRole("region", { name: "Skill groups" });
+  await expect(carousel.locator("[data-carousel-card]")).toHaveCount(4);
   await carousel.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(800);
   await expect(carousel.getByRole("button", { name: /Bring Code & markup to the front/ })).toHaveAttribute("data-active", "true");
-  await page.getByRole("button", { name: "Show next skill group" }).click();
+  await carousel.getByRole("button", { name: "Show next skill group" }).click();
   await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
   const marquee = page.locator(".tool-marquee");
   await marquee.scrollIntoViewIfNeeded();
   const track = marquee.locator(".logo-loop > div");
-  const parkedTransform = await track.evaluate((element) => getComputedStyle(element).transform);
-  await page.waitForTimeout(500);
-  await expect(track).toHaveCSS("transform", parkedTransform);
+  // LogoLoop writes this only after its lazy chunk is mounted, measured and
+  // routed through the reduced-motion branch. It is both a readiness signal
+  // and direct evidence that no requestAnimationFrame driver was started.
+  await expect(track).toHaveAttribute("style", /transform: translate3d\(0px?, 0px?, 0px?\)/);
 });
 
 test("the toolkit logo loop uses legible large marks", async ({ page, browserName }) => {
