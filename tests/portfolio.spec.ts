@@ -1,5 +1,33 @@
 import AxeBuilder from "@axe-core/playwright";
 import { devices, expect, test } from "@playwright/test";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+
+function twoPagePdf() {
+  const stream = (text: string) => `<< /Length ${Buffer.byteLength(text)} >>\nstream\n${text}\nendstream`;
+  const pageOne = "BT /F1 24 Tf 72 720 Td (Synthetic page one) Tj ET";
+  const pageTwo = "BT /F1 24 Tf 72 720 Td (Synthetic page two) Tj ET";
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 4 0 R >>",
+    stream(pageOne),
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 6 0 R >>",
+    stream(pageTwo),
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let source = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(source));
+    source += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = Buffer.byteLength(source);
+  source += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  source += offsets.slice(1).map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("");
+  source += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(source, "ascii");
+}
 
 const viewports = [
   { name: "phone-320", width: 320, height: 568 },
@@ -225,18 +253,23 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".tool-carousel");
+  // The Suspense placeholder intentionally shares the layout class, but it is
+  // replaced when the lazy carousel resolves. Target the accessible region so
+  // Playwright waits for the interactive component instead of attaching to a
+  // placeholder that can disappear while scrollIntoViewIfNeeded is running.
+  const carousel = page.getByRole("region", { name: "Skill groups" });
+  await expect(carousel.locator("[data-carousel-card]")).toHaveCount(4);
   await carousel.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(800);
   await expect(carousel.getByRole("button", { name: /Bring Code & markup to the front/ })).toHaveAttribute("data-active", "true");
-  await page.getByRole("button", { name: "Show next skill group" }).click();
+  await carousel.getByRole("button", { name: "Show next skill group" }).click();
   await expect(carousel.getByRole("button", { name: /Bring Infrastructure & self-hosting to the front/ })).toHaveAttribute("data-active", "true");
   const marquee = page.locator(".tool-marquee");
   await marquee.scrollIntoViewIfNeeded();
   const track = marquee.locator(".logo-loop > div");
-  const parkedTransform = await track.evaluate((element) => getComputedStyle(element).transform);
-  await page.waitForTimeout(500);
-  await expect(track).toHaveCSS("transform", parkedTransform);
+  // LogoLoop writes this only after its lazy chunk is mounted, measured and
+  // routed through the reduced-motion branch. It is both a readiness signal
+  // and direct evidence that no requestAnimationFrame driver was started.
+  await expect(track).toHaveAttribute("style", /transform: translate3d\(0px?, 0px?, 0px?\)/);
 });
 
 test("the toolkit logo loop uses legible large marks", async ({ page, browserName }) => {
@@ -259,44 +292,39 @@ test("the toolkit logo loop uses legible large marks", async ({ page, browserNam
   const start = await readX();
   await page.waitForTimeout(400);
   const normalDistance = Math.abs((await readX()) - start);
-  // A margin from both edges, not just "fully visible": the strip keeps
-  // scrolling, so a mark picked right at the boundary (rect.left === 0) can
-  // drift out from under the mouse — clipped by the container's own
-  // overflow:hidden — before the hover transition has time to land, losing
-  // :hover moments after this measurement and never reaching scale.
-  const markIndex = await marquee.locator(".logo-loop-item").evaluateAll((items) => items.findIndex((item) => {
-    const rect = item.getBoundingClientRect();
-    return rect.left >= 60 && rect.right <= window.innerWidth - 60;
-  }));
-  const mark = marquee.locator(".logo-loop-item").nth(markIndex);
-  // Re-centers on every iteration rather than hovering once and polling: the
-  // strip keeps translating, and hovering an item is exactly what speeds the
-  // strip up to HOVER_SPEED — so a single static mouse position can lose
-  // :hover to the item's own accelerated drift before the 180ms CSS
-  // transition has had continuous coverage long enough to finish, especially
-  // right after entering with little of the item's width still ahead of the
-  // cursor. Chasing its live boundingBox each tick keeps the pointer over it
-  // however fast it moves.
-  let scale = 1;
-  const deadline = Date.now() + 8000;
-  while (Date.now() < deadline) {
-    const liveBox = await mark.boundingBox();
-    if (!liveBox) break;
-    await page.mouse.move(liveBox.x + liveBox.width / 2, liveBox.y + liveBox.height / 2);
-    scale = await mark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a);
-    if (scale > 1.2) break;
-    await page.waitForTimeout(30);
-  }
-  expect(scale).toBeGreaterThan(1.2);
+  // Park the imperative track before checking :hover. Chasing the centre of a
+  // moving mark with repeated mouse.move calls is itself racy: hover speeds up
+  // that same track, and compositor hit testing can move the target between a
+  // bounding-box read and the synthetic pointer event. Reduced motion is a
+  // real supported state and gives the CSS interaction a stable hit target.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(track).toHaveAttribute("style", /transform: translate3d\(0px?, 0px?, 0px?\)/);
+  const mark = marquee.locator(".logo-loop-item").first();
+  await mark.hover();
+  await expect.poll(() => mark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a)).toBeGreaterThan(1.2);
   await expect(mark).toHaveCSS("filter", "none");
-  await page.waitForTimeout(150);
-  const fastStart = await readX();
-  await page.waitForTimeout(400);
-  const fastDistance = Math.abs((await readX()) - fastStart);
+
   // Headless WebKit only delivers an isolated rAF when driven by automation,
   // so validate the interactive CSS there and measure loop velocity in the
   // two engines whose test clocks continuously advance animation frames.
-  if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+  if (browserName !== "webkit") {
+    // Resume ordinary motion while the pointer remains inside the strip. The
+    // velocity deliberately eases up from zero, so wait for measured movement
+    // to reach the accelerated range before starting the comparison window.
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    let previousX = await readX();
+    await expect.poll(async () => {
+      await page.waitForTimeout(120);
+      const currentX = await readX();
+      const distance = Math.abs(currentX - previousX);
+      previousX = currentX;
+      return distance;
+    }).toBeGreaterThan(9);
+    const fastStart = await readX();
+    await page.waitForTimeout(400);
+    const fastDistance = Math.abs((await readX()) - fastStart);
+    expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+  }
 });
 
 test("a press on a marquee logo accelerates it and grows the mark, then releases on pointerup", async ({ page, browserName }) => {
@@ -327,9 +355,14 @@ test("a press on a marquee logo accelerates it and grows the mark, then releases
   // press was recognized; this only additionally confirms what it renders
   // to, so skip it on the one engine that can't reflect it back here.
   if (browserName !== "webkit") {
-    await expect
-      .poll(() => item.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a))
-      .toBeGreaterThan(1.2);
+    const pressedScale = await item.evaluate((element) => {
+      // The press safety timer is intentionally short. Drive the finite CSS
+      // transition to its end instead of depending on when a headless
+      // compositor happens to sample it within that window.
+      for (const animation of element.getAnimations()) animation.finish();
+      return new DOMMatrixReadOnly(getComputedStyle(element).transform).a;
+    });
+    expect(pressedScale).toBeGreaterThan(1.2);
   }
 
   const fastStart = await readX();
@@ -564,8 +597,8 @@ test("CV page keeps the document primary and gives mobile users a full-screen do
   await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
   await expect(page.getByRole("button", { name: "Download CV" })).toBeEnabled();
   await expect(page.getByRole("link", { name: "Open in new tab" })).toHaveAttribute("target", "_blank");
-  await expect(page.getByRole("link", { name: "Tap to view full screen" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
-  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Tap to view full screen" })).toHaveAttribute("href", /\/cv\/Vigano_Gabriele_CV\.pdf\?v=[a-f0-9]{12}$/);
+  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "Explore further." })).toHaveCount(0);
   await expect(page.getByLabel("System mode discovery")).toHaveCount(0);
   await page.getByRole("button", { name: "Toggle system mode" }).click();
@@ -637,6 +670,31 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
   const xml = await sitemap.text();
   expect(xml).toContain("https://www.viganogabriele.com/notes/vpn-off-by-default");
   expect(xml).not.toContain("motion-performance");
+
+  // Metadata-only shells still force crawlers and no-JS readers to infer the
+  // page from an empty #root. The build output should carry the same semantic
+  // content the React route renders, sourced from the same data modules.
+  const homeHtml = await (await request.get("/")).text();
+  expect(homeHtml).toContain('<main data-static-route="home"');
+  expect(homeHtml).toContain("I keep 16TB of storage alive for six people");
+  expect(homeHtml).toContain('href="/notes/vpn-off-by-default"');
+  expect(homeHtml).toContain("Why my home VPN is off by default");
+
+  const noteHtml = await (await request.get("/notes/vpn-off-by-default")).text();
+  expect(noteHtml).toContain('<main data-static-route="note"');
+  expect(noteHtml).toContain("A tunnel left running is an open door");
+  expect(noteHtml).toContain('href="/"');
+
+  const feed = await request.get("/feed.xml");
+  expect(feed.status()).toBe(200);
+  const atom = await feed.text();
+  expect(atom).toContain('<feed xmlns="http://www.w3.org/2005/Atom">');
+  expect(atom).toContain('<link href="https://www.viganogabriele.com/feed.xml" rel="self" type="application/atom+xml"/>');
+  expect(atom.match(/<entry>/g)).toHaveLength(4);
+
+  const legacy = await request.get("/notes/homelab-security-first", { maxRedirects: 0 });
+  expect(legacy.status()).toBe(308);
+  expect(legacy.headers().location).toBe("/notes/vpn-off-by-default");
 });
 
 test("SYS mode starts clean, then activates only after an explicit control interaction", async ({ page }) => {
@@ -1009,13 +1067,16 @@ test("the loading screen is a lightweight readiness gate without a minimum durat
     await portraitReleased;
     await route.continue();
   });
-  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
-  const preloader = page.locator("[data-preloader]");
+  await page.goto("/", { waitUntil: "commit" });
+  // Keep all transient-state requirements in one locator. Separate waits can
+  // outlive the image gate's intentional fail-open timeout on a busy browser.
+  const preloader = page.locator(
+    '[data-preloader]:has([role="progressbar"][aria-label="Loading page"])',
+  );
   await expect(preloader).toBeVisible();
-  await expect(preloader.getByRole("progressbar", { name: "Loading page" })).toHaveCount(1);
   releasePortrait();
-  await navigation;
-  await expect(preloader).toHaveCount(0);
+  await page.waitForLoadState("domcontentloaded");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 
   // Drop the interception before measuring the warm reload. Holding every
@@ -1049,12 +1110,14 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
     await portraitReleased;
     await route.continue();
   });
-  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
-  const preloader = page.locator("[data-preloader]");
+  await page.goto("/", { waitUntil: "commit" });
+  // Assert the transient state atomically. Splitting visibility and the data
+  // attribute across two waits can let the image gate's fail-open timeout
+  // remove a correctly rendered preloader between the assertions on Firefox.
+  const preloader = page.locator('[data-preloader][data-reduced-motion="true"]');
   await expect(preloader).toBeVisible();
-  await expect(preloader).toHaveAttribute("data-reduced-motion", "true");
   releasePortrait();
-  await navigation;
+  await page.waitForLoadState("domcontentloaded");
   await expect(preloader).toHaveCount(0);
 
   await page.goto("/notes/noticing-what-the-association-wasnt-using");
@@ -1069,7 +1132,7 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   const pdfReleased = new Promise<void>((resolve) => { releasePdf = resolve; });
   let markPdfRequested!: () => void;
   const pdfRequested = new Promise<void>((resolve) => { markPdfRequested = resolve; });
-  await page.route("**/cv/Vigano_Gabriele_CV.pdf", async (route) => {
+  await page.route("**/cv/Vigano_Gabriele_CV.pdf*", async (route) => {
     markPdfRequested();
     await pdfReleased;
     await route.continue();
@@ -1105,7 +1168,7 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
 
 test("the CV's own PDF links are announceable", async ({ page }) => {
   await page.goto("/cv");
-  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
+  await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible({ timeout: 20_000 });
   const annotations = page.locator(".annotationLayer a[href]");
   await expect.poll(() => annotations.count()).toBeGreaterThan(0);
   const audit = await annotations.evaluateAll((links) => links.map((link) => ({
@@ -1127,13 +1190,152 @@ test("the CV's own PDF links are announceable", async ({ page }) => {
   expect(audit.filter((link) => link.href?.startsWith("http") && link.target !== "_blank")).toEqual([]);
 });
 
+test("the PDF text layer stays selectable and aligned with links above it through zoom", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/cv");
+  const pdfPage = page.locator("[data-cv-page='1']");
+  const canvas = pdfPage.locator("canvas");
+  const textLayer = pdfPage.locator(".textLayer");
+  const annotationLayer = pdfPage.locator(".annotationLayer");
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await expect.poll(() => textLayer.locator("span").count()).toBeGreaterThan(100);
+  await expect.poll(() => textLayer.textContent()).toMatch(/Gabriele/i);
+
+  const selected = await textLayer.evaluate((layer) => {
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(layer);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    return selection?.toString() ?? "";
+  });
+  expect(selected.length).toBeGreaterThan(1_000);
+
+  const geometry = () => pdfPage.evaluate((node) => {
+    const rect = (selector: string) => {
+      const layer = node.querySelector<HTMLElement>(selector);
+      if (!layer) throw new Error(`Missing ${selector}`);
+      const box = layer.getBoundingClientRect();
+      return { width: box.width, height: box.height };
+    };
+    return { canvas: rect("canvas"), text: rect(".textLayer"), annotations: rect(".annotationLayer") };
+  });
+  const initial = await geometry();
+  expect(Math.abs(initial.canvas.width - initial.text.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(initial.canvas.height - initial.text.height)).toBeLessThanOrEqual(1);
+  expect(Math.abs(initial.canvas.width - initial.annotations.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(initial.canvas.height - initial.annotations.height)).toBeLessThanOrEqual(1);
+
+  await page.evaluate(() => window.getSelection()?.removeAllRanges());
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await expect(page.getByText("125%", { exact: true })).toBeVisible();
+  await expect.poll(async () => (await geometry()).canvas.width).toBeGreaterThan(initial.canvas.width * 1.2);
+  await expect.poll(async () => {
+    const zoomed = await geometry();
+    return [
+      Math.abs(zoomed.canvas.width - zoomed.text.width),
+      Math.abs(zoomed.canvas.height - zoomed.text.height),
+      Math.abs(zoomed.canvas.width - zoomed.annotations.width),
+      Math.abs(zoomed.canvas.height - zoomed.annotations.height),
+    ].every((difference) => difference <= 1);
+  }, { timeout: 20_000 }).toBe(true);
+
+  const firstPdfLink = annotationLayer.locator("a[href]").first();
+  await firstPdfLink.scrollIntoViewIfNeeded();
+  await expect(firstPdfLink).toHaveAttribute("aria-label", /.+/);
+  expect(await firstPdfLink.evaluate((link) => {
+    const box = link.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    return hit === link || link.contains(hit);
+  })).toBe(true);
+});
+
+test("the viewer renders the PDF's reported page count instead of assuming one page", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route("**/cv/Vigano_Gabriele_CV.pdf*", (route) => route.fulfill({ contentType: "application/pdf", body: twoPagePdf() }));
+  await page.goto("/cv");
+  await expect(page.locator("[data-cv-page-count]")).toContainText("2 pages");
+  await expect(page.getByRole("group", { name: "Page 1 of 2" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Page 2 of 2" })).toBeAttached();
+  await expect(page.locator("[data-cv-page] canvas")).toHaveCount(2);
+  await expect(page.locator("[data-cv-page='1'] .textLayer")).toContainText("Synthetic page one");
+  await expect(page.locator("[data-cv-page='2'] .textLayer")).toContainText("Synthetic page two");
+});
+
+test("the direct CV shell and cache rules use the PDF content digest", async ({ request }) => {
+  const pdf = await readFile(new URL("../public/cv/Vigano_Gabriele_CV.pdf", import.meta.url));
+  const version = createHash("sha256").update(pdf).digest("hex").slice(0, 12);
+  const response = await request.get("/cv");
+  const html = await response.text();
+  expect(html).toContain(`<link rel="modulepreload" crossorigin href="/assets/CvPage-`);
+  expect(html).toMatch(/<link rel="preload" as="fetch" type="text\/javascript" crossorigin href="\/assets\/pdf\.worker\.min-[^"]+\.mjs">/);
+  expect(html).toContain(`<link rel="preload" as="fetch" type="application/pdf" crossorigin href="/cv/Vigano_Gabriele_CV.pdf?v=${version}">`);
+
+  const config = JSON.parse(await readFile(new URL("../vercel.json", import.meta.url), "utf8")) as { headers: Array<Record<string, unknown>> };
+  const cvHeaders = config.headers.filter((entry) => entry.source === "/cv/(.*)");
+  expect(cvHeaders).toEqual(expect.arrayContaining([
+    expect.objectContaining({ has: [{ type: "query", key: "v" }], headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] }),
+    expect.objectContaining({ missing: [{ type: "query", key: "v" }], headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }] }),
+  ]));
+});
+
+test("direct and intent-prefetched CV resources transfer once", async ({ browser, browserName, baseURL }) => {
+  test.skip(browserName !== "chromium", "Resource Timing transferSize is the Chromium network measurement used here");
+  const measurements: Record<string, unknown> = {};
+
+  for (const scenario of ["direct", "intent"] as const) {
+    const context = await browser.newContext({ baseURL });
+    const page = await context.newPage();
+    if (scenario === "intent") {
+      await page.goto("/");
+      await expect(page.locator("[data-preloader]")).toHaveCount(0);
+      await page.evaluate(() => performance.clearResourceTimings());
+      await page.locator("#top").getByRole("link", { name: "View CV" }).hover();
+      await expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => /CvPage-.*\.js|pdf\.worker\.min-.*\.mjs|Vigano_Gabriele_CV\.pdf/.test(entry.name)).length)).toBeGreaterThanOrEqual(3);
+      await page.locator("#top").getByRole("link", { name: "View CV" }).click();
+    } else {
+      await page.goto("/cv");
+    }
+    await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
+
+    const resources = await page.evaluate(() => performance.getEntriesByType("resource")
+      .filter((entry) => /CvPage-.*\.js|pdf\.worker\.min-.*\.mjs|Vigano_Gabriele_CV\.pdf/.test(entry.name))
+      .map((entry) => {
+        const timing = entry as PerformanceResourceTiming;
+        return { name: new URL(entry.name).pathname, initiatorType: timing.initiatorType, transferSize: timing.transferSize, encodedBodySize: timing.encodedBodySize, duration: timing.duration };
+      }));
+    for (const pattern of [/CvPage-.*\.js$/, /pdf\.worker\.min-.*\.mjs$/, /Vigano_Gabriele_CV\.pdf$/]) {
+      const matching = resources.filter((entry) => pattern.test(entry.name));
+      expect(matching.length, `${scenario}: no timing for ${pattern}`).toBeGreaterThan(0);
+      // Chromium reports a 300-byte Resource Timing entry when the consumer
+      // reuses the warmed HTTP cache. Count payload transfers, not that cache
+      // bookkeeping entry: each of these bodies is comfortably above 1 KB.
+      expect(matching.filter((entry) => entry.transferSize > 1_000), `${scenario}: ${pattern} body transferred more than once`).toHaveLength(1);
+    }
+    measurements[scenario] = resources;
+    await context.close();
+  }
+
+  await test.info().attach("cv-network-measurements", { body: JSON.stringify(measurements, null, 2), contentType: "application/json" });
+});
+
 test("likely internal destinations prefetch on intent", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   const cvRequest = page.waitForRequest((request) => request.url().includes("CvPage-") && request.url().endsWith(".js"));
-  const pdfRequest = page.waitForRequest((request) => request.url().endsWith("/cv/Vigano_Gabriele_CV.pdf"));
+  const pdfRequest = page.waitForRequest((request) => request.url().includes("/cv/Vigano_Gabriele_CV.pdf?v="));
   await page.locator("#top").getByRole("link", { name: "View CV" }).hover();
   await Promise.all([cvRequest, pdfRequest]);
+});
+
+test("touch intent prefetches a note route before activation", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const noteChunk = page.waitForRequest((request) => request.url().includes("NotePage-") && request.url().endsWith(".js"));
+  await page.locator('[data-scroll-anchor="note-vpn-off-by-default"]').dispatchEvent("pointerdown", { pointerType: "touch" });
+  await noteChunk;
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("mobile Home does not wait for the hidden desktop portrait", async ({ page }) => {

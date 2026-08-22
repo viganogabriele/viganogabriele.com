@@ -30,6 +30,19 @@ scripts/         static-page and visual-asset generation
 tests/           end-to-end and accessibility coverage
 ```
 
+## Local verification
+
+Use Node.js 22 or later and install the exact dependency graph from the committed lockfile:
+
+```sh
+npm ci
+npm run lint
+npm run build
+npm run test:e2e -- --project=chromium
+```
+
+For full Chromium, Firefox and WebKit coverage on hosts where native WebKit is unavailable, run `npm run test:e2e:docker`. The Docker command performs its own clean lockfile install before running Playwright.
+
 ## Not open source
 
 This repository is public so the work can be inspected—not so it can be copied.

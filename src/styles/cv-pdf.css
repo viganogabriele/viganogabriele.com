@@ -1,0 +1,35 @@
+/* The official pdf.js text and annotation layers both use the Page wrapper's
+   --scale-factor. Keep their stacking explicit: selectable text sits above the
+   canvas, while real PDF annotations remain the top interactive surface. */
+.cv-pdf-page {
+  --highlight-bg-color: rgb(120 169 255 / 32%);
+  --highlight-selected-bg-color: rgb(166 139 255 / 42%);
+  background: white;
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 22%);
+}
+
+.cv-pdf-page .textLayer {
+  z-index: 2;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.cv-pdf-page .textLayer :is(span, br) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.cv-pdf-page .textLayer ::selection {
+  background: rgb(120 169 255 / 38%);
+  color: transparent;
+}
+
+.cv-pdf-page .annotationLayer {
+  z-index: 3;
+}
+
+.cv-pdf-page .annotationLayer .linkAnnotation > a:is(:hover, :focus-visible) {
+  background: rgb(120 169 255 / 18%);
+  box-shadow: 0 0 0 1px rgb(120 169 255 / 68%);
+  opacity: 1;
+}
