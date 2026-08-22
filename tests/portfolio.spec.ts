@@ -1034,13 +1034,16 @@ test("the loading screen is a lightweight readiness gate without a minimum durat
     await portraitReleased;
     await route.continue();
   });
-  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
-  const preloader = page.locator("[data-preloader]");
+  await page.goto("/", { waitUntil: "commit" });
+  // Keep all transient-state requirements in one locator. Separate waits can
+  // outlive the image gate's intentional fail-open timeout on a busy browser.
+  const preloader = page.locator(
+    '[data-preloader]:has([role="progressbar"][aria-label="Loading page"])',
+  );
   await expect(preloader).toBeVisible();
-  await expect(preloader.getByRole("progressbar", { name: "Loading page" })).toHaveCount(1);
   releasePortrait();
-  await navigation;
-  await expect(preloader).toHaveCount(0);
+  await page.waitForLoadState("domcontentloaded");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 
   // Drop the interception before measuring the warm reload. Holding every
@@ -1074,12 +1077,14 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
     await portraitReleased;
     await route.continue();
   });
-  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
-  const preloader = page.locator("[data-preloader]");
+  await page.goto("/", { waitUntil: "commit" });
+  // Assert the transient state atomically. Splitting visibility and the data
+  // attribute across two waits can let the image gate's fail-open timeout
+  // remove a correctly rendered preloader between the assertions on Firefox.
+  const preloader = page.locator('[data-preloader][data-reduced-motion="true"]');
   await expect(preloader).toBeVisible();
-  await expect(preloader).toHaveAttribute("data-reduced-motion", "true");
   releasePortrait();
-  await navigation;
+  await page.waitForLoadState("domcontentloaded");
   await expect(preloader).toHaveCount(0);
 
   await page.goto("/notes/noticing-what-the-association-wasnt-using");
