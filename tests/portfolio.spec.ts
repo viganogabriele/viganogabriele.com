@@ -327,9 +327,14 @@ test("a press on a marquee logo accelerates it and grows the mark, then releases
   // press was recognized; this only additionally confirms what it renders
   // to, so skip it on the one engine that can't reflect it back here.
   if (browserName !== "webkit") {
-    await expect
-      .poll(() => item.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a))
-      .toBeGreaterThan(1.2);
+    const pressedScale = await item.evaluate((element) => {
+      // The press safety timer is intentionally short. Drive the finite CSS
+      // transition to its end instead of depending on when a headless
+      // compositor happens to sample it within that window.
+      for (const animation of element.getAnimations()) animation.finish();
+      return new DOMMatrixReadOnly(getComputedStyle(element).transform).a;
+    });
+    expect(pressedScale).toBeGreaterThan(1.2);
   }
 
   const fastStart = await readX();
