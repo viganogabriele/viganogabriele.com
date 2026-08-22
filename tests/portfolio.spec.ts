@@ -1166,6 +1166,16 @@ test("likely internal destinations prefetch on intent", async ({ page }) => {
   await Promise.all([cvRequest, pdfRequest]);
 });
 
+test("touch intent prefetches a note route before activation", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const noteChunk = page.waitForRequest((request) => request.url().includes("NotePage-") && request.url().endsWith(".js"));
+  await page.locator('[data-scroll-anchor="note-vpn-off-by-default"]').dispatchEvent("pointerdown", { pointerType: "touch" });
+  await noteChunk;
+  await expect(page).toHaveURL(/\/$/);
+});
+
 test("mobile Home does not wait for the hidden desktop portrait", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/*gabriele-photo*", (route) => route.abort());

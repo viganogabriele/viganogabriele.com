@@ -28,9 +28,11 @@ function useRoutePrefetching() {
       prefetchRoute(anchor.pathname);
     };
     document.addEventListener("pointerover", prefetch, { passive: true });
+    document.addEventListener("pointerdown", prefetch, { passive: true });
     document.addEventListener("focusin", prefetch);
     return () => {
       document.removeEventListener("pointerover", prefetch);
+      document.removeEventListener("pointerdown", prefetch);
       document.removeEventListener("focusin", prefetch);
     };
   }, []);
