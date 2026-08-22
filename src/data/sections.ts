@@ -75,7 +75,7 @@ export const heroCopy = {
 export const cvPageCopy = {
   eyebrow: "Document / CV",
   title: "Curriculum\nVitae.",
-  summary: "One page, because a CV has to be one page. The detail it had to cut is on the rest of this site.",
+  summary: "The concise version. The detail it had to cut is on the rest of this site.",
 };
 
 export const footerCopy = {
