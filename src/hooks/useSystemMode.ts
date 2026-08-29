@@ -53,7 +53,6 @@ export function useSystemMode() {
   const [webkitSafeMode] = useState(usesAppleWebKit);
   const [laserEnabled] = useState(() => !isDesktopSafari());
   const hasActivatedRef = useRef(false);
-  const domIsVioletRef = useRef(false);
 
   useEffect(() => {
     if (!webkitSafeMode) return;
@@ -69,21 +68,19 @@ export function useSystemMode() {
       // overlay and HUD blue while the rest of the transition had already
       // started, creating a visible second phase after the sweep.
       document.documentElement.setAttribute("data-system-mode", "on");
-      domIsVioletRef.current = true;
       return;
     }
 
     // Deactivation — no laser or first mount: snap immediately.
     if (!laserEnabled || !hasActivatedRef.current) {
       document.documentElement.removeAttribute("data-system-mode");
-      domIsVioletRef.current = false;
       return;
     }
 
-    if (domIsVioletRef.current) {
-      // Page is actually violet: keep it violet until the beam has cleared.
-      document.documentElement.setAttribute("data-system-mode", "off");
-      domIsVioletRef.current = false;
+    if (document.documentElement.getAttribute("data-system-mode") === "off") {
+      // `toggle()` owns the synchronous on -> off transition so the accent
+      // changes in the same frame as the exit laser. This effect owns only
+      // the delayed removal after the beam has cleared.
       const timer = setTimeout(() => {
         if (!activeRef.current) {
           document.documentElement.removeAttribute("data-system-mode");
@@ -92,8 +89,7 @@ export function useSystemMode() {
       return () => clearTimeout(timer);
     }
 
-    // Rapid deactivation before the activation timer fired — page was never
-    // violet, so there is nothing to keep or animate away.
+    // No violet exit state exists, so there is nothing to hold.
     document.documentElement.removeAttribute("data-system-mode");
   }, [active, laserEnabled]);
 
@@ -106,13 +102,15 @@ export function useSystemMode() {
     // post-render effects, so the laser and all SYS UI share one transition.
     if (next) {
       hasActivatedRef.current = true;
-      domIsVioletRef.current = true;
       document.documentElement.setAttribute("data-system-mode", "on");
     } else {
-      // The SYS overlay leaves immediately, so restore the shared accent in
-      // the same frame rather than leaving counters violet after it is gone.
-      domIsVioletRef.current = false;
-      document.documentElement.removeAttribute("data-system-mode");
+      // Keep the violet tokens in their explicit exit state while the laser
+      // clears. The inactive effect removes the attribute after 460 ms.
+      if (laserEnabled && hasActivatedRef.current) {
+        document.documentElement.setAttribute("data-system-mode", "off");
+      } else {
+        document.documentElement.removeAttribute("data-system-mode");
+      }
     }
     setTransitionId((id) => id + 1);
 
@@ -126,7 +124,7 @@ export function useSystemMode() {
 
     setActive(next);
     window.dispatchEvent(new CustomEvent<SystemToggleDetail>("sys:toggle", { detail: { active: next } }));
-  }, []);
+  }, [laserEnabled]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {

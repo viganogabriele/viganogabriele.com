@@ -271,6 +271,7 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
 
     const sample = async () => {
       const token = ++build;
+      const preserveSettledField = activeNow && !gathering && !releasing && particles.length > 0;
       // Keep the real text painted while an inactive canvas is sampled. During
       // active resizes the existing text/canvas cross-fade state is preserved,
       // avoiding a one-frame flash of solid type.
@@ -395,7 +396,22 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
           };
         });
       recolor();
-      setActiveState(activeNow);
+      if (preserveSettledField) {
+        // A geometry change should move an already assembled field to its new
+        // targets, not replay the activation scatter. Initial activation and
+        // resizes that interrupt an in-flight gather still use the ordinary
+        // transition path above.
+        gathering = false;
+        releasing = false;
+        for (const particle of particles) {
+          particle.x = particle.toX;
+          particle.y = particle.toY;
+        }
+        host.classList.add("hero-wordmark--particles");
+        run();
+      } else {
+        setActiveState(activeNow);
+      }
     };
 
     const queueSample = () => {

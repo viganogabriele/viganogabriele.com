@@ -1,6 +1,25 @@
 import AxeBuilder from "@axe-core/playwright";
 import { devices, expect, test } from "@playwright/test";
 
+function pdfWithMissingFirstPage() {
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+  ];
+  let pdf = "%PDF-1.7\n";
+  const offsets = [0];
+  for (const [index, object] of objects.entries()) {
+    offsets[index + 1] = Buffer.byteLength(pdf);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  }
+  const xrefOffset = Buffer.byteLength(pdf);
+  pdf += "xref\n0 4\n0000000000 65535 f \n";
+  pdf += offsets.slice(1).map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("");
+  pdf += "0000000000 00000 f \n";
+  pdf += `trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(pdf);
+}
+
 const viewports = [
   { name: "phone-320", width: 320, height: 568 },
   { name: "iphone-se", width: 375, height: 667 },
@@ -453,14 +472,20 @@ test("a phone never downloads the portrait it cannot show", async ({ page }) => 
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const portrait = page.locator("[data-hero-portrait]");
+  const systemPortrait = page.locator('[data-hero-portrait-layer="system"] img');
   await expect(page.locator(".hero-visual-frame")).toBeHidden();
   expect(await portrait.evaluate((image: HTMLImageElement) => image.currentSrc)).toBe("");
+  await expect(portrait).not.toHaveAttribute("src", /.+/);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(systemPortrait).not.toHaveAttribute("src", /.+/);
   expect(portraitRequests).toHaveLength(0);
 
   // Crossing the breakpoint re-runs source selection, so the desktop hero is
   // still measured on a real photograph rather than an empty frame.
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.locator(".hero-visual-frame")).toBeVisible();
+  await expect(portrait).toHaveAttribute("src", /gabriele-photo-[^/]+\.jpg$/);
+  await expect(systemPortrait).toHaveAttribute("src", /gabriele-photo-sys-[^/]+\.jpg$/);
   await expect.poll(() => portrait.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
   expect(portraitRequests.length).toBeGreaterThan(0);
 });
@@ -743,6 +768,54 @@ test("SYS cross-fades the wordmark in both directions without dropping the canva
   await expect(wordmark).not.toHaveClass(/hero-wordmark--particles/);
   await expect(wordmark.locator("canvas")).toBeAttached();
   await expect.poll(() => wordmark.locator("[data-particle-line]").first().evaluate((node) => getComputedStyle(node).color)).not.toBe("rgba(0, 0, 0, 0)");
+});
+
+test("SYS keeps the violet accent through the exit sweep", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const toggle = page.getByRole("button", { name: "Toggle system mode" });
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "off");
+  await page.waitForTimeout(300);
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "off");
+  await expect(page.locator("html")).not.toHaveAttribute("data-system-mode", /.+/, { timeout: 1_000 });
+});
+
+test("resizing a settled SYS wordmark does not replay its gather", async ({ page }) => {
+  await page.addInitScript(() => {
+    const descriptor = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, "globalAlpha");
+    if (!descriptor?.get || !descriptor.set) return;
+    const samples: number[] = [];
+    (window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples = samples;
+    Object.defineProperty(CanvasRenderingContext2D.prototype, "globalAlpha", {
+      configurable: descriptor.configurable,
+      enumerable: descriptor.enumerable,
+      get() { return descriptor.get?.call(this); },
+      set(value: number) {
+        if (this.canvas.isConnected && this.canvas.classList.contains("hero-particle-canvas")) samples.push(value);
+        descriptor.set?.call(this, value);
+      },
+    });
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(page.locator(".hero-wordmark")).toHaveClass(/hero-wordmark--particles/);
+  await page.waitForTimeout(900);
+  const canvas = page.locator(".hero-particle-canvas");
+  const widthBefore = await canvas.getAttribute("width");
+  await page.evaluate(() => { ((window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples ?? []).length = 0; });
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await expect.poll(() => canvas.getAttribute("width")).not.toBe(widthBefore);
+  await expect.poll(() => page.evaluate(() => (window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples?.length ?? 0)).toBeGreaterThan(0);
+  const minimumAlpha = await page.evaluate(() => Math.min(...((window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples ?? [])));
+  expect(minimumAlpha).toBe(1);
 });
 
 test("hero keeps the photograph visible until the SYS portrait is ready", async ({ page }) => {
@@ -1041,8 +1114,14 @@ test("skip link is revealed only for keyboard focus", async ({ page }) => {
   await expect.poll(() => skipLink.evaluate((node) => Number.parseFloat(getComputedStyle(node).top))).toBeGreaterThanOrEqual(0);
 });
 
-test("preloader remains static with reduced motion and secondary routes dismiss it as soon as ready", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
+test("preloader remains static with reduced motion and secondary routes dismiss it as soon as ready", async ({ browser, baseURL }) => {
+  const context = await browser.newContext({
+    baseURL,
+    colorScheme: "dark",
+    reducedMotion: "reduce",
+    serviceWorkers: "block",
+  });
+  const page = await context.newPage();
   let releasePortrait!: () => void;
   const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
   await page.route("**/*gabriele-photo*", async (route) => {
@@ -1062,6 +1141,7 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.goto("/does-not-exist");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await context.close();
 });
 
 test("CV is readable before the PDF is, and the viewer says it is still working", async ({ page }) => {
@@ -1101,6 +1181,27 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   releasePdf();
   await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
   expect(await viewportHeight()).toBe(heightBefore);
+});
+
+test("a PDF whose document loads but whose first page is missing shows the recovery UI", async ({ page }) => {
+  const partialPdf = pdfWithMissingFirstPage();
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const loadingTask = getDocument({ data: new Uint8Array(partialPdf), disableWorker: true });
+  const document = await loadingTask.promise;
+  expect(document.numPages).toBe(1);
+  await expect(document.getPage(1)).rejects.toThrow(/page dictionary/i);
+  await document.destroy();
+
+  await page.route("**/cv/Vigano_Gabriele_CV.pdf", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/pdf",
+    body: partialPdf,
+  }));
+  await page.goto("/cv");
+
+  await expect(page.getByText("The document could not load in this viewer.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open with your browser’s PDF viewer" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
+  await expect(page.getByText(/Invalid PDF|Failed to load PDF/i)).toHaveCount(0);
 });
 
 test("the CV's own PDF links are announceable", async ({ page }) => {
@@ -1169,6 +1270,24 @@ test("fine-pointer cursor works at compact desktop width and is absent on touch"
   await target.dispatchEvent("mouseover");
   await expect(page.locator("[data-custom-cursor]")).toHaveAttribute("data-visible", "true");
   await expect(page.locator("[data-custom-cursor]")).toHaveAttribute("data-active", "true");
+});
+
+test("revoking pointer effects clears the last border glow position", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperties(navigator, {
+      deviceMemory: { configurable: true, get: () => 8 },
+      hardwareConcurrency: { configurable: true, get: () => 8 },
+    });
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const glow = page.locator(".hero-visual-frame .border-glow");
+  await glow.hover({ position: { x: 2, y: 2 } });
+  await expect.poll(() => glow.evaluate((node) => Number(node.style.getPropertyValue("--bg-edge")))).toBeGreaterThan(0.5);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(() => glow.evaluate((node) => Number(node.style.getPropertyValue("--bg-edge")))).toBe(0);
 });
 
 // Regression: Brave with "Desktop site" and in-app webviews (Telegram) expose
