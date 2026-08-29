@@ -39,7 +39,7 @@ export const timelineItems: TimelineItem[] = [
     year: "07/2022 – 09/2024",
     title: "Private tutoring, Modena",
     subtitle: "C & computer fundamentals",
-    description: "Three students, while I was in secondary school myself. All three passed. Explaining how a computer goes together was the easy part, because I'd been building them for years.",
+    description: "Three students, while I was in secondary school myself. All three passed. Years of building computers made explaining how they fit together the easy part.",
     icon: GraduationCap,
   },
 ];

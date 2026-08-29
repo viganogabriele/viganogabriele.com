@@ -222,6 +222,143 @@ test("certification rows put the icon beside the title on mobile, not above it",
   expect(titleBox!.x).toBeGreaterThan(iconBox!.x + iconBox!.width);
 });
 
+test.describe("accepted P3 UI behavior", () => {
+  test("P3-02 coordinates project and route exits without leaving outgoing content interactive", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+    await page.evaluate(() => {
+      const record = () => {
+        const details = Array.from(document.querySelectorAll<HTMLElement>("[data-project-detail], [data-project-exiting]"));
+        if (details.length > 1 && details.some((detail) => getComputedStyle(detail).pointerEvents === "none")) {
+          document.documentElement.dataset.projectExitObserved = "true";
+        }
+      };
+      new MutationObserver(record).observe(document.querySelector("#projects")!, { childList: true, subtree: true, attributes: true, attributeFilter: ["style"] });
+    });
+    await page.getByRole("button", { name: "Show next project" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-project-exit-observed", "true");
+    await expect(page.locator("[data-project-detail]")).toHaveCount(1);
+    await expect(page.locator("[data-project-detail]")).toContainText("Interactive Portfolio");
+
+    await page.evaluate(() => {
+      const record = () => {
+        const transitions = Array.from(document.querySelectorAll<HTMLElement>("[data-route-transition]"));
+        if (transitions.length > 1 && transitions.some((transition) => transition.inert && transition.getAttribute("aria-hidden") === "true")) {
+          document.documentElement.dataset.routeExitObserved = "true";
+        }
+      };
+      new MutationObserver(record).observe(document.querySelector("[data-route-content]")!, { childList: true, subtree: true, attributes: true, attributeFilter: ["inert", "aria-hidden"] });
+    });
+    await page.locator("#notes a").first().click();
+    await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-route-exit-observed", "true");
+  });
+
+  test("P3-03 keeps keyboard carousel selection instant while pointer selection stays tuned", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    const carousel = page.getByRole("region", { name: "Selected projects" });
+    await carousel.scrollIntoViewIfNeeded();
+
+    await carousel.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    const focusedCard = carousel.locator("[data-carousel-card]").nth(1);
+    await expect(focusedCard).toBeFocused();
+    await expect(focusedCard).toHaveAttribute("data-active", "true");
+    const keyboardTransform = await focusedCard.evaluate((card) => card.style.transform);
+    await page.waitForTimeout(80);
+    expect(await focusedCard.evaluate((card) => card.style.transform)).toBe(keyboardTransform);
+
+    const next = carousel.getByRole("button", { name: "Show next project" });
+    await next.click();
+    const pointerStart = await focusedCard.evaluate((card) => card.style.transform);
+    await page.waitForTimeout(70);
+    expect(await focusedCard.evaluate((card) => card.style.transform)).not.toBe(pointerStart);
+    await page.waitForTimeout(380);
+    const settled = await focusedCard.evaluate((card) => card.style.transform);
+    await page.waitForTimeout(60);
+    expect(await focusedCard.evaluate((card) => card.style.transform)).toBe(settled);
+  });
+
+  test("P3-04 certification emphasis uses transform without changing padding", async ({ page }) => {
+    await page.goto("/");
+    const row = page.locator(".cert-row").first();
+    await row.scrollIntoViewIfNeeded();
+    const before = await row.evaluate((element) => ({ padding: getComputedStyle(element).paddingLeft, transform: getComputedStyle(element).transform }));
+    await row.hover();
+    await expect.poll(() => row.evaluate((element) => getComputedStyle(element).transform)).not.toBe(before.transform);
+    expect(await row.evaluate((element) => getComputedStyle(element).paddingLeft)).toBe(before.padding);
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect(row).toHaveCSS("transform", "none");
+  });
+
+  test("P3-05 clipboard rejection gives visible and announced feedback", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => {
+      Object.defineProperty(navigator.clipboard, "writeText", { configurable: true, value: () => Promise.reject(new Error("denied")) });
+    });
+    const copy = page.getByRole("button", { name: "Copy address" });
+    await copy.scrollIntoViewIfNeeded();
+    await copy.click();
+    const message = /Copy unavailable\. Email .+\./;
+    await expect(page.locator("[data-copy-feedback]")).toHaveText(message);
+    await expect(page.locator(".sr-only[aria-live='polite']").filter({ hasText: "Copy unavailable" })).toHaveText(message);
+  });
+
+  test("P3-09 visible note dates expose their ISO value", async ({ page }) => {
+    await page.goto("/notes/noticing-what-the-association-wasnt-using");
+    const date = page.locator("article time");
+    await expect(date).toHaveText("Apr 2026");
+    await expect(date).toHaveAttribute("datetime", "2026-04-01");
+  });
+
+  test("P3-10 mobile capabilities disclose natively and preserve summary focus", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    const expertise = page.locator("#expertise");
+    const disclosures = expertise.locator("[data-capability-disclosure]");
+    await expect(disclosures).toHaveCount(5);
+    await expect(disclosures.first()).toHaveAttribute("open", "");
+    await expect(disclosures.nth(1)).not.toHaveAttribute("open", "");
+    const sectionHeight = await expertise.evaluate((section) => section.getBoundingClientRect().height);
+    expect(sectionHeight).toBeLessThan(1_800);
+
+    const summary = disclosures.nth(1).locator("summary");
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(disclosures.nth(1)).toHaveAttribute("open", "");
+    await expect(summary).toBeFocused();
+    await expect(disclosures.nth(1).getByText(/Claude Code and Codex run on an Oracle VPS/i)).toBeVisible();
+  });
+
+  test("P3-11 tutoring copy avoids a two-word desktop orphan at nearby widths", async ({ page }) => {
+    for (const width of [1366, 1440, 1536]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      const paragraph = page.locator("#journey article").last().locator("p").last();
+      const finalLineWords = await paragraph.evaluate((element) => {
+        const node = element.firstChild;
+        if (!node || node.nodeType !== Node.TEXT_NODE) return 0;
+        const text = node.textContent ?? "";
+        const words = Array.from(text.matchAll(/\S+/g));
+        const positions = words.map((word) => {
+          const range = document.createRange();
+          range.setStart(node, word.index!);
+          range.setEnd(node, word.index! + word[0].length);
+          return range.getBoundingClientRect().top;
+        });
+        const lastTop = Math.max(...positions);
+        return positions.filter((top) => Math.abs(top - lastTop) < 1).length;
+      });
+      expect(finalLineWords, `${width}px final line`).toBeGreaterThanOrEqual(4);
+    }
+  });
+});
+
 test("skills carousel keeps a single readable active card and supports controls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -1428,7 +1565,11 @@ test("capability scroll selection keeps rows stable after their reveal", async (
       const page = await context.newPage();
       await page.goto("/");
       await expect(page.locator("[data-preloader]")).toHaveCount(0);
-      const row = page.locator(".expertise-item").nth(1);
+      const row = device.hasTouch
+        ? page.locator("[data-capability-disclosure]").nth(1)
+        : page.locator(".expertise-item").nth(1);
+
+      if (device.hasTouch) await row.locator("summary").click();
 
       await row.evaluate((element) => {
         const top = element.getBoundingClientRect().top + window.scrollY;

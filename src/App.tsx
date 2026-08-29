@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { AnimatePresence, m, useIsPresent } from "framer-motion";
 import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { BrowserRouter, Route, Routes, useLocation, type Location } from "react-router-dom";
 import { Preloader } from "./components/layout/Preloader";
@@ -38,7 +39,7 @@ function useRoutePrefetching() {
 
 function RouteScrollManager() {
   const location = useLocation();
-  const { prefersReducedMotion } = useMotionProfile();
+  const { prefersReducedMotion, level } = useMotionProfile();
   const positions = useRef(new Map<string, ScrollSnapshot>());
   const [readyKey, setReadyKey] = useState<string | null>(null);
   const [settledKey, setSettledKey] = useState<string | null>(null);
@@ -188,7 +189,7 @@ function RouteScrollManager() {
 
   return (
     <RouteReadyContext.Provider value={markReady}>
-      <RenderedRoutes positions={positions} ready={routeReady} onSettled={onSettled} onRouteError={onRouteError} />
+      <RenderedRoutes positions={positions} ready={routeReady} reduceRouteMotion={prefersReducedMotion || level === "static"} onSettled={onSettled} onRouteError={onRouteError} />
       {preloaderVisible && <Preloader reducedMotion={prefersReducedMotion} active={loading} onHidden={hidePreloader} />}
     </RouteReadyContext.Provider>
   );
@@ -327,27 +328,48 @@ function hasRunningAncestorAnimation(element: HTMLElement) {
   return false;
 }
 
-function RenderedRoutes({ positions, ready, onSettled, onRouteError }: { positions: RefObject<Map<string, ScrollSnapshot>>; ready: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
+function RouteTransition({ children, reducedMotion }: { children: ReactNode; reducedMotion: boolean }) {
+  const present = useIsPresent();
+  return (
+    <m.div
+      data-route-transition
+      aria-hidden={!present || undefined}
+      inert={!present || undefined}
+      initial={reducedMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, pointerEvents: "none", position: "absolute", inset: 0, width: "100%" }}
+      transition={{ duration: reducedMotion ? 0 : present ? 0.22 : 0.12, ease: present ? [0.23, 1, 0.32, 1] : [0.7, 0, 0.84, 0] }}
+    >
+      {children}
+    </m.div>
+  );
+}
+
+function RenderedRoutes({ positions, ready, reduceRouteMotion, onSettled, onRouteError }: { positions: RefObject<Map<string, ScrollSnapshot>>; ready: boolean; reduceRouteMotion: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
   const location = useLocation();
   const homeRoute = HOME_PATHS.has(location.pathname);
   return (
     <RouteErrorBoundary resetKey={location.key} onError={() => onRouteError(location.key)}>
       <div data-route-content className="relative" aria-hidden={!ready || undefined} inert={!ready || undefined}>
         <RouteScrollCommit location={location} positions={positions} ready={ready} onSettled={onSettled} />
-        {homeRoute && <div className="route-home"><HomePage /></div>}
-        <Suspense fallback={<span className="sr-only" role="status">Loading…</span>}>
-          <Routes location={location}>
-            <Route path="/" element={null} />
-            <Route path="/index.html" element={null} />
-            <Route path="/viganogabriele.com" element={null} />
-            <Route path="/viganogabriele.com/" element={null} />
-            <Route path="/viganogabriele.com/index.html" element={null} />
-            <Route path="/cv" element={<CvPage />} />
-            <Route path="/cv/" element={<CvPage />} />
-            <Route path="/notes/:slug" element={<NotePage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
+        <AnimatePresence initial={false} mode="sync">
+          <RouteTransition key={location.key} reducedMotion={reduceRouteMotion}>
+            {homeRoute && <div className="route-home"><HomePage /></div>}
+            <Suspense fallback={<span className="sr-only" role="status">Loading…</span>}>
+              <Routes location={location}>
+                <Route path="/" element={null} />
+                <Route path="/index.html" element={null} />
+                <Route path="/viganogabriele.com" element={null} />
+                <Route path="/viganogabriele.com/" element={null} />
+                <Route path="/viganogabriele.com/index.html" element={null} />
+                <Route path="/cv" element={<CvPage />} />
+                <Route path="/cv/" element={<CvPage />} />
+                <Route path="/notes/:slug" element={<NotePage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </RouteTransition>
+        </AnimatePresence>
       </div>
     </RouteErrorBoundary>
   );

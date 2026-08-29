@@ -23,6 +23,7 @@ export interface CircularCarouselProps<T> {
 const normalizeAngle = (angle: number) => ((angle + 180) % 360 + 360) % 360 - 180;
 const easeOutQuart = (t: number) => 1 - (1 - t) ** 4;
 const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+type SelectionInput = "pointer" | "keyboard";
 
 /**
  * A deliberately DOM-driven 3D ring. React only tracks the active card for
@@ -71,6 +72,10 @@ export function CircularCarousel<T>({
   const [tickerRevision, setTickerRevision] = useState(0);
   const [inView, setInView] = useState(true);
   const [pageVisible, setPageVisible] = useState(() => !document.hidden);
+  // A smaller ring travels a shorter visible arc, so giving it the same
+  // duration as the full-radius Toolkit ring made it feel slower. Keep both in
+  // one crisp 350–380ms family while preserving a consistent linear feel.
+  const pointerSelectionDuration = 300 + 80 * Math.min(1, Math.max(0.65, radiusScale));
 
   // Call sites pass this inline, so reading it through a ref keeps updateCards
   // stable — it is a dependency of the idle loop, and a new identity on every
@@ -160,7 +165,7 @@ export function CircularCarousel<T>({
     lastFrame.current = null;
   }, []);
 
-  const animateTo = useCallback((target: number, duration = reducedMotion ? 180 : 540, onComplete?: () => void, easing: (t: number) => number = easeOutQuart) => {
+  const animateTo = useCallback((target: number, duration = reducedMotion ? 0 : pointerSelectionDuration, onComplete?: () => void, easing: (t: number) => number = easeOutQuart) => {
     stopAnimation();
     if (duration === 0) {
       rotation.current = target;
@@ -188,7 +193,7 @@ export function CircularCarousel<T>({
       }
     };
     frameRef.current = window.requestAnimationFrame(tick);
-  }, [reducedMotion, stopAnimation, updateCards]);
+  }, [pointerSelectionDuration, reducedMotion, stopAnimation, updateCards]);
 
   const settle = useCallback(() => {
     if (!snap || !items.length) return;
@@ -198,8 +203,8 @@ export function CircularCarousel<T>({
     // runs, so the handoff needs a curve that also starts at zero velocity
     // (ease-in-out) instead of the snappy ease-out used for explicit
     // selection — otherwise the carousel visibly lurches right as it settles.
-    animateTo(target, undefined, undefined, easeInOutQuad);
-  }, [animateTo, items.length, snap]);
+    animateTo(target, reducedMotion ? 0 : 220, undefined, easeInOutQuad);
+  }, [animateTo, items.length, reducedMotion, snap]);
 
   const pause = useCallback(() => { pauseUntil.current = performance.now() + pauseDuration; }, [pauseDuration]);
 
@@ -288,7 +293,7 @@ export function CircularCarousel<T>({
     return () => { if (run === runRef.current) stopAnimation(); };
   }, [autoRotateSpeed, inView, items.length, pageVisible, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
 
-  const select = useCallback((index: number) => {
+  const select = useCallback((index: number, input: SelectionInput = "pointer") => {
     if (!items.length) return;
     deliberate.current = true;
     pause();
@@ -296,15 +301,18 @@ export function CircularCarousel<T>({
     const step = 360 / items.length;
     selectionTarget.current = index;
     updateCards();
-    animateTo(rotation.current - normalizeAngle(rotation.current + index * step), undefined, () => {
+    // Focus movement and key commands must track the reader's action exactly;
+    // decorative rotation is reserved for pointer selection.
+    const duration = input === "keyboard" || reducedMotion ? 0 : pointerSelectionDuration;
+    animateTo(rotation.current - normalizeAngle(rotation.current + index * step), duration, () => {
       selectionTarget.current = null;
     });
-  }, [animateTo, items.length, pause, updateCards]);
+  }, [animateTo, items.length, pause, pointerSelectionDuration, reducedMotion, updateCards]);
 
-  const navigate = useCallback((direction: 1 | -1) => {
+  const navigate = useCallback((direction: 1 | -1, input: SelectionInput = "pointer") => {
     const current = selectionTarget.current ?? activeRef.current;
     const next = (current + direction + items.length) % items.length;
-    select(next);
+    select(next, input);
   }, [items.length, select]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -432,8 +440,8 @@ export function CircularCarousel<T>({
       onPointerEnter={() => { hovering.current = pauseOnHover; if (pauseOnHover) pause(); }}
       onPointerLeave={() => { hovering.current = false; if (pauseOnHover && !dragging.current) pause(); }}
       onKeyDown={(event) => {
-        if (event.key === "ArrowLeft") { event.preventDefault(); navigate(-1); }
-        if (event.key === "ArrowRight") { event.preventDefault(); navigate(1); }
+        if (event.key === "ArrowLeft") { event.preventDefault(); navigate(-1, "keyboard"); }
+        if (event.key === "ArrowRight") { event.preventDefault(); navigate(1, "keyboard"); }
       }}
     >
       {/* Only what a reader asked for is announced. This used to restate the
@@ -451,15 +459,15 @@ export function CircularCarousel<T>({
             role="button"
             tabIndex={0}
             aria-label={`Bring ${getItemLabel(item, index)} to the front`}
-            onClick={() => { if (!moved.current) select(index); }}
+            onClick={(event) => { if (!moved.current) select(index, event.detail === 0 ? "keyboard" : "pointer"); }}
             // Every card is tabbable, including the ones facing away at 18%
             // opacity behind the front one. Tabbing to those used to move focus
             // somewhere invisible; bringing the focused card round is the only
             // way the focus ring means anything. Gated on :focus-visible so a
             // mouse press does not select twice — onClick already handles it.
-            onFocus={(event) => { if (event.currentTarget.matches(":focus-visible")) select(index); }}
+            onFocus={(event) => { if (event.currentTarget.matches(":focus-visible")) select(index, "keyboard"); }}
             onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(index); }
+              if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(index, "keyboard"); }
             }}
           >
             {renderCard(item, index, activeIndex === index)}
@@ -467,9 +475,9 @@ export function CircularCarousel<T>({
         ))}
       </div>
       <div className="circular-carousel__controls" aria-label="Carousel controls">
-        <button type="button" className="circular-carousel__control" onClick={() => navigate(-1)} aria-label={previousControlLabel}><ChevronLeft aria-hidden="true" /></button>
+        <button type="button" className="circular-carousel__control" onClick={(event) => navigate(-1, event.detail === 0 ? "keyboard" : "pointer")} aria-label={previousControlLabel}><ChevronLeft aria-hidden="true" /></button>
         <span className="font-mono text-[9px] tracking-[0.15em] text-zinc-500" aria-hidden="true">{String(activeIndex + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
-        <button type="button" className="circular-carousel__control" onClick={() => navigate(1)} aria-label={nextControlLabel}><ChevronRight aria-hidden="true" /></button>
+        <button type="button" className="circular-carousel__control" onClick={(event) => navigate(1, event.detail === 0 ? "keyboard" : "pointer")} aria-label={nextControlLabel}><ChevronRight aria-hidden="true" /></button>
       </div>
     </div>
   );
