@@ -15,6 +15,10 @@ export const site = {
     type: "image/jpeg",
     alt: "Gabriele Viganò · infrastructure, front-end and product.",
   },
+  socialCard: {
+    eyebrow: "Computer Engineering student · Milan",
+    statement: "I build products, teams and systems that hold up.",
+  },
 } as const;
 
 export type PageMetadata = {

@@ -3,6 +3,12 @@ import { readFile } from "node:fs/promises";
 // transitive dependency here, so importing it directly breaks the moment the
 // tree is pruned or reinstalled.
 import { chromium } from "@playwright/test";
+import { site } from "../src/data/site.ts";
+
+const escapeHtml = (value) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+const [givenName, familyName] = site.name.toUpperCase().split(" ");
+const familyNameMarkup = escapeHtml(familyName).replace("Ò", '<span class="o-grave">O</span>');
+const displayUrl = new URL(site.url).hostname.toUpperCase();
 
 const [background, font] = await Promise.all([
   readFile(new URL("./assets/og-card-background.png", import.meta.url)).then((file) => file.toString("base64")),
@@ -33,7 +39,7 @@ await page.setContent(`<!doctype html>
   .url { position:absolute; left:100px; bottom:78px; color: #8fa7de; font-size: 16px; font-weight:500; letter-spacing:.12em; }
   .cursor { position:absolute; right:118px; bottom:103px; width:18px; height:29px; border-left:2px solid #92adf2; border-bottom:2px solid #92adf2; transform:skew(-16deg); opacity:.65; }
 </style>
-<main class="card"><div class="wash"></div><div class="line"></div><div class="eyebrow">COMPUTER ENGINEERING STUDENT · MILAN</div><section class="content"><h1><span>GABRIELE</span><span>VIGAN<span class="o-grave">O</span></span></h1><p>I build products, teams and systems that hold up.</p></section><div class="url">WWW.VIGANOGABRIELE.COM</div><div class="cursor"></div></main>`);
+<main class="card"><div class="wash"></div><div class="line"></div><div class="eyebrow">${escapeHtml(site.socialCard.eyebrow.toUpperCase())}</div><section class="content"><h1><span>${escapeHtml(givenName)}</span><span>${familyNameMarkup}</span></h1><p>${escapeHtml(site.socialCard.statement)}</p></section><div class="url">${escapeHtml(displayUrl)}</div><div class="cursor"></div></main>`);
 // JPEG, not PNG: the card is a photographic wash under type, which PNG stored
 // in 552kB. At quality 90 the same 1200x630 is under 100kB with no visible
 // difference in an unfurl, and scrapers fetch it on every share.
