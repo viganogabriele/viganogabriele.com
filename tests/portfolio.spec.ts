@@ -778,11 +778,25 @@ test("SYS keeps the violet accent through the exit sweep", async ({ page }) => {
   await toggle.click();
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
 
+  await page.evaluate(() => {
+    const transitions: Array<{ value: string | null; at: number }> = [];
+    (window as Window & { sysModeTransitions?: typeof transitions }).sysModeTransitions = transitions;
+    new MutationObserver(() => transitions.push({
+      value: document.documentElement.getAttribute("data-system-mode"),
+      at: performance.now(),
+    })).observe(document.documentElement, { attributes: true, attributeFilter: ["data-system-mode"] });
+  });
+
   await toggle.click();
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "off");
-  await page.waitForTimeout(300);
-  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "off");
-  await expect(page.locator("html")).not.toHaveAttribute("data-system-mode", /.+/, { timeout: 1_000 });
+  await expect(page.locator("html")).not.toHaveAttribute("data-system-mode", /.+/, { timeout: 3_000 });
+  const holdDuration = await page.evaluate(() => {
+    const transitions = (window as Window & { sysModeTransitions?: Array<{ value: string | null; at: number }> }).sysModeTransitions ?? [];
+    const held = transitions.find(({ value }) => value === "off");
+    const released = transitions.find(({ value, at }) => value === null && at > (held?.at ?? Number.POSITIVE_INFINITY));
+    return held && released ? released.at - held.at : 0;
+  });
+  expect(holdDuration).toBeGreaterThanOrEqual(400);
 });
 
 test("resizing a settled SYS wordmark does not replay its gather", async ({ page }) => {
