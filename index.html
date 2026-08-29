@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-static-home-shell>
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.ico?v=11" sizes="any" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-dark.png?v=10" media="(prefers-color-scheme: dark)" />
     <link
       rel="icon"
@@ -75,8 +75,86 @@
     <meta name="twitter:image" content="https://www.viganogabriele.com/og-cover.jpg" />
     <meta name="twitter:image:alt" content="Gabriele Viganò · infrastructure, front-end and product." />
     <script type="application/ld+json" data-jsonld="website-person">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://www.viganogabriele.com/#website","name":"Gabriele Viganò","url":"https://www.viganogabriele.com/","description":"Portfolio of Gabriele Viganò: self-hosted infrastructure, front-end and product work, and notes on the decisions behind them.","inLanguage":"en"},{"@type":"Person","@id":"https://www.viganogabriele.com/#person","name":"Gabriele Viganò","url":"https://www.viganogabriele.com/","image":"https://www.viganogabriele.com/og-cover.jpg","jobTitle":"Computer Engineering Student","affiliation":{"@type":"CollegeOrUniversity","name":"Politecnico di Milano"},"sameAs":["https://github.com/viganogabriele","https://linkedin.com/in/viganogabriele"]}]}</script>
+    <style data-static-home-shell-style>
+      /* Mobile's first response carries the visible introduction while the
+         application bundle starts. The real preloader remains above it and
+         keeps its status/progress semantics; only its opaque backdrop moves
+         aside on this one initial home navigation. */
+      #static-home-shell { display: none; }
+      @media (max-width: 39.999rem) {
+        html[data-static-home-shell] #static-home-shell {
+          position: fixed;
+          inset: 0;
+          z-index: 99;
+          display: block;
+          overflow: hidden;
+          pointer-events: none;
+          background-color: #080b16;
+          background-image: linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+          background-position: -1px -1px;
+          background-size: 64px 64px;
+          color: #edf1ff;
+          font-family: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
+        }
+        html[data-static-home-shell] [data-preloader] {
+          align-items: flex-end;
+          padding-bottom: max(2rem, env(safe-area-inset-bottom));
+          background-color: transparent;
+        }
+        .static-home-shell__content { padding: 7.5rem 1.25rem 3rem; }
+        .static-home-shell__location {
+          margin: 0;
+          color: rgba(120,169,255,.75);
+          font: 400 .875rem/1.25 "Space Mono", ui-monospace, monospace;
+          letter-spacing: .18em;
+          text-transform: uppercase;
+        }
+        .static-home-shell__location::before {
+          display: inline-block;
+          width: .375rem;
+          height: .375rem;
+          margin-right: .5rem;
+          border-radius: 999px;
+          background: #78a9ff;
+          content: "";
+          vertical-align: .12em;
+        }
+        .static-home-shell__title {
+          max-width: 56rem;
+          margin: 1rem 0 0;
+          font-size: clamp(3.4rem,17vw,4.6rem);
+          font-weight: 500;
+          letter-spacing: -.09em;
+          line-height: .8;
+        }
+        .static-home-shell__title span { display: block; }
+        .static-home-shell__title span + span {
+          padding-top: .12em;
+          padding-left: .06em;
+          color: #bcc4dc;
+        }
+        .static-home-shell__summary {
+          max-width: 36rem;
+          margin: 1.75rem 0 0;
+          color: #bcc4dc;
+          font-size: 1.25rem;
+          font-weight: 500;
+          letter-spacing: -.02em;
+          line-height: 1.375;
+        }
+      }
+    </style>
   </head>
   <body>
+    <!-- static-home-shell:start -->
+    <div id="static-home-shell" aria-hidden="true" inert>
+      <div class="static-home-shell__content">
+        <p class="static-home-shell__location">Milan, Italy</p>
+        <div class="static-home-shell__title">GABRIELE<span>VIGANÒ</span></div>
+        <p class="static-home-shell__summary">I run my own infrastructure, and the product for 500+ student group chats.</p>
+      </div>
+    </div>
+    <!-- static-home-shell:end -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -56,7 +56,11 @@ function RouteScrollManager() {
     setPreviousLoading(loading);
     if (loading) setPreloaderVisible(true);
   }
-  const hidePreloader = useCallback(() => setPreloaderVisible(false), []);
+  const hidePreloader = useCallback(() => {
+    setPreloaderVisible(false);
+    document.getElementById("static-home-shell")?.remove();
+    document.documentElement.removeAttribute("data-static-home-shell");
+  }, []);
   useRoutePrefetching();
 
   useEffect(() => {

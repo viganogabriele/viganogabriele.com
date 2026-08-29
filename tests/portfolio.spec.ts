@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { devices, expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 function pdfWithMissingFirstPage() {
   const objects = [
@@ -754,6 +755,14 @@ test("home identity metadata and favicon are exact", async ({ page }) => {
   await expect(page.locator('link[rel="icon"][media="(prefers-color-scheme: dark)"]')).toHaveAttribute("href", /\/favicon-dark\.png/);
   await expect(page.locator('link[rel="icon"][media="(prefers-color-scheme: light)"]')).toHaveAttribute("href", /\/favicon-light\.png/);
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", /\/apple-touch-icon\.png/);
+  await expect(page.locator('link[rel="icon"][sizes="any"]')).toHaveAttribute("href", "/favicon.ico?v=11");
+  const deploymentConfig = JSON.parse(await readFile(new URL("../vercel.json", import.meta.url), "utf8")) as {
+    headers: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
+  };
+  expect(deploymentConfig.headers).toContainEqual({
+    source: "/favicon.ico",
+    headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+  });
   const darkFavicon = await page.request.get("/favicon-dark.png");
   const lightFavicon = await page.request.get("/favicon-light.png");
   const appleTouchIcon = await page.request.get("/apple-touch-icon.png");
@@ -786,6 +795,13 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
       expect(html).toMatch(new RegExp(`<meta property="og:type" content="${route.type}"\\s*/?>`));
       expect(html).toContain('content="https://www.viganogabriele.com/og-cover.jpg"');
       expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
+      if (route.path === "/") {
+        expect(html).toContain('id="static-home-shell"');
+        expect(html).toContain("data-static-home-shell");
+      } else {
+        expect(html).not.toContain('id="static-home-shell"');
+        expect(html).not.toContain("data-static-home-shell");
+      }
     }
   }
 
@@ -1225,6 +1241,7 @@ test("SYS laser never changes page or viewport dimensions", async ({ page }) => 
 });
 
 test("the loading screen is a lightweight readiness gate without a minimum duration", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   // These routes must match whatever [data-hero-portrait] loads, because that is
   // the image the readiness gate waits on: the photograph, not the SYS wireframe.
   let releasePortrait!: () => void;
@@ -1235,11 +1252,15 @@ test("the loading screen is a lightweight readiness gate without a minimum durat
   });
   const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
   const preloader = page.locator("[data-preloader]");
+  const staticHomeShell = page.locator("#static-home-shell");
   await expect(preloader).toBeVisible();
+  await expect(staticHomeShell).toBeVisible();
+  await expect(staticHomeShell.locator(".static-home-shell__title")).toContainText("GABRIELEVIGANÒ");
   await expect(preloader.getByRole("progressbar", { name: "Loading page" })).toHaveCount(1);
   releasePortrait();
   await navigation;
   await expect(preloader).toHaveCount(0);
+  await expect(staticHomeShell).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 
   // Drop the interception before measuring the warm reload. Holding every
