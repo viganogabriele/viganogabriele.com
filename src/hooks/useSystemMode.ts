@@ -46,6 +46,14 @@ function isDesktopSafari() {
 // session without that replay, since a full reload always starts from false.
 let sharedSystemActive = false;
 
+// Route transitions briefly mount both the exiting and entering page
+// (AnimatePresence mode="sync"), so two `useSystemMode()` instances can be
+// alive at once, each with its own window keydown listener. Without this,
+// a single Shift+S press during that overlap fires both listeners for the
+// same physical event, double-toggling the shared state back to its
+// original value while each instance's local `active` disagrees about why.
+const handledToggleEvents = new WeakSet<KeyboardEvent>();
+
 export function useSystemMode() {
   const [active, setActive] = useState(sharedSystemActive);
   const [transitionId, setTransitionId] = useState(0);
@@ -138,11 +146,28 @@ export function useSystemMode() {
       ) return;
 
       event.preventDefault();
+      if (handledToggleEvents.has(event)) return;
+      handledToggleEvents.add(event);
       toggle();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [toggle]);
+
+  // Keep every concurrently mounted instance (see the overlap note above the
+  // WeakSet) in sync with whichever instance actually toggled, so a page that
+  // didn't originate the change never surfaces with stale local `active`.
+  useEffect(() => {
+    const handler = (event: CustomEvent<SystemToggleDetail>) => {
+      const next = event.detail.active;
+      if (next === activeRef.current) return;
+      activeRef.current = next;
+      if (next) hasActivatedRef.current = true;
+      setActive(next);
+    };
+    window.addEventListener("sys:toggle", handler);
+    return () => window.removeEventListener("sys:toggle", handler);
+  }, []);
 
   return { active, transitionId, toggle, webkitSafeMode, laserEnabled };
 }

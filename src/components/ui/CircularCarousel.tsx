@@ -165,7 +165,7 @@ export function CircularCarousel<T>({
     lastFrame.current = null;
   }, []);
 
-  const animateTo = useCallback((target: number, duration = reducedMotion ? 0 : pointerSelectionDuration, onComplete?: () => void, easing: (t: number) => number = easeOutQuart) => {
+  const animateTo = useCallback((target: number, duration: number, onComplete?: () => void, easing: (t: number) => number = easeOutQuart) => {
     stopAnimation();
     if (duration === 0) {
       rotation.current = target;
@@ -193,7 +193,7 @@ export function CircularCarousel<T>({
       }
     };
     frameRef.current = window.requestAnimationFrame(tick);
-  }, [pointerSelectionDuration, reducedMotion, stopAnimation, updateCards]);
+  }, [stopAnimation, updateCards]);
 
   const settle = useCallback(() => {
     if (!snap || !items.length) return;
