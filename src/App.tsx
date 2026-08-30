@@ -276,8 +276,17 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
       // restore up to 16px out. See layoutTop in lib/navigationState.
       const anchorDocumentTop = anchor ? layoutTop(anchor) : null;
       const target = anchorDocumentTop !== null ? anchorDocumentTop - snapshot.anchor!.offset : snapshot.y;
-      const canReach = height - window.innerHeight + 1 >= target;
-      if (canReach) window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
+      const maxScroll = Math.max(0, height - window.innerHeight);
+      const canReach = maxScroll + 1 >= target;
+      // Home remounts from a shorter initial layout and grows in as its
+      // below-fold sections settle (see the comment on the capture effect
+      // above), so the page can sit a few px short of `target` for a frame or
+      // two even though the recorded snapshot is correct. Refusing to scroll
+      // at all until the exact height arrives left the reader stranded
+      // wherever the fresh mount happened to land — clamping to the current
+      // max keeps them within a few px of the real target the whole time,
+      // and later frames still converge once the layout finishes growing.
+      window.scrollTo({ top: canReach ? Math.max(0, target) : maxScroll, behavior: "auto" });
       // Reuses anchorDocumentTop rather than walking offsetParent a second time:
       // layoutTop is scroll-independent, so subtracting the post-scroll scrollY
       // gives the same viewport offset for one forced reflow instead of two.

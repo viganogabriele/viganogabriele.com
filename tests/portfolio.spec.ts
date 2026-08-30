@@ -973,7 +973,16 @@ test("resizing a settled SYS wordmark does not replay its gather", async ({ page
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.getByRole("button", { name: "Toggle system mode" }).click();
   await expect(page.locator(".hero-wordmark")).toHaveClass(/hero-wordmark--particles/);
-  await page.waitForTimeout(900);
+  // A fixed wait here raced the gather's actual completion under load (its
+  // per-particle delay plus GATHER_MS leaves only a thin margin), letting an
+  // in-flight gather bleed into the resize below and fail the assertion for a
+  // reason unrelated to what it tests. Polling for genuinely settled alpha —
+  // several consecutive samples at 1 — waits exactly as long as gathering
+  // actually takes instead of guessing a duration.
+  await expect.poll(() => page.evaluate(() => {
+    const samples = (window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples ?? [];
+    return samples.length >= 5 && samples.slice(-5).every((sample) => sample === 1);
+  })).toBe(true);
   const canvas = page.locator(".hero-particle-canvas");
   const widthBefore = await canvas.getAttribute("width");
   await page.evaluate(() => { ((window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples ?? []).length = 0; });
