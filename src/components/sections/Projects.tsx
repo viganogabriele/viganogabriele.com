@@ -1,4 +1,4 @@
-import { m } from "framer-motion";
+import { AnimatePresence, m, useIsPresent } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { lazy, Suspense, useState, type ComponentType } from "react";
 import { projects } from "../../data/projects";
@@ -38,14 +38,19 @@ function ProjectCard({ project, active }: { project: ProjectItem; active: boolea
 function ProjectDetail({ project }: { project: ProjectItem }) {
   const { prefersReducedMotion, level } = useMotionProfile();
   const reduceMotion = prefersReducedMotion || level === "static";
+  const present = useIsPresent();
   return (
     <m.article
       key={project.title}
-      data-project-detail
+      data-project-detail={present || undefined}
+      data-project-exiting={!present || undefined}
+      aria-hidden={!present || undefined}
+      inert={!present || undefined}
       initial={reduceMotion ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.38 }}
-      className="project-detail mt-8 border-y border-white/[0.09] py-7 sm:py-9"
+      exit={reduceMotion ? undefined : { opacity: 0, y: -4, position: "absolute", pointerEvents: "none", transition: { duration: 0.12, ease: [0.7, 0, 0.84, 0] } }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+      className="project-detail mt-8 w-full border-y border-white/[0.09] py-7 sm:py-9"
     >
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
         <div>
@@ -112,7 +117,11 @@ export function Projects() {
           />
         </Suspense>
       </div>
-      <ProjectDetail project={activeProject} />
+      <div className="relative">
+        <AnimatePresence initial={false} mode="sync">
+          <ProjectDetail key={activeProject.title} project={activeProject} />
+        </AnimatePresence>
+      </div>
     </section>
   );
 }

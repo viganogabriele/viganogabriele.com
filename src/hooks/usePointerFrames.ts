@@ -55,6 +55,8 @@ export function usePointerFrames({ target, onPoint, enabled = true }: PointerFra
       node.removeEventListener("pointermove", move);
       node.removeEventListener("pointerleave", leave);
       if (frame !== null) cancelAnimationFrame(frame);
+      pending = null;
+      handler.current(null);
     };
   }, [enabled]);
 }

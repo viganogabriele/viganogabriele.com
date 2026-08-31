@@ -68,6 +68,7 @@ function CvDocumentViewer() {
   const fittedWidth = viewportWidth < 640 || !pageAspect ? widthToFit : Math.min(widthToFit, heightToFit * pageAspect);
   const pageWidth = Math.round(fittedWidth * zoom);
   const clampZoom = (value: number) => Math.min(2.5, Math.max(0.75, Number(value.toFixed(2))));
+  const showRecovery = () => setFailed(true);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -123,8 +124,8 @@ function CvDocumentViewer() {
           <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noopener noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
         ) : (
           <div className="flex min-w-fit items-start justify-center sm:min-h-full">
-            <Document file={profile.cvPath} externalLinkTarget="_blank" onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
-              {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer={false} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Rendering page…</span>} />}
+            <Document file={profile.cvPath} externalLinkTarget="_blank" onLoadSuccess={async (document) => { try { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); } catch { showRecovery(); } }} onLoadError={showRecovery} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
+              {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer={false} onLoadError={showRecovery} onRenderError={showRecovery} error={null} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Rendering page…</span>} />}
             </Document>
           </div>
         )}

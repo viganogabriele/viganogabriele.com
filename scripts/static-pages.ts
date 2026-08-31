@@ -14,6 +14,9 @@ const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^
 // high-priority-fetch a photo it never paints, competing with that page's
 // actual LCP resource. Stripped here, then re-added for the home shell alone.
 const heroPreloadPattern = /<link\s+rel="preload"\s+as="image"[^>]*>\s*/;
+const staticHomeShellStylePattern = /\s*<style\s+data-static-home-shell-style>[\s\S]*?<\/style>\s*/;
+const staticHomeShellPattern = /\s*<!-- static-home-shell:start -->[\s\S]*?<!-- static-home-shell:end -->\s*/;
+const staticHomeShellMarkerPattern = /\sdata-static-home-shell(?=[\s>])/;
 
 function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -123,7 +126,14 @@ async function generateStaticPages(outDir: string) {
   // the emitted tag ever stops matching (attribute order, a second image
   // preload, a Vite change to how it rewrites the asset URL).
   if (!heroPreloadPattern.test(index)) throw new Error("static-pages: hero image preload not found in the built shell; update heroPreloadPattern.");
-  const otherShell = index.replace(heroPreloadPattern, "");
+  if (!staticHomeShellStylePattern.test(index) || !staticHomeShellPattern.test(index) || !staticHomeShellMarkerPattern.test(index)) {
+    throw new Error("static-pages: static home shell not found in the built shell; update the shell patterns.");
+  }
+  const otherShell = index
+    .replace(heroPreloadPattern, "")
+    .replace(staticHomeShellStylePattern, "")
+    .replace(staticHomeShellPattern, "")
+    .replace(staticHomeShellMarkerPattern, "");
   const home = withMetadata(index, homeMetadata, { id: "website-person", data: websitePersonJsonLd });
   await writeFile(indexPath, home);
   await writeFile(resolve(outDir, "cv.html"), withMetadata(otherShell, cvMetadata));

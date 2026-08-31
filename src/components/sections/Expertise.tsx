@@ -1,4 +1,5 @@
 import { m, useInView } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { activities } from "../../data/activities";
 import { expertiseSection } from "../../data/sections";
@@ -94,6 +95,42 @@ function ExpertiseItem({
   );
 }
 
+function MobileExpertiseItem({ activity, index }: { activity: ActivityItem; index: number }) {
+  const [open, setOpen] = useState(index === 0);
+  const Icon = activity.icon;
+
+  return (
+    <li>
+      <details
+        data-capability-disclosure
+        data-index={index}
+        open={open}
+        onToggle={(event) => setOpen(event.currentTarget.open)}
+        className="group border-b border-white/[0.08]"
+      >
+        <summary className="flex min-h-20 cursor-pointer list-none items-center gap-3 py-5 font-mono marker:content-none [&::-webkit-details-marker]:hidden">
+          <span className="text-[10px] text-zinc-600">{activity.index}</span>
+          <Icon aria-hidden className="h-4 w-4 shrink-0 text-accent/75" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[9px] uppercase tracking-[0.16em] text-zinc-500">{activity.role}</span>
+            <span className="mt-1 block font-sans text-xl tracking-[-0.045em] text-bone">{activity.title}</span>
+          </span>
+          <ChevronDown aria-hidden className="h-4 w-4 shrink-0 text-zinc-500 group-open:rotate-180" />
+        </summary>
+        <div className="pb-8 pl-7">
+          <p className="max-w-xl text-sm leading-relaxed text-zinc-400">{activity.description}</p>
+          <div className="mt-5 flex flex-wrap gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-zinc-200">
+            {activity.tags.map((tag) => <span key={tag} className="border border-accent/30 bg-accent/[0.06] px-2 py-1">{tag}</span>)}
+          </div>
+          <div className="capability-artifact mt-5" data-capability-artifact={activity.artifact}>
+            <ArtifactSVG type={activity.artifact} className="relative z-[1] h-24 w-full text-accent/65" />
+          </div>
+        </div>
+      </details>
+    </li>
+  );
+}
+
 export function Expertise() {
   const { level } = useMotionProfile();
   const staticMotion = level === "static";
@@ -124,7 +161,7 @@ export function Expertise() {
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
-    const rows = Array.from(section.querySelectorAll<HTMLElement>("[data-index]"));
+    const rows = Array.from(section.querySelectorAll<HTMLElement>(".expertise-rail [data-index]"));
     let frame: number | null = null;
 
     const syncToScroll = () => {
@@ -178,7 +215,7 @@ export function Expertise() {
   };
 
   const scrollToActivity = (index: number) => {
-    const row = sectionRef.current?.querySelector<HTMLElement>(`[data-index="${index}"]`);
+    const row = sectionRef.current?.querySelector<HTMLElement>(`.expertise-rail [data-index="${index}"]`);
     setAutoIndex(index);
     row?.scrollIntoView({ behavior: staticMotion ? "auto" : "smooth", block: "center" });
   };
@@ -214,7 +251,10 @@ export function Expertise() {
             ))}
           </ol>
         </div>
-        <div className="expertise-rail relative">
+        <ol aria-label="Capabilities" className="border-t border-white/[0.08] lg:hidden">
+          {activities.map((activity, index) => <MobileExpertiseItem key={activity.title} activity={activity} index={index} />)}
+        </ol>
+        <div className="expertise-rail relative hidden lg:block">
           {activities.map((activity, index) => (
             <ExpertiseItem
               key={activity.title}

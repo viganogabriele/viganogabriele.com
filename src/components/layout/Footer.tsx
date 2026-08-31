@@ -26,6 +26,7 @@ const LinkedInIcon = ({ className }: { className?: string }) => (
 
 export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
   const [emailOpen, setEmailOpen] = useState(false);
   const { level, canUsePointerEffects } = useMotionProfile();
@@ -41,17 +42,27 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
     try {
       await navigator.clipboard.writeText(profile.email);
       setCopied(true);
+      setCopyFailed(false);
       setCopyMessage("Email address copied.");
       resetTimer.current = window.setTimeout(() => {
         resetTimer.current = null;
         setCopied(false);
+        setCopyFailed(false);
         // Emptying the region matters: a live region only speaks when its text
         // changes, so leaving the confirmation in place meant a second copy
         // was announced to nobody.
         setCopyMessage("");
       }, 1800);
     } catch {
-      setCopyMessage(`Copy unavailable. Email ${profile.email}.`);
+      const message = `Copy unavailable. Email ${profile.email}.`;
+      setCopied(false);
+      setCopyFailed(true);
+      setCopyMessage(message);
+      resetTimer.current = window.setTimeout(() => {
+        resetTimer.current = null;
+        setCopyFailed(false);
+        setCopyMessage("");
+      }, 4_000);
     }
   };
   const sendEmailButton = (
@@ -189,6 +200,8 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                   )}
                 </AnimatePresence>
               </button>
+
+              {copyFailed && <span data-copy-feedback aria-hidden="true" className="font-mono text-[10px] leading-relaxed text-accent">{copyMessage}</span>}
 
               <span className="sr-only" aria-live="polite">{copyMessage}</span>
             </div>

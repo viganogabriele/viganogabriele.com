@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { AnimatePresence, m, useIsPresent } from "framer-motion";
 import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { BrowserRouter, Route, Routes, useLocation, type Location } from "react-router-dom";
 import { Preloader } from "./components/layout/Preloader";
@@ -38,7 +39,7 @@ function useRoutePrefetching() {
 
 function RouteScrollManager() {
   const location = useLocation();
-  const { prefersReducedMotion } = useMotionProfile();
+  const { prefersReducedMotion, level } = useMotionProfile();
   const positions = useRef(new Map<string, ScrollSnapshot>());
   const [readyKey, setReadyKey] = useState<string | null>(null);
   const [settledKey, setSettledKey] = useState<string | null>(null);
@@ -55,7 +56,11 @@ function RouteScrollManager() {
     setPreviousLoading(loading);
     if (loading) setPreloaderVisible(true);
   }
-  const hidePreloader = useCallback(() => setPreloaderVisible(false), []);
+  const hidePreloader = useCallback(() => {
+    setPreloaderVisible(false);
+    document.getElementById("static-home-shell")?.remove();
+    document.documentElement.removeAttribute("data-static-home-shell");
+  }, []);
   useRoutePrefetching();
 
   useEffect(() => {
@@ -188,7 +193,7 @@ function RouteScrollManager() {
 
   return (
     <RouteReadyContext.Provider value={markReady}>
-      <RenderedRoutes positions={positions} ready={routeReady} onSettled={onSettled} onRouteError={onRouteError} />
+      <RenderedRoutes positions={positions} ready={routeReady} reduceRouteMotion={prefersReducedMotion || level === "static"} onSettled={onSettled} onRouteError={onRouteError} />
       {preloaderVisible && <Preloader reducedMotion={prefersReducedMotion} active={loading} onHidden={hidePreloader} />}
     </RouteReadyContext.Provider>
   );
@@ -271,8 +276,17 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
       // restore up to 16px out. See layoutTop in lib/navigationState.
       const anchorDocumentTop = anchor ? layoutTop(anchor) : null;
       const target = anchorDocumentTop !== null ? anchorDocumentTop - snapshot.anchor!.offset : snapshot.y;
-      const canReach = height - window.innerHeight + 1 >= target;
-      if (canReach) window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
+      const maxScroll = Math.max(0, height - window.innerHeight);
+      const canReach = maxScroll + 1 >= target;
+      // Home remounts from a shorter initial layout and grows in as its
+      // below-fold sections settle (see the comment on the capture effect
+      // above), so the page can sit a few px short of `target` for a frame or
+      // two even though the recorded snapshot is correct. Refusing to scroll
+      // at all until the exact height arrives left the reader stranded
+      // wherever the fresh mount happened to land — clamping to the current
+      // max keeps them within a few px of the real target the whole time,
+      // and later frames still converge once the layout finishes growing.
+      window.scrollTo({ top: canReach ? Math.max(0, target) : maxScroll, behavior: "auto" });
       // Reuses anchorDocumentTop rather than walking offsetParent a second time:
       // layoutTop is scroll-independent, so subtracting the post-scroll scrollY
       // gives the same viewport offset for one forced reflow instead of two.
@@ -327,27 +341,48 @@ function hasRunningAncestorAnimation(element: HTMLElement) {
   return false;
 }
 
-function RenderedRoutes({ positions, ready, onSettled, onRouteError }: { positions: RefObject<Map<string, ScrollSnapshot>>; ready: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
+function RouteTransition({ children, reducedMotion }: { children: ReactNode; reducedMotion: boolean }) {
+  const present = useIsPresent();
+  return (
+    <m.div
+      data-route-transition
+      aria-hidden={!present || undefined}
+      inert={!present || undefined}
+      initial={reducedMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, pointerEvents: "none", position: "absolute", inset: 0, width: "100%" }}
+      transition={{ duration: reducedMotion ? 0 : present ? 0.22 : 0.12, ease: present ? [0.23, 1, 0.32, 1] : [0.7, 0, 0.84, 0] }}
+    >
+      {children}
+    </m.div>
+  );
+}
+
+function RenderedRoutes({ positions, ready, reduceRouteMotion, onSettled, onRouteError }: { positions: RefObject<Map<string, ScrollSnapshot>>; ready: boolean; reduceRouteMotion: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
   const location = useLocation();
   const homeRoute = HOME_PATHS.has(location.pathname);
   return (
     <RouteErrorBoundary resetKey={location.key} onError={() => onRouteError(location.key)}>
       <div data-route-content className="relative" aria-hidden={!ready || undefined} inert={!ready || undefined}>
         <RouteScrollCommit location={location} positions={positions} ready={ready} onSettled={onSettled} />
-        {homeRoute && <div className="route-home"><HomePage /></div>}
-        <Suspense fallback={<span className="sr-only" role="status">Loading…</span>}>
-          <Routes location={location}>
-            <Route path="/" element={null} />
-            <Route path="/index.html" element={null} />
-            <Route path="/viganogabriele.com" element={null} />
-            <Route path="/viganogabriele.com/" element={null} />
-            <Route path="/viganogabriele.com/index.html" element={null} />
-            <Route path="/cv" element={<CvPage />} />
-            <Route path="/cv/" element={<CvPage />} />
-            <Route path="/notes/:slug" element={<NotePage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
+        <AnimatePresence initial={false} mode="sync">
+          <RouteTransition key={location.key} reducedMotion={reduceRouteMotion}>
+            {homeRoute && <div className="route-home"><HomePage /></div>}
+            <Suspense fallback={<span className="sr-only" role="status">Loading…</span>}>
+              <Routes location={location}>
+                <Route path="/" element={null} />
+                <Route path="/index.html" element={null} />
+                <Route path="/viganogabriele.com" element={null} />
+                <Route path="/viganogabriele.com/" element={null} />
+                <Route path="/viganogabriele.com/index.html" element={null} />
+                <Route path="/cv" element={<CvPage />} />
+                <Route path="/cv/" element={<CvPage />} />
+                <Route path="/notes/:slug" element={<NotePage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </RouteTransition>
+        </AnimatePresence>
       </div>
     </RouteErrorBoundary>
   );

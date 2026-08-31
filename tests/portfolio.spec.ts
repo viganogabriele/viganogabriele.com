@@ -1,5 +1,25 @@
 import AxeBuilder from "@axe-core/playwright";
 import { devices, expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+
+function pdfWithMissingFirstPage() {
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+  ];
+  let pdf = "%PDF-1.7\n";
+  const offsets = [0];
+  for (const [index, object] of objects.entries()) {
+    offsets[index + 1] = Buffer.byteLength(pdf);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  }
+  const xrefOffset = Buffer.byteLength(pdf);
+  pdf += "xref\n0 4\n0000000000 65535 f \n";
+  pdf += offsets.slice(1).map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("");
+  pdf += "0000000000 00000 f \n";
+  pdf += `trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(pdf);
+}
 
 const viewports = [
   { name: "phone-320", width: 320, height: 568 },
@@ -201,6 +221,143 @@ test("certification rows put the icon beside the title on mobile, not above it",
   // to the icon's right rather than below it.
   expect(Math.abs(iconBox!.y + iconBox!.height / 2 - (titleBox!.y + titleBox!.height / 2))).toBeLessThanOrEqual(12);
   expect(titleBox!.x).toBeGreaterThan(iconBox!.x + iconBox!.width);
+});
+
+test.describe("accepted P3 UI behavior", () => {
+  test("P3-02 coordinates project and route exits without leaving outgoing content interactive", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+    await page.evaluate(() => {
+      const record = () => {
+        const details = Array.from(document.querySelectorAll<HTMLElement>("[data-project-detail], [data-project-exiting]"));
+        if (details.length > 1 && details.some((detail) => getComputedStyle(detail).pointerEvents === "none")) {
+          document.documentElement.dataset.projectExitObserved = "true";
+        }
+      };
+      new MutationObserver(record).observe(document.querySelector("#projects")!, { childList: true, subtree: true, attributes: true, attributeFilter: ["style"] });
+    });
+    await page.getByRole("button", { name: "Show next project" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-project-exit-observed", "true");
+    await expect(page.locator("[data-project-detail]")).toHaveCount(1);
+    await expect(page.locator("[data-project-detail]")).toContainText("Interactive Portfolio");
+
+    await page.evaluate(() => {
+      const record = () => {
+        const transitions = Array.from(document.querySelectorAll<HTMLElement>("[data-route-transition]"));
+        if (transitions.length > 1 && transitions.some((transition) => transition.inert && transition.getAttribute("aria-hidden") === "true")) {
+          document.documentElement.dataset.routeExitObserved = "true";
+        }
+      };
+      new MutationObserver(record).observe(document.querySelector("[data-route-content]")!, { childList: true, subtree: true, attributes: true, attributeFilter: ["inert", "aria-hidden"] });
+    });
+    await page.locator("#notes a").first().click();
+    await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-route-exit-observed", "true");
+  });
+
+  test("P3-03 keeps keyboard carousel selection instant while pointer selection stays tuned", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    const carousel = page.getByRole("region", { name: "Selected projects" });
+    await carousel.scrollIntoViewIfNeeded();
+
+    await carousel.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    const focusedCard = carousel.locator("[data-carousel-card]").nth(1);
+    await expect(focusedCard).toBeFocused();
+    await expect(focusedCard).toHaveAttribute("data-active", "true");
+    const keyboardTransform = await focusedCard.evaluate((card) => card.style.transform);
+    await page.waitForTimeout(80);
+    expect(await focusedCard.evaluate((card) => card.style.transform)).toBe(keyboardTransform);
+
+    const next = carousel.getByRole("button", { name: "Show next project" });
+    await next.click();
+    const pointerStart = await focusedCard.evaluate((card) => card.style.transform);
+    await page.waitForTimeout(70);
+    expect(await focusedCard.evaluate((card) => card.style.transform)).not.toBe(pointerStart);
+    await page.waitForTimeout(380);
+    const settled = await focusedCard.evaluate((card) => card.style.transform);
+    await page.waitForTimeout(60);
+    expect(await focusedCard.evaluate((card) => card.style.transform)).toBe(settled);
+  });
+
+  test("P3-04 certification emphasis uses transform without changing padding", async ({ page }) => {
+    await page.goto("/");
+    const row = page.locator(".cert-row").first();
+    await row.scrollIntoViewIfNeeded();
+    const before = await row.evaluate((element) => ({ padding: getComputedStyle(element).paddingLeft, transform: getComputedStyle(element).transform }));
+    await row.hover();
+    await expect.poll(() => row.evaluate((element) => getComputedStyle(element).transform)).not.toBe(before.transform);
+    expect(await row.evaluate((element) => getComputedStyle(element).paddingLeft)).toBe(before.padding);
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect(row).toHaveCSS("transform", "none");
+  });
+
+  test("P3-05 clipboard rejection gives visible and announced feedback", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => {
+      Object.defineProperty(navigator.clipboard, "writeText", { configurable: true, value: () => Promise.reject(new Error("denied")) });
+    });
+    const copy = page.getByRole("button", { name: "Copy address" });
+    await copy.scrollIntoViewIfNeeded();
+    await copy.click();
+    const message = /Copy unavailable\. Email .+\./;
+    await expect(page.locator("[data-copy-feedback]")).toHaveText(message);
+    await expect(page.locator(".sr-only[aria-live='polite']").filter({ hasText: "Copy unavailable" })).toHaveText(message);
+  });
+
+  test("P3-09 visible note dates expose their ISO value", async ({ page }) => {
+    await page.goto("/notes/noticing-what-the-association-wasnt-using");
+    const date = page.locator("article time");
+    await expect(date).toHaveText("Apr 2026");
+    await expect(date).toHaveAttribute("datetime", "2026-04-01");
+  });
+
+  test("P3-10 mobile capabilities disclose natively and preserve summary focus", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    const expertise = page.locator("#expertise");
+    const disclosures = expertise.locator("[data-capability-disclosure]");
+    await expect(disclosures).toHaveCount(5);
+    await expect(disclosures.first()).toHaveAttribute("open", "");
+    await expect(disclosures.nth(1)).not.toHaveAttribute("open", "");
+    const sectionHeight = await expertise.evaluate((section) => section.getBoundingClientRect().height);
+    expect(sectionHeight).toBeLessThan(1_800);
+
+    const summary = disclosures.nth(1).locator("summary");
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(disclosures.nth(1)).toHaveAttribute("open", "");
+    await expect(summary).toBeFocused();
+    await expect(disclosures.nth(1).getByText(/Claude Code and Codex run on an Oracle VPS/i)).toBeVisible();
+  });
+
+  test("P3-11 tutoring copy avoids a two-word desktop orphan at nearby widths", async ({ page }) => {
+    for (const width of [1366, 1440, 1536]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      const paragraph = page.locator("#journey article").last().locator("p").last();
+      const finalLineWords = await paragraph.evaluate((element) => {
+        const node = element.firstChild;
+        if (!node || node.nodeType !== Node.TEXT_NODE) return 0;
+        const text = node.textContent ?? "";
+        const words = Array.from(text.matchAll(/\S+/g));
+        const positions = words.map((word) => {
+          const range = document.createRange();
+          range.setStart(node, word.index!);
+          range.setEnd(node, word.index! + word[0].length);
+          return range.getBoundingClientRect().top;
+        });
+        const lastTop = Math.max(...positions);
+        return positions.filter((top) => Math.abs(top - lastTop) < 1).length;
+      });
+      expect(finalLineWords, `${width}px final line`).toBeGreaterThanOrEqual(4);
+    }
+  });
 });
 
 test("skills carousel keeps a single readable active card and supports controls", async ({ page }) => {
@@ -453,14 +610,20 @@ test("a phone never downloads the portrait it cannot show", async ({ page }) => 
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const portrait = page.locator("[data-hero-portrait]");
+  const systemPortrait = page.locator('[data-hero-portrait-layer="system"] img');
   await expect(page.locator(".hero-visual-frame")).toBeHidden();
   expect(await portrait.evaluate((image: HTMLImageElement) => image.currentSrc)).toBe("");
+  await expect(portrait).not.toHaveAttribute("src", /.+/);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(systemPortrait).not.toHaveAttribute("src", /.+/);
   expect(portraitRequests).toHaveLength(0);
 
   // Crossing the breakpoint re-runs source selection, so the desktop hero is
   // still measured on a real photograph rather than an empty frame.
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.locator(".hero-visual-frame")).toBeVisible();
+  await expect(portrait).toHaveAttribute("src", /gabriele-photo-[^/]+\.jpg$/);
+  await expect(systemPortrait).toHaveAttribute("src", /gabriele-photo-sys-[^/]+\.jpg$/);
   await expect.poll(() => portrait.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
   expect(portraitRequests.length).toBeGreaterThan(0);
 });
@@ -592,6 +755,14 @@ test("home identity metadata and favicon are exact", async ({ page }) => {
   await expect(page.locator('link[rel="icon"][media="(prefers-color-scheme: dark)"]')).toHaveAttribute("href", /\/favicon-dark\.png/);
   await expect(page.locator('link[rel="icon"][media="(prefers-color-scheme: light)"]')).toHaveAttribute("href", /\/favicon-light\.png/);
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", /\/apple-touch-icon\.png/);
+  await expect(page.locator('link[rel="icon"][sizes="any"]')).toHaveAttribute("href", "/favicon.ico?v=11");
+  const deploymentConfig = JSON.parse(await readFile(new URL("../vercel.json", import.meta.url), "utf8")) as {
+    headers: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
+  };
+  expect(deploymentConfig.headers).toContainEqual({
+    source: "/favicon.ico",
+    headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+  });
   const darkFavicon = await page.request.get("/favicon-dark.png");
   const lightFavicon = await page.request.get("/favicon-light.png");
   const appleTouchIcon = await page.request.get("/apple-touch-icon.png");
@@ -624,6 +795,13 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
       expect(html).toMatch(new RegExp(`<meta property="og:type" content="${route.type}"\\s*/?>`));
       expect(html).toContain('content="https://www.viganogabriele.com/og-cover.jpg"');
       expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
+      if (route.path === "/") {
+        expect(html).toContain('id="static-home-shell"');
+        expect(html).toContain("data-static-home-shell");
+      } else {
+        expect(html).not.toContain('id="static-home-shell"');
+        expect(html).not.toContain("data-static-home-shell");
+      }
     }
   }
 
@@ -743,6 +921,77 @@ test("SYS cross-fades the wordmark in both directions without dropping the canva
   await expect(wordmark).not.toHaveClass(/hero-wordmark--particles/);
   await expect(wordmark.locator("canvas")).toBeAttached();
   await expect.poll(() => wordmark.locator("[data-particle-line]").first().evaluate((node) => getComputedStyle(node).color)).not.toBe("rgba(0, 0, 0, 0)");
+});
+
+test("SYS keeps the violet accent through the exit sweep", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const toggle = page.getByRole("button", { name: "Toggle system mode" });
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
+
+  await page.evaluate(() => {
+    const transitions: Array<{ value: string | null; at: number }> = [];
+    (window as Window & { sysModeTransitions?: typeof transitions }).sysModeTransitions = transitions;
+    new MutationObserver(() => transitions.push({
+      value: document.documentElement.getAttribute("data-system-mode"),
+      at: performance.now(),
+    })).observe(document.documentElement, { attributes: true, attributeFilter: ["data-system-mode"] });
+  });
+
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute("data-system-mode", "off");
+  await expect(page.locator("html")).not.toHaveAttribute("data-system-mode", /.+/, { timeout: 3_000 });
+  const holdDuration = await page.evaluate(() => {
+    const transitions = (window as Window & { sysModeTransitions?: Array<{ value: string | null; at: number }> }).sysModeTransitions ?? [];
+    const held = transitions.find(({ value }) => value === "off");
+    const released = transitions.find(({ value, at }) => value === null && at > (held?.at ?? Number.POSITIVE_INFINITY));
+    return held && released ? released.at - held.at : 0;
+  });
+  expect(holdDuration).toBeGreaterThanOrEqual(400);
+});
+
+test("resizing a settled SYS wordmark does not replay its gather", async ({ page }) => {
+  await page.addInitScript(() => {
+    const descriptor = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, "globalAlpha");
+    if (!descriptor?.get || !descriptor.set) return;
+    const samples: number[] = [];
+    (window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples = samples;
+    Object.defineProperty(CanvasRenderingContext2D.prototype, "globalAlpha", {
+      configurable: descriptor.configurable,
+      enumerable: descriptor.enumerable,
+      get() { return descriptor.get?.call(this); },
+      set(value: number) {
+        if (this.canvas.isConnected && this.canvas.classList.contains("hero-particle-canvas")) samples.push(value);
+        descriptor.set?.call(this, value);
+      },
+    });
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle system mode" }).click();
+  await expect(page.locator(".hero-wordmark")).toHaveClass(/hero-wordmark--particles/);
+  // A fixed wait here raced the gather's actual completion under load (its
+  // per-particle delay plus GATHER_MS leaves only a thin margin), letting an
+  // in-flight gather bleed into the resize below and fail the assertion for a
+  // reason unrelated to what it tests. Polling for genuinely settled alpha —
+  // several consecutive samples at 1 — waits exactly as long as gathering
+  // actually takes instead of guessing a duration.
+  await expect.poll(() => page.evaluate(() => {
+    const samples = (window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples ?? [];
+    return samples.length >= 5 && samples.slice(-5).every((sample) => sample === 1);
+  })).toBe(true);
+  const canvas = page.locator(".hero-particle-canvas");
+  const widthBefore = await canvas.getAttribute("width");
+  await page.evaluate(() => { ((window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples ?? []).length = 0; });
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await expect.poll(() => canvas.getAttribute("width")).not.toBe(widthBefore);
+  await expect.poll(() => page.evaluate(() => (window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples?.length ?? 0)).toBeGreaterThan(0);
+  const minimumAlpha = await page.evaluate(() => Math.min(...((window as Window & { particleAlphaSamples?: number[] }).particleAlphaSamples ?? [])));
+  expect(minimumAlpha).toBe(1);
 });
 
 test("hero keeps the photograph visible until the SYS portrait is ready", async ({ page }) => {
@@ -1001,6 +1250,7 @@ test("SYS laser never changes page or viewport dimensions", async ({ page }) => 
 });
 
 test("the loading screen is a lightweight readiness gate without a minimum duration", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   // These routes must match whatever [data-hero-portrait] loads, because that is
   // the image the readiness gate waits on: the photograph, not the SYS wireframe.
   let releasePortrait!: () => void;
@@ -1011,11 +1261,15 @@ test("the loading screen is a lightweight readiness gate without a minimum durat
   });
   const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
   const preloader = page.locator("[data-preloader]");
+  const staticHomeShell = page.locator("#static-home-shell");
   await expect(preloader).toBeVisible();
+  await expect(staticHomeShell).toBeVisible();
+  await expect(staticHomeShell.locator(".static-home-shell__title")).toContainText("GABRIELEVIGANÒ");
   await expect(preloader.getByRole("progressbar", { name: "Loading page" })).toHaveCount(1);
   releasePortrait();
   await navigation;
   await expect(preloader).toHaveCount(0);
+  await expect(staticHomeShell).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 
   // Drop the interception before measuring the warm reload. Holding every
@@ -1041,8 +1295,14 @@ test("skip link is revealed only for keyboard focus", async ({ page }) => {
   await expect.poll(() => skipLink.evaluate((node) => Number.parseFloat(getComputedStyle(node).top))).toBeGreaterThanOrEqual(0);
 });
 
-test("preloader remains static with reduced motion and secondary routes dismiss it as soon as ready", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
+test("preloader remains static with reduced motion and secondary routes dismiss it as soon as ready", async ({ browser, baseURL }) => {
+  const context = await browser.newContext({
+    baseURL,
+    colorScheme: "dark",
+    reducedMotion: "reduce",
+    serviceWorkers: "block",
+  });
+  const page = await context.newPage();
   let releasePortrait!: () => void;
   const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
   await page.route("**/*gabriele-photo*", async (route) => {
@@ -1062,6 +1322,7 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
   await page.goto("/does-not-exist");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await context.close();
 });
 
 test("CV is readable before the PDF is, and the viewer says it is still working", async ({ page }) => {
@@ -1101,6 +1362,27 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   releasePdf();
   await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
   expect(await viewportHeight()).toBe(heightBefore);
+});
+
+test("a PDF whose document loads but whose first page is missing shows the recovery UI", async ({ page }) => {
+  const partialPdf = pdfWithMissingFirstPage();
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const loadingTask = getDocument({ data: new Uint8Array(partialPdf), disableWorker: true });
+  const document = await loadingTask.promise;
+  expect(document.numPages).toBe(1);
+  await expect(document.getPage(1)).rejects.toThrow(/page dictionary/i);
+  await document.destroy();
+
+  await page.route("**/cv/Vigano_Gabriele_CV.pdf", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/pdf",
+    body: partialPdf,
+  }));
+  await page.goto("/cv");
+
+  await expect(page.getByText("The document could not load in this viewer.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open with your browser’s PDF viewer" })).toHaveAttribute("href", "/cv/Vigano_Gabriele_CV.pdf");
+  await expect(page.getByText(/Invalid PDF|Failed to load PDF/i)).toHaveCount(0);
 });
 
 test("the CV's own PDF links are announceable", async ({ page }) => {
@@ -1169,6 +1451,24 @@ test("fine-pointer cursor works at compact desktop width and is absent on touch"
   await target.dispatchEvent("mouseover");
   await expect(page.locator("[data-custom-cursor]")).toHaveAttribute("data-visible", "true");
   await expect(page.locator("[data-custom-cursor]")).toHaveAttribute("data-active", "true");
+});
+
+test("revoking pointer effects clears the last border glow position", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperties(navigator, {
+      deviceMemory: { configurable: true, get: () => 8 },
+      hardwareConcurrency: { configurable: true, get: () => 8 },
+    });
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const glow = page.locator(".hero-visual-frame .border-glow");
+  await glow.hover({ position: { x: 2, y: 2 } });
+  await expect.poll(() => glow.evaluate((node) => Number(node.style.getPropertyValue("--bg-edge")))).toBeGreaterThan(0.5);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(() => glow.evaluate((node) => Number(node.style.getPropertyValue("--bg-edge")))).toBe(0);
 });
 
 // Regression: Brave with "Desktop site" and in-app webviews (Telegram) expose
@@ -1295,7 +1595,11 @@ test("capability scroll selection keeps rows stable after their reveal", async (
       const page = await context.newPage();
       await page.goto("/");
       await expect(page.locator("[data-preloader]")).toHaveCount(0);
-      const row = page.locator(".expertise-item").nth(1);
+      const row = device.hasTouch
+        ? page.locator("[data-capability-disclosure]").nth(1)
+        : page.locator(".expertise-item").nth(1);
+
+      if (device.hasTouch) await row.locator("summary").click();
 
       await row.evaluate((element) => {
         const top = element.getBoundingClientRect().top + window.scrollY;

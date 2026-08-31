@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import photoAvif from "../../assets/gabriele-photo.avif";
+import photoJpeg from "../../assets/gabriele-photo.jpg";
 import photoWebp from "../../assets/gabriele-photo.webp";
 import systemPhotoAvif from "../../assets/gabriele-photo-sys.avif";
+import systemPhotoJpeg from "../../assets/gabriele-photo-sys.jpg";
 import systemPhotoWebp from "../../assets/gabriele-photo-sys.webp";
 import { heroCopy } from "../../data/sections";
 import { HERO_PORTRAIT_MEDIA } from "../../lib/viewport";
@@ -40,9 +42,24 @@ function useSystemPortraitArmed(systemActive: boolean) {
   return armed;
 }
 
+function useHeroPortraitEligible() {
+  const [eligible, setEligible] = useState(() => window.matchMedia(HERO_PORTRAIT_MEDIA).matches);
+
+  useEffect(() => {
+    const query = window.matchMedia(HERO_PORTRAIT_MEDIA);
+    const update = () => setEligible(query.matches);
+    query.addEventListener("change", update);
+    update();
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  return eligible;
+}
+
 function PortraitFallback({ systemActive }: { systemActive: boolean }) {
   const [systemPortraitReady, setSystemPortraitReady] = useState(false);
   const systemPortraitArmed = useSystemPortraitArmed(systemActive);
+  const portraitEligible = useHeroPortraitEligible();
   const showSystemPortrait = systemActive && systemPortraitReady;
 
   return (
@@ -64,6 +81,7 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
           <source media={HERO_PORTRAIT_MEDIA} srcSet={photoAvif} type="image/avif" />
           <source media={HERO_PORTRAIT_MEDIA} srcSet={photoWebp} type="image/webp" />
           <img
+            src={portraitEligible ? photoJpeg : undefined}
             data-hero-portrait
             alt=""
             width="1200"
@@ -77,6 +95,7 @@ function PortraitFallback({ systemActive }: { systemActive: boolean }) {
           {systemPortraitArmed && <source media={HERO_PORTRAIT_MEDIA} srcSet={systemPhotoAvif} type="image/avif" />}
           {systemPortraitArmed && <source media={HERO_PORTRAIT_MEDIA} srcSet={systemPhotoWebp} type="image/webp" />}
           <img
+            src={systemPortraitArmed && portraitEligible ? systemPhotoJpeg : undefined}
             alt=""
             width="1254"
             height="1254"
