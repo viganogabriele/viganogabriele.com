@@ -7,6 +7,7 @@ export const loadNotFoundPage = () => import("../pages/NotFoundPage");
 
 const prefetchedPaths = new Set<string>();
 
+
 export function prefetchRoute(pathname: string) {
   if (HOME_PATHS.has(pathname) || pathname === profile.cvPath) return;
   if (prefetchedPaths.has(pathname)) return;

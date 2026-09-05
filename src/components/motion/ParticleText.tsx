@@ -271,6 +271,10 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
 
     const sample = async () => {
       const token = ++build;
+      // A completed SYS field must be remapped to new glyph geometry on resize,
+      // not treated as a fresh activation. Replaying its gather animation was
+      // the title flash seen after a resize/orientation change.
+      const preserveSettledField = activeNow && !gathering && !releasing && particles.length > 0;
       // Keep the real text painted while an inactive canvas is sampled. During
       // active resizes the existing text/canvas cross-fade state is preserved,
       // avoiding a one-frame flash of solid type.
@@ -395,7 +399,18 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
           };
         });
       recolor();
-      setActiveState(activeNow);
+      if (preserveSettledField) {
+        gathering = false;
+        releasing = false;
+        for (const particle of particles) {
+          particle.x = particle.toX;
+          particle.y = particle.toY;
+        }
+        host.classList.add("hero-wordmark--particles");
+        run();
+      } else {
+        setActiveState(activeNow);
+      }
     };
 
     const queueSample = () => {
