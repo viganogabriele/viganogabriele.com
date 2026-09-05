@@ -6,6 +6,11 @@ const baseURL = `http://127.0.0.1:${playwrightPort}`;
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
+  // The suite intentionally exercises animation timing and in-flight route
+  // transitions. Running browser projects concurrently on GitHub's shared
+  // runners starves those checks and turns real-time assertions flaky.
+  workers: process.env.CI ? 1 : undefined,
+  forbidOnly: Boolean(process.env.CI),
   timeout: 45_000,
   expect: { timeout: 8_000 },
   reporter: [["list"]],

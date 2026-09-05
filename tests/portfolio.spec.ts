@@ -207,7 +207,8 @@ test("skills carousel keeps a single readable active card and supports controls"
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".tool-carousel");
+  const carousel = page.getByRole("region", { name: "Skill groups" });
+  await expect(carousel).toBeVisible();
   await carousel.scrollIntoViewIfNeeded();
   await expect(carousel.locator("[data-carousel-card]")).toHaveCount(4);
   await expect(carousel.locator('[data-carousel-card][data-active="true"]')).toHaveCount(1);
@@ -225,7 +226,8 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".tool-carousel");
+  const carousel = page.getByRole("region", { name: "Skill groups" });
+  await expect(carousel).toBeVisible();
   await carousel.scrollIntoViewIfNeeded();
   await page.waitForTimeout(800);
   await expect(carousel.getByRole("button", { name: /Bring Code & markup to the front/ })).toHaveAttribute("data-active", "true");
@@ -234,6 +236,7 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   const marquee = page.locator(".tool-marquee");
   await marquee.scrollIntoViewIfNeeded();
   const track = marquee.locator(".logo-loop > div");
+  await expect(track).toBeVisible();
   const parkedTransform = await track.evaluate((element) => getComputedStyle(element).transform);
   await page.waitForTimeout(500);
   await expect(track).toHaveCSS("transform", parkedTransform);
@@ -1049,13 +1052,12 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
     await portraitReleased;
     await route.continue();
   });
-  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
-  const preloader = page.locator("[data-preloader]");
+  await page.goto("/", { waitUntil: "commit" });
+  const preloader = page.locator('[data-preloader][data-reduced-motion="true"]');
   await expect(preloader).toBeVisible();
-  await expect(preloader).toHaveAttribute("data-reduced-motion", "true");
   releasePortrait();
-  await navigation;
-  await expect(preloader).toHaveCount(0);
+  await page.waitForLoadState("domcontentloaded");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   await page.goto("/notes/noticing-what-the-association-wasnt-using");
   await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
