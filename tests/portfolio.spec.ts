@@ -771,8 +771,8 @@ test("disabling SYS during an async wordmark resample restores the real text", a
         return delayed;
       },
     });
-    window.dispatchEvent(new Event("resize"));
   });
+  await page.setViewportSize({ width: 1360, height: 900 });
   await expect.poll(() => page.evaluate(() => Boolean((window as Window & { particleFontsRead?: boolean }).particleFontsRead))).toBe(true);
 
   await system.click();
