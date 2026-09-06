@@ -281,6 +281,12 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
       await document.fonts.ready;
       if (token !== build) return;
 
+      // Read transition state only after the async boundary. SYS may have been
+      // disabled while fonts were settling; preserving the state captured
+      // before the await would then re-add the particle-only class permanently.
+      // A completed field is still remapped without replaying its gather.
+      const preserveSettledField = activeNow && !gathering && !releasing && particles.length > 0;
+
       const hostBox = host.getBoundingClientRect();
       if (hostBox.width <= 0 || hostBox.height <= 0) return;
       width = Math.ceil(hostBox.width) + PAD * 2;
@@ -395,7 +401,18 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
           };
         });
       recolor();
-      setActiveState(activeNow);
+      if (preserveSettledField) {
+        gathering = false;
+        releasing = false;
+        for (const particle of particles) {
+          particle.x = particle.toX;
+          particle.y = particle.toY;
+        }
+        host.classList.add("hero-wordmark--particles");
+        run();
+      } else {
+        setActiveState(activeNow);
+      }
     };
 
     const queueSample = () => {

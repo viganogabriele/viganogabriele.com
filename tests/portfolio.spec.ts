@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { devices, expect, test } from "@playwright/test";
 
+const testServerOrigin = `http://127.0.0.1:${Number(process.env.PLAYWRIGHT_PORT ?? 4173)}`;
+
 const viewports = [
   { name: "phone-320", width: 320, height: 568 },
   { name: "iphone-se", width: 375, height: 667 },
@@ -207,7 +209,8 @@ test("skills carousel keeps a single readable active card and supports controls"
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".tool-carousel");
+  const carousel = page.getByRole("region", { name: "Skill groups" });
+  await expect(carousel).toBeVisible();
   await carousel.scrollIntoViewIfNeeded();
   await expect(carousel.locator("[data-carousel-card]")).toHaveCount(4);
   await expect(carousel.locator('[data-carousel-card][data-active="true"]')).toHaveCount(1);
@@ -225,7 +228,8 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  const carousel = page.locator(".tool-carousel");
+  const carousel = page.getByRole("region", { name: "Skill groups" });
+  await expect(carousel).toBeVisible();
   await carousel.scrollIntoViewIfNeeded();
   await page.waitForTimeout(800);
   await expect(carousel.getByRole("button", { name: /Bring Code & markup to the front/ })).toHaveAttribute("data-active", "true");
@@ -234,6 +238,7 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   const marquee = page.locator(".tool-marquee");
   await marquee.scrollIntoViewIfNeeded();
   const track = marquee.locator(".logo-loop > div");
+  await expect(track).toBeVisible();
   const parkedTransform = await track.evaluate((element) => getComputedStyle(element).transform);
   await page.waitForTimeout(500);
   await expect(track).toHaveCSS("transform", parkedTransform);
@@ -745,6 +750,38 @@ test("SYS cross-fades the wordmark in both directions without dropping the canva
   await expect.poll(() => wordmark.locator("[data-particle-line]").first().evaluate((node) => getComputedStyle(node).color)).not.toBe("rgba(0, 0, 0, 0)");
 });
 
+test("disabling SYS during an async wordmark resample restores the real text", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const wordmark = page.locator(".hero-wordmark");
+  const system = page.getByRole("button", { name: "Toggle system mode" });
+  await system.click();
+  await expect(wordmark).toHaveClass(/hero-wordmark--particles/);
+
+  await page.evaluate(() => {
+    let release!: () => void;
+    const delayed = new Promise<void>((resolve) => { release = resolve; });
+    (window as Window & { releaseParticleFonts?: () => void; particleFontsRead?: boolean }).releaseParticleFonts = release;
+    Object.defineProperty(document.fonts, "ready", {
+      configurable: true,
+      get() {
+        (window as Window & { particleFontsRead?: boolean }).particleFontsRead = true;
+        return delayed;
+      },
+    });
+  });
+  await page.setViewportSize({ width: 1360, height: 900 });
+  await expect.poll(() => page.evaluate(() => Boolean((window as Window & { particleFontsRead?: boolean }).particleFontsRead))).toBe(true);
+
+  await system.click();
+  await expect(system).toHaveAttribute("aria-pressed", "false");
+  await page.evaluate(() => (window as Window & { releaseParticleFonts?: () => void }).releaseParticleFonts?.());
+  await expect(wordmark).not.toHaveClass(/hero-wordmark--particles/);
+  await expect(wordmark.locator("[data-particle-line]").first()).not.toHaveCSS("color", "rgba(0, 0, 0, 0)");
+});
+
 test("hero keeps the photograph visible until the SYS portrait is ready", async ({ page }) => {
   await page.addInitScript(() => {
     (window as Window & { releaseSystemPortrait?: boolean }).releaseSystemPortrait = false;
@@ -1049,13 +1086,12 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
     await portraitReleased;
     await route.continue();
   });
-  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
-  const preloader = page.locator("[data-preloader]");
+  await page.goto("/", { waitUntil: "commit" });
+  const preloader = page.locator('[data-preloader][data-reduced-motion="true"]');
   await expect(preloader).toBeVisible();
-  await expect(preloader).toHaveAttribute("data-reduced-motion", "true");
   releasePortrait();
-  await navigation;
-  await expect(preloader).toHaveCount(0);
+  await page.waitForLoadState("domcontentloaded");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   await page.goto("/notes/noticing-what-the-association-wasnt-using");
   await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
@@ -1346,7 +1382,7 @@ test("home, note, and 404 have no runtime errors or failed same-origin requests"
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("requestfailed", (request) => {
-    if (new URL(request.url()).origin === "http://127.0.0.1:4173") failedRequests.push(request.url());
+    if (new URL(request.url()).origin === testServerOrigin) failedRequests.push(request.url());
   });
 
   for (const path of ["/", "/notes/noticing-what-the-association-wasnt-using"]) {
@@ -1656,6 +1692,10 @@ test("every route is free of serious accessibility violations", async ({ page })
       await test.step(`${path} @ ${size.width}`, async () => {
         await page.goto(path);
         await expect(page.locator("[data-preloader]")).toHaveCount(0, { timeout: 20_000 });
+        const splitTextPieces = page.locator('[data-split-text] > [aria-hidden="true"]');
+        if (await splitTextPieces.count()) {
+          await expect.poll(() => splitTextPieces.evaluateAll((pieces) => pieces.every((piece) => Number.parseFloat(getComputedStyle(piece).opacity) >= 0.999))).toBe(true);
+        }
         const results = await new AxeBuilder({ page })
           .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
           .exclude("canvas")
