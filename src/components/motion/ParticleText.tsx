@@ -271,10 +271,6 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
 
     const sample = async () => {
       const token = ++build;
-      // A completed SYS field must be remapped to new glyph geometry on resize,
-      // not treated as a fresh activation. Replaying its gather animation was
-      // the title flash seen after a resize/orientation change.
-      const preserveSettledField = activeNow && !gathering && !releasing && particles.length > 0;
       // Keep the real text painted while an inactive canvas is sampled. During
       // active resizes the existing text/canvas cross-fade state is preserved,
       // avoiding a one-frame flash of solid type.
@@ -284,6 +280,12 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
 
       await document.fonts.ready;
       if (token !== build) return;
+
+      // Read transition state only after the async boundary. SYS may have been
+      // disabled while fonts were settling; preserving the state captured
+      // before the await would then re-add the particle-only class permanently.
+      // A completed field is still remapped without replaying its gather.
+      const preserveSettledField = activeNow && !gathering && !releasing && particles.length > 0;
 
       const hostBox = host.getBoundingClientRect();
       if (hostBox.width <= 0 || hostBox.height <= 0) return;
