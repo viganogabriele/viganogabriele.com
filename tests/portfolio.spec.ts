@@ -772,7 +772,12 @@ test("disabling SYS during an async wordmark resample restores the real text", a
       },
     });
   });
-  await page.setViewportSize({ width: 1360, height: 900 });
+  // Change the observed element itself. A viewport resize may leave this
+  // max-width-constrained wordmark at the same size, so ResizeObserver would
+  // correctly have nothing to report (as happens on GitHub's Chromium).
+  await wordmark.evaluate((node) => {
+    node.style.width = `${node.getBoundingClientRect().width - 1}px`;
+  });
   await expect.poll(() => page.evaluate(() => Boolean((window as Window & { particleFontsRead?: boolean }).particleFontsRead))).toBe(true);
 
   await system.click();
