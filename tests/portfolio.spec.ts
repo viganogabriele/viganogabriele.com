@@ -1393,6 +1393,12 @@ test("home, note, and 404 have no runtime errors or failed same-origin requests"
   for (const path of ["/", "/notes/noticing-what-the-association-wasnt-using"]) {
     await page.goto(path);
     await expect(page.locator("#main-content")).toBeVisible();
+    // `#main-content` is synchronous on Home while its below-the-fold
+    // components are still importing. Navigating the document at that point
+    // makes WebKit report the intentionally cancelled module as a page error.
+    // Let each route finish its own requests so this assertion observes real
+    // load failures instead of cancellations caused by the test itself.
+    await page.waitForLoadState("networkidle");
   }
 
   // A document-level HTTP 404 is intentionally reported as a browser console
@@ -1400,6 +1406,7 @@ test("home, note, and 404 have no runtime errors or failed same-origin requests"
   // a failed asset or runtime error here.
   await page.goto("/does-not-exist");
   await expect(page.locator("#main-content")).toBeVisible();
+  await page.waitForLoadState("networkidle");
 
   expect(errors.filter((error) => !error.includes("404 (Not Found)"))).toEqual([]);
   expect(failedRequests).toEqual([]);
