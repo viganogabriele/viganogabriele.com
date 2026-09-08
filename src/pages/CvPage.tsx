@@ -1,7 +1,6 @@
 import { m } from "framer-motion";
 import { ArrowLeft, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Link } from "react-router-dom";
@@ -17,6 +16,7 @@ import { useSystemMode } from "../hooks/useSystemMode";
 import { ease } from "../lib/motion";
 import { PageMeta } from "../lib/seo";
 import { useRouteReady } from "../hooks/useRouteReady";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 // `new URL("pdfjs-dist/...", import.meta.url)` does no module resolution: a bare
 // specifier is just concatenated onto the importing file's URL, so in the built

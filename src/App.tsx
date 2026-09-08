@@ -28,9 +28,11 @@ function useRoutePrefetching() {
       prefetchRoute(anchor.pathname);
     };
     document.addEventListener("pointerover", prefetch, { passive: true });
+    document.addEventListener("pointerdown", prefetch, { passive: true });
     document.addEventListener("focusin", prefetch);
     return () => {
       document.removeEventListener("pointerover", prefetch);
+      document.removeEventListener("pointerdown", prefetch);
       document.removeEventListener("focusin", prefetch);
     };
   }, []);
@@ -271,8 +273,12 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
       // restore up to 16px out. See layoutTop in lib/navigationState.
       const anchorDocumentTop = anchor ? layoutTop(anchor) : null;
       const target = anchorDocumentTop !== null ? anchorDocumentTop - snapshot.anchor!.offset : snapshot.y;
-      const canReach = height - window.innerHeight + 1 >= target;
-      if (canReach) window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
+      const maxScroll = Math.max(0, height - window.innerHeight);
+      const canReach = maxScroll + 1 >= target;
+      // Dynamic sections can leave a remounted route a few pixels shorter for
+      // one frame. Clamp rather than abandoning restoration; later frames still
+      // converge to the saved anchor once layout has settled.
+      window.scrollTo({ top: canReach ? Math.max(0, target) : maxScroll, behavior: "auto" });
       // Reuses anchorDocumentTop rather than walking offsetParent a second time:
       // layoutTop is scroll-independent, so subtracting the post-scroll scrollY
       // gives the same viewport offset for one forced reflow instead of two.
