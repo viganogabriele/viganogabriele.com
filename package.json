@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
-    "test:e2e:docker": "docker run --rm -v $(pwd):/work -w /work -e HOME=/tmp --user $(id -u):$(id -g) mcr.microsoft.com/playwright:v1.61.1-noble npx playwright test",
+    "test:e2e:csp": "playwright test --project=csp-headers",
+    "test:e2e:docker": "docker run --rm -v $(pwd):/work -w /work -e HOME=/tmp --user $(id -u):$(id -g) mcr.microsoft.com/playwright:v1.62.1-noble npx playwright test",
     "preview": "vite preview",
     "generate:og-card": "node scripts/generate-og-card.mjs",
     "verify:security-config": "node --test scripts/verify-csp.test.mjs && node scripts/verify-csp.mjs"
@@ -36,9 +37,9 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^9.39.4",
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.2.2",
-    "@types/node": "^24.12.2",
+    "@types/node": "^22.19.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",

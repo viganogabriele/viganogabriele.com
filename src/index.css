@@ -1902,3 +1902,17 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
 @media (prefers-reduced-motion: reduce) {
   .route-progress-bar { animation: none; transform: scaleX(0.6); }
 }
+
+/* The CV viewport is content-sized below `sm:` (it only gets a fixed height at
+   40rem and up), so until pdf.js rasterised page one the box held nothing but a
+   one-line "Loading document…" and then grew by a full page height when the
+   canvas landed — 0.14 CLS on a phone, all of it after first paint. Reserving
+   the page box in CSS, not from a measured value, means it is reserved on the
+   very first paint. The frame spans the viewport's content width and the canvas
+   is rendered at exactly that width, so width/aspect is the height the canvas
+   will take: nothing moves when it arrives. The custom property is written from
+   the real page geometry once `onLoadSuccess` has it; the A4 fallback is what
+   the CV actually is, so the two agree and the initial reservation is exact. */
+@media (max-width: 639px) {
+  [data-cv-page-frame] { aspect-ratio: var(--cv-page-aspect, 0.7071); }
+}

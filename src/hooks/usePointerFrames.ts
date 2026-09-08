@@ -25,6 +25,12 @@ export function usePointerFrames({ target, onPoint, enabled = true }: PointerFra
     resolve.current = target;
   });
 
+  // Deps are [enabled] while `resolve.current()` is read once, so the
+  // listeners stay bound to whichever node the target resolved to at setup. Every
+  // caller points this at a ref on its own stable root element (BorderGlow at
+  // its outermost div), so that node outlives the hook and the identity cannot
+  // change under it. A caller that resolves to a conditionally rendered element
+  // would need the node itself in the dependency list.
   useEffect(() => {
     if (!enabled) return;
     const node = resolve.current();

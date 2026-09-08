@@ -20,4 +20,5 @@ const paths = await htmlFiles(resolve(root, "dist"));
 if (!paths.length) throw new Error("No built HTML documents found in dist; run the production build first.");
 const documents = await Promise.all(paths.map(async (path) => ({ name: path.slice(root.length + 1), html: await readFile(path, "utf8") })));
 const result = verifyPolicy(policy, documents);
+for (const note of result.notes) console.warn(`Note: ${note}`);
 console.log(`Verified CSP for ${documents.length} built HTML documents: ${result.emittedHashes.join(", ")}.`);

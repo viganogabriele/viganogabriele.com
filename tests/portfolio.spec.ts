@@ -1136,7 +1136,7 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   // Measured through offsetHeight, not getBoundingClientRect: the entrance is
   // a transform still interpolating while this runs, and a rect read mid-scale
   // comes back a fraction of a pixel off a layout that has not changed at all.
-  const viewportHeight = () => page.locator("[data-cv-viewport]").evaluate((node) => node.offsetHeight);
+  const viewportHeight = () => page.locator("[data-cv-viewport]").evaluate((node: HTMLElement) => node.offsetHeight);
   const heightBefore = await viewportHeight();
   expect(heightBefore).toBeGreaterThan(0);
   releasePdf();
@@ -1450,7 +1450,7 @@ test("closing a note restores its exact position on desktop and iPhone", async (
 
     // The row is already in view. A DOM click models the browser interaction
     // without Playwright's locator auto-scroll changing the captured offset.
-    await note.evaluate((element) => element.click());
+    await note.evaluate((element: HTMLElement) => element.click());
     await expect(page.getByRole("heading", { name: /The Prompt Was Never the Hard Part/i })).toBeVisible();
     await page.getByRole("button", { name: "Close note and return to home" }).click();
     await expect(note).toBeVisible();
@@ -1481,7 +1481,7 @@ test("browser back still restores the exact note position", async ({ page }) => 
     return transform === "none" ? 0 : Math.abs(new DOMMatrixReadOnly(transform).m42);
   })).toBeLessThanOrEqual(0.1);
   const expectedY = await page.evaluate(() => window.scrollY);
-  await note.evaluate((element) => element.click());
+  await note.evaluate((element: HTMLElement) => element.click());
   await page.goBack();
   await expect(note).toBeVisible();
   await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(2);
@@ -1528,6 +1528,76 @@ test("browser back also restores position across a Home <-> CV round trip", asyn
   // and replayed a real position instead of dropping back to 0 — holds well
   // inside this margin.
   await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(24);
+});
+
+/** The one selector getScrollSnapshot() uses, and nothing else does. */
+const SNAPSHOT_SELECTOR = "main section[id], [data-scroll-anchor]";
+type SnapshotCounter = Window & { snapshotReads?: number };
+
+test("a restore that cannot reach its target never records the clamp as a reader position", async ({ page }) => {
+  // The settle loop clamps an unreachable target to the bottom of the page so
+  // it can keep converging as layout grows in. That clamp is a real scroll and
+  // fires a real `scroll` event, so RouteScrollManager's capture listener would
+  // otherwise store bottom-of-page as this history entry's saved position — and
+  // every later return to it would then restore there. Counting snapshot reads
+  // is the only way to watch that decision from outside the app: the map it
+  // writes to is a ref, and in the unreachable case the value it would write is
+  // indistinguishable from where the clamp legitimately left the page.
+  await page.addInitScript((selector) => {
+    const counter = window as SnapshotCounter;
+    counter.snapshotReads = 0;
+    const native = Document.prototype.querySelectorAll;
+    Document.prototype.querySelectorAll = function patched(this: Document, selectors: string) {
+      if (selectors === selector) counter.snapshotReads = (counter.snapshotReads ?? 0) + 1;
+      return native.call(this, selectors);
+    } as typeof Document.prototype.querySelectorAll;
+  }, SNAPSHOT_SELECTOR);
+  const reads = () => page.evaluate(() => (window as SnapshotCounter).snapshotReads ?? 0);
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  // The very bottom, so the saved position is the largest one this route has,
+  // and the same DOM click as the round-trip test above so navigating away does
+  // not move the page first.
+  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "auto" }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(800);
+  const expectedY = await page.evaluate(() => window.scrollY);
+  const cvLink = page.locator("footer").getByRole("link", { name: "View CV" });
+  await cvLink.evaluate((element) => { element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); (element as HTMLElement).click(); });
+  await expect(page).toHaveURL(/\/cv$/);
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  // Content below the saved anchor is what has to disappear. Removing content
+  // above it changes nothing: the target is anchor-relative by design, so the
+  // anchor moving up moves the target with it. Dropping the footer instead
+  // lowers the maximum scroll while leaving every anchor exactly where it was,
+  // which is the shape of the real case — a route that mounts with a section
+  // not yet at full height — held still long enough to assert on. Same
+  // document, so the style outlives the SPA navigation back to Home.
+  await page.addStyleTag({ content: "footer { display: none !important; }" });
+
+  await page.evaluate(() => { (window as SnapshotCounter).snapshotReads = 0; });
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  const maxScroll = await page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
+  expect(expectedY, "saved position is meant to be out of reach on this mount").toBeGreaterThan(maxScroll);
+  // Long enough to cover many frames of the loop clamping, well short of the
+  // 5s settle timeout: without the guard this counts one read per frame.
+  await page.waitForTimeout(1_000);
+  expect(await reads(), "the restore recorded its own clamp as a reader position").toBe(0);
+
+  // The guard has to lift the moment the reader takes over, or nothing would
+  // record a position again for the rest of this route's life. A synthetic
+  // wheel event rather than page.mouse.wheel: it is the takeOver signal the app
+  // listens for, dispatched identically in all three engines. The scroll the
+  // takeOver frame itself produces is still inside the guard by design, so this
+  // polls rather than asserting on a single nudge.
+  await page.evaluate(() => window.dispatchEvent(new WheelEvent("wheel", { deltaY: -50 })));
+  await expect.poll(async () => {
+    await page.evaluate(() => window.scrollBy({ top: -30, behavior: "auto" }));
+    return reads();
+  }, { message: "reader scrolling is no longer recorded after a restore" }).toBeGreaterThan(0);
 });
 
 test("a deep-linked CV visit still restores Home's position on the way back", async ({ page }) => {
