@@ -76,12 +76,29 @@ test.describe("production security headers", () => {
     const response = await request.get("/notes/vpn-off-by-default");
     const html = await response.text();
     expect(html).toContain("<h1>Why my home VPN is off by default</h1>");
-    expect(html).toMatch(/<div hidden data-prerendered="note-vpn-off-by-default">/);
+    expect(html).toMatch(/<noscript><main data-prerendered="note-vpn-off-by-default">/);
 
-    // And the reader never meets it: React replaces the container's contents on
-    // mount, so by the time the route is up the element is gone entirely.
+    // With scripting enabled the fallback stays inert and React renders the
+    // interactive route in #root instead.
     await page.goto("/notes/vpn-off-by-default");
     await expect(page.locator("[data-preloader]")).toHaveCount(0);
     await expect(page.locator("[data-prerendered]")).toHaveCount(0);
+  });
+
+  test("a note is visible and readable without JavaScript", async ({ browser }, testInfo) => {
+    const context = await browser.newContext({
+      baseURL: String(testInfo.project.use.baseURL),
+      javaScriptEnabled: false,
+    });
+    try {
+      const noJsPage = await context.newPage();
+      await noJsPage.goto("/notes/vpn-off-by-default");
+      const article = noJsPage.locator('[data-prerendered="note-vpn-off-by-default"]');
+      await expect(article).toBeVisible();
+      await expect(article.getByRole("heading", { name: "Why my home VPN is off by default" })).toBeVisible();
+      await expect(article).toContainText("VPN");
+    } finally {
+      await context.close();
+    }
   });
 });

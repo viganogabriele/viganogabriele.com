@@ -1106,6 +1106,7 @@ test("preloader remains static with reduced motion and secondary routes dismiss 
 });
 
 test("CV is readable before the PDF is, and the viewer says it is still working", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   let releasePdf!: () => void;
   const pdfReleased = new Promise<void>((resolve) => { releasePdf = resolve; });
   let markPdfRequested!: () => void;
@@ -1138,10 +1139,14 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   // comes back a fraction of a pixel off a layout that has not changed at all.
   const viewportHeight = () => page.locator("[data-cv-viewport]").evaluate((node: HTMLElement) => node.offsetHeight);
   const heightBefore = await viewportHeight();
+  // A footer below the viewer catches layout shift that a viewport-only height
+  // check would miss. offsetTop excludes the CV section's entrance transform.
+  const footerTopBefore = await page.locator("footer").evaluate((node: HTMLElement) => node.offsetTop);
   expect(heightBefore).toBeGreaterThan(0);
   releasePdf();
   await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
   expect(await viewportHeight()).toBe(heightBefore);
+  expect(await page.locator("footer").evaluate((node: HTMLElement) => node.offsetTop)).toBe(footerTopBefore);
 });
 
 test("the CV's own PDF links are announceable", async ({ page }) => {

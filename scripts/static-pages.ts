@@ -80,30 +80,25 @@ function headFor(metadata: PageMetadata, structuredData?: { id: string; data: Re
  * Bingbot is inconsistent, and the crawlers behind AI answers largely do not
  * execute JS at all — they got four metadata-only shells.
  *
- * `hidden`, and inside #root, on purpose. createRoot() replaces the contents of
- * its container on mount, so this lives only in the window before React boots —
- * the reader is shown the real route, never this. Painting it in that window
- * instead would put the prose on screen for a beat and then cover it with the
- * preloader that gates the lazy note chunk, which is a worse handoff than the
- * one PR #23 tuned. Nothing here is shown to a crawler and withheld from a
- * reader: a JS-running client renders the same text through NotePage, and sees
- * no hidden element at all once it has.
+ * The prose is a real `<noscript>` fallback, adjacent to #root. It is readable
+ * with scripting disabled and has no visual handoff cost for normal clients:
+ * with scripting enabled the HTML parser keeps a body's noscript contents as
+ * text, while createRoot owns and replaces its otherwise-empty #root.
  *
- * Unstyled for the same reason it is hidden — it is never painted, so classes
- * would be bytes on every note shell that can only ever go stale against the
- * component they were copied from. Structure and reading order carry the
- * meaning a parser needs.
+ * It is deliberately unstyled. Semantic structure and reading order make it
+ * useful to a reader without introducing a second presentation that could
+ * drift from NotePage.
  */
 function noteBody(note: NoteItem) {
   const tags = note.tags.map((tag) => `<li>${escapeHtml(tag)}</li>`).join("");
   const paragraphs = note.body.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
   return [
-    `<div hidden data-prerendered="note-${note.slug}"><main><article>`,
+    `<noscript><main data-prerendered="note-${note.slug}"><article>`,
     `<h1>${escapeHtml(note.title)}</h1>`,
     `<p>${escapeHtml(note.date)} / ${escapeHtml(note.readingTime)}</p>`,
     `<ul aria-label="Topics">${tags}</ul>`,
     paragraphs,
-    '</article><p><a href="/">Back to home</a></p></main></div>',
+    '</article><p><a href="/">Back to home</a></p></main></noscript>',
   ].join("");
 }
 
@@ -111,7 +106,7 @@ function withBody(shell: string, body: string) {
   // Fail the build rather than silently shipping metadata-only note shells if
   // the emitted root element ever stops matching.
   if (!rootPattern.test(shell)) throw new Error("static-pages: root element not found in the built shell; update rootPattern.");
-  return shell.replace(rootPattern, `<div id="root">${body}</div>`);
+  return shell.replace(rootPattern, `<div id="root"></div>${body}`);
 }
 
 function withMetadata(shell: string, metadata: PageMetadata, structuredData?: { id: string; data: Record<string, unknown> }) {

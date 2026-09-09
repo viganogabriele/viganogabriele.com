@@ -35,10 +35,9 @@ export default defineConfig({
     {
       command: `npm run build && npm run preview -- --host 127.0.0.1 --port ${playwrightPort}`,
       url: baseURL,
-      // The convention, and not cosmetic: with this on unconditionally, a
-      // `vite preview` left running from an older build silently served the
-      // whole suite stale files, and the run looked like a code failure.
-      reuseExistingServer: !process.env.CI,
+      // A local test must exercise the build it just produced. Failing when a
+      // port is already occupied is preferable to quietly testing stale dist/.
+      reuseExistingServer: false,
       timeout: 45_000,
     },
     {
@@ -50,7 +49,9 @@ export default defineConfig({
       command: `node scripts/serve-dist.mjs`,
       env: { SERVE_DIST_PORT: String(headersPort) },
       url: headersBaseURL,
-      reuseExistingServer: !process.env.CI,
+      // This server is the runtime-CSP subject, so it must never be an older
+      // process that happens to be listening on the configured port.
+      reuseExistingServer: false,
       // Longer than its neighbour's: this one is up in milliseconds but only
       // starts answering 200 for `/` once the other's build has written dist.
       timeout: 120_000,
