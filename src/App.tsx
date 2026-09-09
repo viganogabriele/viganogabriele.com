@@ -146,12 +146,13 @@ function RouteScrollManager() {
   // there, so a brand new route landed on whatever its momentarily-short
   // layout happened to clamp to instead of the top. `RouteScrollCommit`'s own
   // restore effect fires in the same commit `routeReady` flips true, and as a
-  // layout effect it always runs before this (a plain effect) does — so by
+  // layout effect it always runs before this (also a layout effect, but in its
+  // child RouteScrollCommit) does — so by
   // the time this attaches, that route's one-time restore decision has
   // already been made from whatever was captured during an earlier, settled
   // visit, and cannot still be looking at a stale value from before this
   // mount existed.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (location.pathname.startsWith("/notes/") || !routeReady) return;
     const key = location.key;
     const pathname = location.pathname;
@@ -267,6 +268,7 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
     }
     let frame = 0;
     let cancelled = false;
+    let captureTakeOverScroll: (() => void) | null = null;
     // Every scroll this effect performs is bracketed by these two, so the
     // capture listener in RouteScrollManager can tell the restore's own
     // scrolling apart from the reader's. Released a frame late, never
@@ -278,10 +280,23 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
     // `takeOver`, which runs on the same `pointerdown` that `capture` also
     // listens for, and (being registered from a layout effect) runs first.
     let released = false;
-    restoringRef.current += 1;
-    const endRestore = () => {
-      if (released) return;
+    let guarding = false;
+    const beginRestore = () => {
+      guarding = true;
+      restoringRef.current += 1;
+    };
+    const endRestore = (immediate = false) => {
+      if (!guarding || released) return;
       released = true;
+      // A reader takeover cancels the only pending rAF before releasing the
+      // guard, so there is no remaining application scroll to mistake for
+      // reader intent. Releasing immediately makes the scroll caused by that
+      // same wheel/touch input capturable in WebKit, whose scroll event can be
+      // delivered after the following rAF rather than before it.
+      if (immediate) {
+        restoringRef.current = Math.max(0, restoringRef.current - 1);
+        return;
+      }
       requestAnimationFrame(() => { restoringRef.current = Math.max(0, restoringRef.current - 1); });
     };
     const noteReturn = readNoteNavigationState(location.state)?.noteReturn.snapshot;
@@ -300,6 +315,11 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
       return;
     }
 
+    // Only a saved position can be damaged by restore-generated scroll events.
+    // Fresh routes and hash links have no position to overwrite, so keeping a
+    // guard alive for them only creates unnecessary overlap with the next
+    // route's capture listener.
+    beginRestore();
     let stableFrames = 0;
     let previousHeight = 0;
     let previousAnchorTop: number | null = null;
@@ -352,7 +372,18 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
       if (cancelled) return;
       cancelled = true;
       cancelAnimationFrame(frame);
-      endRestore();
+      endRestore(true);
+      // WebKit is allowed to deliver the scroll produced by this input before
+      // React has committed `onSettled` and mounted RouteScrollManager's
+      // ordinary capture listener. Keep one short-lived listener in that gap:
+      // it observes only the next real scroll after an explicit takeover, never
+      // one of the restore's own scrollTo calls.
+      captureTakeOverScroll = () => {
+        if (window.location.pathname === location.pathname) positions.current.set(location.key, getScrollSnapshot());
+        window.removeEventListener("scroll", captureTakeOverScroll!);
+        captureTakeOverScroll = null;
+      };
+      window.addEventListener("scroll", captureTakeOverScroll, { passive: true });
       onSettled(location.key);
     };
     const takeOverEvents = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
@@ -362,6 +393,7 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
       cancelled = true;
       cancelAnimationFrame(frame);
       endRestore();
+      if (captureTakeOverScroll) window.removeEventListener("scroll", captureTakeOverScroll);
       for (const event of takeOverEvents) window.removeEventListener(event, takeOver);
     };
   }, [location, positions, restoringRef, ready, onSettled]);

@@ -1595,12 +1595,18 @@ test("a restore that cannot reach its target never records the clamp as a reader
   // The guard has to lift the moment the reader takes over, or nothing would
   // record a position again for the rest of this route's life. A synthetic
   // wheel event rather than page.mouse.wheel: it is the takeOver signal the app
-  // listens for, dispatched identically in all three engines. The scroll the
-  // takeOver frame itself produces is still inside the guard by design, so this
-  // polls rather than asserting on a single nudge.
+  // listens for, dispatched identically in all three engines. Polling lets the
+  // route mount its ordinary reader-scroll listener after the takeover.
   await page.evaluate(() => window.dispatchEvent(new WheelEvent("wheel", { deltaY: -50 })));
   await expect.poll(async () => {
-    await page.evaluate(() => window.scrollBy({ top: -30, behavior: "auto" }));
+    // A clamped restore normally leaves us at maxScroll, but WebKit can apply
+    // native history restoration after that frame and leave us at zero. Move
+    // in whichever direction is available so this is a real scroll, not a
+    // no-op at either endpoint.
+    await page.evaluate(() => {
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      window.scrollTo({ top: window.scrollY > 0 ? 0 : Math.min(30, maxScroll), behavior: "auto" });
+    });
     return reads();
   }, { message: "reader scrolling is no longer recorded after a restore" }).toBeGreaterThan(0);
 });
