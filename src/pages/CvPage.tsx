@@ -1,6 +1,6 @@
 import { m } from "framer-motion";
 import { ArrowLeft, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Link } from "react-router-dom";
@@ -122,7 +122,11 @@ function CvDocumentViewer() {
         {failed ? (
           <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noopener noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
         ) : (
-          <div className="flex min-w-fit items-start justify-center sm:min-h-full">
+          <div
+            data-cv-page-frame
+            className="flex min-w-fit items-start justify-center sm:min-h-full"
+            style={pageAspect ? ({ "--cv-page-aspect": String(pageAspect) } as CSSProperties) : undefined}
+          >
             <Document file={profile.cvPath} externalLinkTarget="_blank" onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
               {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer={false} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Rendering page…</span>} />}
             </Document>

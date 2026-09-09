@@ -8,6 +8,14 @@ on:
 permissions:
   contents: read
 
+# A push to a branch with an open PR triggers both events, and the e2e job runs
+# for 25 minutes: without this, a second push queues a full duplicate run behind
+# the first instead of replacing it. Keyed on the ref so master and each PR
+# cancel only their own in-flight runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -37,3 +45,13 @@ jobs:
       - run: npm ci
       - run: npx --no-install playwright install --with-deps chromium firefox webkit
       - run: npm run test:e2e
+      # The config asks for a trace on every failure and a screenshot with it.
+      # Nothing collected them, so a red CI run could only be reproduced by
+      # guessing locally — the one moment those artifacts exist for.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: playwright-failures
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore

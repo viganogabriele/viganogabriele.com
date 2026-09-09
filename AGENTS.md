@@ -14,6 +14,7 @@ The repository is intentionally design- and interaction-heavy. Preserve responsi
 - `npm run test:e2e` — build, serve, and run Playwright tests in Chromium, Firefox, and WebKit. On Arch Linux, WebKit cannot launch natively (missing/ABI-incompatible system libraries such as ICU and libxml2); use `npm run test:e2e:docker` for WebKit coverage on this machine.
 - `npm run test:e2e:docker` — run the full Playwright suite (Chromium, Firefox, WebKit) inside the official `mcr.microsoft.com/playwright` container, matched to the installed `@playwright/test` version. Requires Docker.
 - `npm run test:e2e:update` — update Playwright snapshots when intentional visual assertions change.
+- `npm run test:e2e:csp` — run only the `csp-headers` project: the built site in Chromium behind the real `vercel.json` headers, checking that nothing is blocked by the production Content-Security-Policy. Included in `npm run test:e2e`.
 - `npm run generate:og-card` — regenerate the Open Graph card asset from `scripts/assets/`.
 
 Use npm consistently for routine commands: `package-lock.json` is the only lockfile and the Playwright configuration invokes npm. Node.js 22 or later is required.
@@ -31,9 +32,12 @@ Use npm consistently for routine commands: `package-lock.json` is the only lockf
 - `src/hooks/` — feature detection, preloader, motion profile, and SYS mode behavior.
 - `src/lib/` — small shared utilities for classes, motion, navigation state, and SEO.
 - `src/index.css` — global styles, Tailwind theme tokens, and cross-component visual rules.
-- `scripts/static-pages.ts` — Vite plugin that emits crawler-safe static HTML, metadata, sitemap, and 404 responses. Keep it in sync with route and SEO changes.
+- `scripts/static-pages.ts` — Vite plugin that emits crawler-safe static HTML, metadata, sitemap, and 404 responses, including each note's prose in its shell for clients that do not run JS. Keep it in sync with route and SEO changes.
+- `scripts/verify-csp.mjs` and `scripts/csp-verification.mjs` — check the CSP in `vercel.json` against the inline scripts the build actually emitted. Run inside `npm run build`, which is also the deploy's build command, so a stale hash cannot ship.
+- `scripts/serve-dist.mjs` — serves `dist` with `vercel.json`'s headers, redirects and clean URLs. Only used by the `csp-headers` Playwright project; `vite preview` sends none of those headers.
 - `public/` — static assets, favicons, the CV PDF, the social image, and robots directives.
 - `tests/portfolio.spec.ts` — end-to-end coverage for responsive layout, navigation, accessibility, metadata, static SEO output, and SYS mode.
+- `tests/csp-headers.spec.ts` — the built site under the production security headers. Runs in its own project against `scripts/serve-dist.mjs` and is excluded from the three browser projects.
 
 ## Change guidelines
 
@@ -46,4 +50,4 @@ Use npm consistently for routine commands: `package-lock.json` is the only lockf
 
 ## Verification
 
-For most source changes, run `npm run lint` and `npm run build`. Run `npm run test:e2e` for changes affecting layout, navigation, interaction, SEO/static output, or browser compatibility. The e2e suite launches a local production preview automatically. When WebKit coverage matters (e.g. Safari-specific rendering paths) and you are on a machine where WebKit can't launch natively, use `npm run test:e2e:docker` instead.
+For most source changes, run `npm run lint` and `npm run build` (which type-checks `src`, `scripts`, and `tests`, then verifies the CSP against the emitted build). Run `npm run test:e2e` for changes affecting layout, navigation, interaction, SEO/static output, or browser compatibility. The e2e suite launches a local production preview automatically. When WebKit coverage matters (e.g. Safari-specific rendering paths) and you are on a machine where WebKit can't launch natively, use `npm run test:e2e:docker` instead.

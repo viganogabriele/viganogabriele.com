@@ -7,7 +7,7 @@ import { RouteReadyContext } from "./hooks/useRouteReady";
 import { useMotionProfile } from "./hooks/useMotionProfile";
 import { findScrollAnchor, getRegisteredNoteReturn, getScrollSnapshot, layoutTop, readNoteNavigationState, takeQueuedNoteReturn, type ScrollSnapshot } from "./lib/navigationState";
 import { loadCvPage, loadNotFoundPage, loadNotePage, prefetchRoute } from "./lib/routePrefetch";
-import { HOME_PATHS } from "./lib/routes";
+import { HOME_PATHS, PRODUCTION_HOST } from "./lib/routes";
 import { HomePage } from "./pages/HomePage";
 
 const NotePage = lazy(() => loadNotePage().then((module) => ({ default: module.NotePage })));
@@ -42,6 +42,18 @@ function RouteScrollManager() {
   const location = useLocation();
   const { prefersReducedMotion } = useMotionProfile();
   const positions = useRef(new Map<string, ScrollSnapshot>());
+  // Non-zero while RouteScrollCommit's own scrollTo calls are in flight. A
+  // restore is not reader intent, and every scrollTo it makes fires a real
+  // `scroll` event that `capture` below would otherwise record as one. That
+  // was harmless while an unreachable target meant not scrolling at all, but
+  // the settle loop now clamps to maxScroll to converge, so without this the
+  // aborted and timed-out paths wrote a bottom-of-page value over a perfectly
+  // good snapshot and every later return to that history entry restored to it.
+  // A counter, not a boolean: consecutive routes overlap by design (the new
+  // location's effect begins its restore before the previous one's deferred
+  // release has run), and a boolean would let the older release clear the
+  // newer restore's guard.
+  const restoringRef = useRef(0);
   const [readyKey, setReadyKey] = useState<string | null>(null);
   const [settledKey, setSettledKey] = useState<string | null>(null);
   const routeReady = readyKey === location.key;
@@ -83,10 +95,14 @@ function RouteScrollManager() {
   // whatever pre-restore scrollY happens to be — 0, or a leftover value from
   // the previous route's layout — and permanently clobber a snapshot from an
   // earlier, genuine visit to this same key before the restore ever got to
-  // read it. The restore's own `scrollTo` calls fire real `scroll` events, so
-  // the correct settled position gets captured that way instead, and a route
-  // with nothing to restore (a fresh hash-scroll or a plain top scroll) simply
-  // records that outcome once it actually happens.
+  // read it. Nor does the restore's own scrolling stand in for that capture
+  // any more (`restoringRef` above now rejects it, and has to: the settle loop
+  // clamps an unreachable target to the bottom of the page, which is not a
+  // position any reader chose). Nothing is lost by not recording it — a key
+  // that was restored already has its snapshot, and a key that had nothing to
+  // restore re-derives the same outcome on a later visit, top or hash alike,
+  // from the branches below. What is recorded here is only ever the reader's
+  // own scrolling, from the moment they do any.
   //
   // Also deliberately synchronous, not rAF-coalesced: a coalesced write is
   // only pending, not committed, until the next frame, and this effect's own
@@ -97,7 +113,7 @@ function RouteScrollManager() {
   // dropped the very last scroll position for anyone who scrolled and then
   // immediately followed a link, which is the ordinary case, not an edge one.
   //
-  // The pathname guard inside `capture` covers a narrower but sharper version
+  // The `stale` guard inside `capture` covers a narrower but sharper version
   // of the same race: React applies the DOM mutation for a navigation (the
   // old route's content unmounting, the new route's mounting) before it runs
   // any effect cleanup. If the new route is shorter, the browser clamps
@@ -105,11 +121,21 @@ function RouteScrollManager() {
   // clamp fires a real `scroll` event. This listener is still attached at
   // that point (its cleanup hasn't run yet) and would otherwise capture that
   // post-clamp, pre-cleanup value under the OLD route's key, overwriting the
-  // correct one an instant before it's cleaned up. `history.pushState` (and a
-  // back/forward `popstate`) updates `window.location` synchronously before
-  // that mutation ever happens, so comparing against the pathname captured at
-  // effect setup reliably tells a stale, post-navigation event apart from a
-  // genuine one from this route's own dwell time.
+  // correct one an instant before it's cleaned up. This used to compare
+  // `window.location.pathname` against the pathname captured at effect
+  // setup, on the assumption that a navigation updates it synchronously
+  // before the mutation ever happens — true for the navigation this effect's
+  // own cleanup is waiting on, but a route stuck behind a slow lazy chunk
+  // can sit suspended for a while, its effects (this cleanup included) on
+  // hold the whole time. A *second*, unrelated `popstate` landing in that
+  // window (e.g. a reader tapping back again before the pending route ever
+  // finished) puts `window.location` right back to this route's own
+  // pathname, making the two look identical again even though a navigation
+  // has very much happened. `popstate` firing is itself the fact this
+  // listener needs — a plain DOM event, dispatched the instant history moves,
+  // independent of whichever render pass React is or isn't committing — so
+  // this listens for it directly and retires itself rather than trusting a
+  // snapshot of the URL that a second navigation can quietly restore.
   //
   // `pointerdown` gets the same capture for a different reason: WebKit can
   // defer the `scroll` event's actual dispatch by a frame or more after
@@ -130,26 +156,32 @@ function RouteScrollManager() {
   // there, so a brand new route landed on whatever its momentarily-short
   // layout happened to clamp to instead of the top. `RouteScrollCommit`'s own
   // restore effect fires in the same commit `routeReady` flips true, and as a
-  // layout effect it always runs before this (a plain effect) does — so by
+  // layout effect it always runs before this (also a layout effect, but in its
+  // child RouteScrollCommit) does — so by
   // the time this attaches, that route's one-time restore decision has
   // already been made from whatever was captured during an earlier, settled
   // visit, and cannot still be looking at a stale value from before this
   // mount existed.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (location.pathname.startsWith("/notes/") || !routeReady) return;
     const key = location.key;
     const pathname = location.pathname;
+    let stale = false;
+    const goneStale = () => { stale = true; };
     const capture = () => {
-      if (window.location.pathname !== pathname) return;
+      if (restoringRef.current > 0) return;
+      if (stale || window.location.pathname !== pathname) return;
       positions.current.set(key, getScrollSnapshot());
     };
     window.addEventListener("scroll", capture, { passive: true });
     window.addEventListener("resize", capture);
     window.addEventListener("pointerdown", capture, { passive: true });
+    window.addEventListener("popstate", goneStale);
     return () => {
       window.removeEventListener("scroll", capture);
       window.removeEventListener("resize", capture);
       window.removeEventListener("pointerdown", capture);
+      window.removeEventListener("popstate", goneStale);
     };
   }, [location.key, location.pathname, routeReady]);
 
@@ -190,14 +222,19 @@ function RouteScrollManager() {
 
   return (
     <RouteReadyContext.Provider value={markReady}>
-      <RenderedRoutes positions={positions} ready={routeReady} onSettled={onSettled} onRouteError={onRouteError} />
+      <RenderedRoutes positions={positions} restoringRef={restoringRef} ready={routeReady} onSettled={onSettled} onRouteError={onRouteError} />
       {preloaderVisible && <Preloader reducedMotion={prefersReducedMotion} active={loading} onHidden={hidePreloader} />}
     </RouteReadyContext.Provider>
   );
 }
 
 export default function App() {
-  const analyticsEnabled = !["localhost", "127.0.0.1"].includes(window.location.hostname);
+  // Production only, matched exactly. Excluding localhost still let every
+  // *.vercel.app preview deployment report into the production Analytics and
+  // Speed Insights projects, so preview traffic — which is mostly automated,
+  // throttled and mid-experiment — was skewing the very Core Web Vitals
+  // numbers those projects exist to measure.
+  const analyticsEnabled = window.location.hostname === PRODUCTION_HOST;
   return <BrowserRouter><RouteScrollManager />{analyticsEnabled && <Analytics />}{analyticsEnabled && <SpeedInsights />}</BrowserRouter>;
 }
 
@@ -214,7 +251,7 @@ class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: stri
   }
 }
 
-function RouteScrollCommit({ location, positions, ready, onSettled }: { location: Location; positions: RefObject<Map<string, ScrollSnapshot>>; ready: boolean; onSettled: (key: string) => void }) {
+function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled }: { location: Location; positions: RefObject<Map<string, ScrollSnapshot>>; restoringRef: RefObject<number>; ready: boolean; onSettled: (key: string) => void }) {
   // A forward navigation to a route with nothing to restore has to land at the
   // top, and it has to do so before the reader sees anything else. React
   // applies the DOM swap for the new route first, and every route here is
@@ -245,20 +282,58 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
     }
     let frame = 0;
     let cancelled = false;
+    let captureTakeOverScroll: (() => void) | null = null;
+    // Every scroll this effect performs is bracketed by these two, so the
+    // capture listener in RouteScrollManager can tell the restore's own
+    // scrolling apart from the reader's. Released a frame late, never
+    // synchronously: a `scroll` event is dispatched during the next rendering
+    // update, in the scroll steps that run *before* animation frame callbacks,
+    // so a rAF-deferred release is guaranteed to come after the last scrollTo's
+    // event has already been handled and skipped. Releasing inline would leak
+    // exactly the value this guard exists to reject — most visibly on
+    // `takeOver`, which runs on the same `pointerdown` that `capture` also
+    // listens for, and (being registered from a layout effect) runs first.
+    let released = false;
+    let guarding = false;
+    const beginRestore = () => {
+      guarding = true;
+      restoringRef.current += 1;
+    };
+    const endRestore = (immediate = false) => {
+      if (!guarding || released) return;
+      released = true;
+      // A reader takeover cancels the only pending rAF before releasing the
+      // guard, so there is no remaining application scroll to mistake for
+      // reader intent. Releasing immediately makes the scroll caused by that
+      // same wheel/touch input capturable in WebKit, whose scroll event can be
+      // delivered after the following rAF rather than before it.
+      if (immediate) {
+        restoringRef.current = Math.max(0, restoringRef.current - 1);
+        return;
+      }
+      requestAnimationFrame(() => { restoringRef.current = Math.max(0, restoringRef.current - 1); });
+    };
     const noteReturn = readNoteNavigationState(location.state)?.noteReturn.snapshot;
     const queuedReturn = location.pathname === "/" ? takeQueuedNoteReturn() : null;
     const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.current.get(location.key);
     if (!snapshot && location.hash) {
       document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
+      endRestore();
       onSettled(location.key);
       return;
     }
     if (!snapshot) {
       window.scrollTo({ top: 0, behavior: "auto" });
+      endRestore();
       onSettled(location.key);
       return;
     }
 
+    // Only a saved position can be damaged by restore-generated scroll events.
+    // Fresh routes and hash links have no position to overwrite, so keeping a
+    // guard alive for them only creates unnecessary overlap with the next
+    // route's capture listener.
+    beginRestore();
     let stableFrames = 0;
     let previousHeight = 0;
     let previousAnchorTop: number | null = null;
@@ -277,7 +352,9 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
       const canReach = maxScroll + 1 >= target;
       // Dynamic sections can leave a remounted route a few pixels shorter for
       // one frame. Clamp rather than abandoning restoration; later frames still
-      // converge to the saved anchor once layout has settled.
+      // converge to the saved anchor once layout has settled. The clamp can
+      // never be mistaken for a reader scroll and written back over the saved
+      // snapshot: see the `restoringRef` guard above.
       window.scrollTo({ top: canReach ? Math.max(0, target) : maxScroll, behavior: "auto" });
       // Reuses anchorDocumentTop rather than walking offsetParent a second time:
       // layoutTop is scroll-independent, so subtracting the post-scroll scrollY
@@ -291,6 +368,7 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
       previousHeight = height;
       previousAnchorTop = anchorDocumentTop;
       if (stableFrames >= 2 || performance.now() - startedAt >= SCROLL_SETTLE_TIMEOUT_MS) {
+        endRestore();
         onSettled(location.key);
         return;
       }
@@ -308,6 +386,18 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
       if (cancelled) return;
       cancelled = true;
       cancelAnimationFrame(frame);
+      endRestore(true);
+      // WebKit is allowed to deliver the scroll produced by this input before
+      // React has committed `onSettled` and mounted RouteScrollManager's
+      // ordinary capture listener. Keep one short-lived listener in that gap:
+      // it observes only the next real scroll after an explicit takeover, never
+      // one of the restore's own scrollTo calls.
+      captureTakeOverScroll = () => {
+        if (window.location.pathname === location.pathname) positions.current.set(location.key, getScrollSnapshot());
+        window.removeEventListener("scroll", captureTakeOverScroll!);
+        captureTakeOverScroll = null;
+      };
+      window.addEventListener("scroll", captureTakeOverScroll, { passive: true });
       onSettled(location.key);
     };
     const takeOverEvents = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
@@ -316,30 +406,46 @@ function RouteScrollCommit({ location, positions, ready, onSettled }: { location
     return () => {
       cancelled = true;
       cancelAnimationFrame(frame);
+      endRestore();
+      if (captureTakeOverScroll) window.removeEventListener("scroll", captureTakeOverScroll);
       for (const event of takeOverEvents) window.removeEventListener(event, takeOver);
     };
-  }, [location, positions, ready, onSettled]);
+  }, [location, positions, restoringRef, ready, onSettled]);
 
   return null;
 }
 
+/**
+ * Is the restore anchor still being moved by an animation above it?
+ *
+ * One document-wide query per call, not one per ancestor. This runs on every
+ * frame of the settle loop — for up to five seconds, during page load, the worst
+ * moment on the main thread there is — and it used to call getAnimations() at
+ * each level on the way up, which on /cv and /notes/* means every level to
+ * <html>, since the `.route-home` early exit only exists on Home. Each of those
+ * calls makes the engine bring the animation timeline up to date.
+ *
+ * Same answer as the walk it replaces, `.route-home` boundary included: the
+ * elements it used to visit are exactly those that contain the anchor and are
+ * themselves contained by that boundary (or by <html> when there isn't one),
+ * and an animation counts only if its own target is one of them.
+ */
 function hasRunningAncestorAnimation(element: HTMLElement) {
-  let current: HTMLElement | null = element;
-  while (current) {
-    if (current.getAnimations().some((animation) => animation.playState === "running")) return true;
-    if (current.classList.contains("route-home")) return false;
-    current = current.parentElement;
-  }
-  return false;
+  const scope = element.closest<HTMLElement>(".route-home") ?? document.documentElement;
+  return document.getAnimations().some((animation) => {
+    if (animation.playState !== "running") return false;
+    const target = (animation.effect as KeyframeEffect | null)?.target;
+    return target instanceof Element && target.contains(element) && scope.contains(target);
+  });
 }
 
-function RenderedRoutes({ positions, ready, onSettled, onRouteError }: { positions: RefObject<Map<string, ScrollSnapshot>>; ready: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
+function RenderedRoutes({ positions, restoringRef, ready, onSettled, onRouteError }: { positions: RefObject<Map<string, ScrollSnapshot>>; restoringRef: RefObject<number>; ready: boolean; onSettled: (key: string) => void; onRouteError: (key: string) => void }) {
   const location = useLocation();
   const homeRoute = HOME_PATHS.has(location.pathname);
   return (
     <RouteErrorBoundary resetKey={location.key} onError={() => onRouteError(location.key)}>
       <div data-route-content className="relative" aria-hidden={!ready || undefined} inert={!ready || undefined}>
-        <RouteScrollCommit location={location} positions={positions} ready={ready} onSettled={onSettled} />
+        <RouteScrollCommit location={location} positions={positions} restoringRef={restoringRef} ready={ready} onSettled={onSettled} />
         {homeRoute && <div className="route-home"><HomePage /></div>}
         <Suspense fallback={<span className="sr-only" role="status">Loading…</span>}>
           <Routes location={location}>

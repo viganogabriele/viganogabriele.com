@@ -29,7 +29,18 @@ export function verifyPolicy(policy, documents) {
   const directives = parseDirectives(policy);
   const scripts = directives.get("script-src") ?? [];
   if (scripts.includes("unsafe-inline")) throw new Error("CSP script-src must not contain 'unsafe-inline'.");
-  if (!(directives.get("style-src") ?? []).includes("unsafe-inline")) throw new Error("CSP style-src must allow React's inline styles.");
+  // Reported, not enforced. React writes element styles through the style
+  // attribute — framer-motion does it every frame — and style-src
+  // 'unsafe-inline' is what permits that, so this used to be a hard
+  // requirement. That made the security check fail the day someone removed the
+  // last inline style and tightened the policy: a verifier that rejects an
+  // improvement to the thing it verifies. Whether inline styles are still
+  // needed is a runtime question, and tests/csp-headers.spec.ts answers it in a
+  // browser under these exact headers.
+  const notes = [];
+  if (!(directives.get("style-src") ?? []).includes("unsafe-inline")) {
+    notes.push("style-src no longer allows 'unsafe-inline': confirm nothing inline is being blocked at runtime (npm run test:e2e:csp).");
+  }
   const authorized = new Set(scripts.filter((source) => cspHashPattern.test(source)));
   const emitted = new Set();
   for (const { name, html } of documents) for (const script of executableInlineScripts(html)) {
@@ -38,5 +49,5 @@ export function verifyPolicy(policy, documents) {
     if (!authorized.has(hash)) throw new Error(`${name}: executable inline script is not authorized by CSP (${hash}).`);
   }
   for (const hash of authorized) if (!emitted.has(hash)) throw new Error(`CSP authorizes ${hash}, but no built executable inline script has those bytes.`);
-  return { emittedHashes: [...emitted] };
+  return { emittedHashes: [...emitted], notes };
 }
