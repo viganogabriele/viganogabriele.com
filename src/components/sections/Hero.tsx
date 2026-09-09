@@ -35,7 +35,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
   // does not wait on the network; an immediate toggle reuses the same import.
   useEffect(() => {
     if (reduced) return;
-    const timeout = window.setTimeout(() => { void loadParticleText(); }, 900);
+    const timeout = window.setTimeout(() => { void loadParticleText().catch(() => {}); }, 900);
     return () => window.clearTimeout(timeout);
   }, [reduced]);
 

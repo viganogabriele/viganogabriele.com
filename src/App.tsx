@@ -113,7 +113,7 @@ function RouteScrollManager() {
   // dropped the very last scroll position for anyone who scrolled and then
   // immediately followed a link, which is the ordinary case, not an edge one.
   //
-  // The pathname guard inside `capture` covers a narrower but sharper version
+  // The `stale` guard inside `capture` covers a narrower but sharper version
   // of the same race: React applies the DOM mutation for a navigation (the
   // old route's content unmounting, the new route's mounting) before it runs
   // any effect cleanup. If the new route is shorter, the browser clamps
@@ -121,11 +121,21 @@ function RouteScrollManager() {
   // clamp fires a real `scroll` event. This listener is still attached at
   // that point (its cleanup hasn't run yet) and would otherwise capture that
   // post-clamp, pre-cleanup value under the OLD route's key, overwriting the
-  // correct one an instant before it's cleaned up. `history.pushState` (and a
-  // back/forward `popstate`) updates `window.location` synchronously before
-  // that mutation ever happens, so comparing against the pathname captured at
-  // effect setup reliably tells a stale, post-navigation event apart from a
-  // genuine one from this route's own dwell time.
+  // correct one an instant before it's cleaned up. This used to compare
+  // `window.location.pathname` against the pathname captured at effect
+  // setup, on the assumption that a navigation updates it synchronously
+  // before the mutation ever happens — true for the navigation this effect's
+  // own cleanup is waiting on, but a route stuck behind a slow lazy chunk
+  // can sit suspended for a while, its effects (this cleanup included) on
+  // hold the whole time. A *second*, unrelated `popstate` landing in that
+  // window (e.g. a reader tapping back again before the pending route ever
+  // finished) puts `window.location` right back to this route's own
+  // pathname, making the two look identical again even though a navigation
+  // has very much happened. `popstate` firing is itself the fact this
+  // listener needs — a plain DOM event, dispatched the instant history moves,
+  // independent of whichever render pass React is or isn't committing — so
+  // this listens for it directly and retires itself rather than trusting a
+  // snapshot of the URL that a second navigation can quietly restore.
   //
   // `pointerdown` gets the same capture for a different reason: WebKit can
   // defer the `scroll` event's actual dispatch by a frame or more after
@@ -156,18 +166,22 @@ function RouteScrollManager() {
     if (location.pathname.startsWith("/notes/") || !routeReady) return;
     const key = location.key;
     const pathname = location.pathname;
+    let stale = false;
+    const goneStale = () => { stale = true; };
     const capture = () => {
       if (restoringRef.current > 0) return;
-      if (window.location.pathname !== pathname) return;
+      if (stale || window.location.pathname !== pathname) return;
       positions.current.set(key, getScrollSnapshot());
     };
     window.addEventListener("scroll", capture, { passive: true });
     window.addEventListener("resize", capture);
     window.addEventListener("pointerdown", capture, { passive: true });
+    window.addEventListener("popstate", goneStale);
     return () => {
       window.removeEventListener("scroll", capture);
       window.removeEventListener("resize", capture);
       window.removeEventListener("pointerdown", capture);
+      window.removeEventListener("popstate", goneStale);
     };
   }, [location.key, location.pathname, routeReady]);
 
