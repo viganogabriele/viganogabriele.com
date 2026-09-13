@@ -50,4 +50,4 @@ Use npm consistently for routine commands: `package-lock.json` is the only lockf
 
 ## Verification
 
-For most source changes, run `npm run lint` and `npm run build` (which type-checks `src`, `scripts`, and `tests`, then verifies the CSP against the emitted build). Run `npm run test:e2e` for changes affecting layout, navigation, interaction, SEO/static output, or browser compatibility. The e2e suite launches a local production preview automatically. When WebKit coverage matters (e.g. Safari-specific rendering paths) and you are on a machine where WebKit can't launch natively, use `npm run test:e2e:docker` instead.
+For most source changes, run `npm run lint` and `npm run build` (which type-checks `src`, `scripts/static-pages.ts`, and `tests`, then runs the `.mjs` CSP verifier against the emitted build). Run `npm run test:e2e` for changes affecting layout, navigation, interaction, SEO/static output, or browser compatibility. The e2e suite launches a local production preview automatically. When WebKit coverage matters (e.g. Safari-specific rendering paths) and you are on a machine where WebKit can't launch natively, use `npm run test:e2e:docker` instead.

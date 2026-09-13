@@ -1539,6 +1539,35 @@ test("browser back also restores position across a Home <-> CV round trip", asyn
 const SNAPSHOT_SELECTOR = "main section[id], [data-scroll-anchor]";
 type SnapshotCounter = Window & { snapshotReads?: number };
 
+test("a same-path history navigation cannot let the previous entry capture after its key changes", async ({ page }) => {
+  // A history push has no DOM event, and a same-path navigation leaves pathname
+  // unchanged. Dispatching a scroll immediately after pushState recreates the
+  // interval before React can clean up the previous route's listener. The old
+  // entry must reject it by key, rather than save the new entry's position.
+  await page.addInitScript((selector) => {
+    const counter = window as SnapshotCounter;
+    counter.snapshotReads = 0;
+    const query = Document.prototype.querySelectorAll;
+    Document.prototype.querySelectorAll = function patched(this: Document, selectors: string) {
+      if (selectors === selector) counter.snapshotReads = (counter.snapshotReads ?? 0) + 1;
+      return query.call(this, selectors);
+    } as typeof Document.prototype.querySelectorAll;
+  }, SNAPSHOT_SELECTOR);
+  await page.goto("/cv");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.evaluate(() => {
+    const counter = window as SnapshotCounter;
+    counter.snapshotReads = 0;
+    // React Router writes this same per-entry state shape before it schedules
+    // its render. It is intentionally a raw History API call here so the test
+    // can dispatch inside the pre-cleanup interval deterministically.
+    const state = window.history.state ?? {};
+    window.history.pushState({ ...state, key: `${String(state.key)}-next` }, "", window.location.href);
+    window.dispatchEvent(new Event("scroll"));
+  });
+  expect(await page.evaluate(() => (window as SnapshotCounter).snapshotReads ?? 0)).toBe(0);
+});
+
 test("a restore that cannot reach its target never records the clamp as a reader position", async ({ page }) => {
   // The settle loop clamps an unreachable target to the bottom of the page so
   // it can keep converging as layout grows in. That clamp is a real scroll and

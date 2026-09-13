@@ -135,7 +135,10 @@ function RouteScrollManager() {
   // listener needs — a plain DOM event, dispatched the instant history moves,
   // independent of whichever render pass React is or isn't committing — so
   // this listens for it directly and retires itself rather than trusting a
-  // snapshot of the URL that a second navigation can quietly restore.
+  // snapshot of the URL that a second navigation can quietly restore. Pushes
+  // and replaces have no equivalent event, and can legitimately keep the same
+  // pathname, so capture also compares React Router's per-entry history key
+  // before writing.
   //
   // `pointerdown` gets the same capture for a different reason: WebKit can
   // defer the `scroll` event's actual dispatch by a frame or more after
@@ -166,11 +169,12 @@ function RouteScrollManager() {
     if (location.pathname.startsWith("/notes/") || !routeReady) return;
     const key = location.key;
     const pathname = location.pathname;
+    const historyKey = window.history.state?.key;
     let stale = false;
     const goneStale = () => { stale = true; };
     const capture = () => {
       if (restoringRef.current > 0) return;
-      if (stale || window.location.pathname !== pathname) return;
+      if (stale || window.location.pathname !== pathname || window.history.state?.key !== historyKey) return;
       positions.current.set(key, getScrollSnapshot());
     };
     window.addEventListener("scroll", capture, { passive: true });
