@@ -1628,7 +1628,16 @@ test("a restore that cannot reach its target never records the clamp as a reader
   // and store the clamp as this entry's reader position — a tap that scrolled
   // nothing, undoing the whole fix above. Synthetic rather than page.mouse,
   // so it is dispatched identically in all three engines.
-  await page.evaluate(() => window.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
+  await page.evaluate(() => {
+    window.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    // WebKit delivers the settle loop's last scrollTo event *after* the input
+    // that stopped the loop, and the takeover listener deliberately bypasses
+    // the guard, so that event is the one thing that can still reach it. The
+    // page has not moved, which is precisely what such an event reports —
+    // dispatching one here reproduces, in every engine and without depending
+    // on machine load, a failure that CI only ever saw on WebKit.
+    window.dispatchEvent(new Event("scroll"));
+  });
   expect(await reads(), "a takeover tap recorded the clamp it did not scroll").toBe(0);
 
   // The guard still has to lift the moment the reader takes over, or nothing

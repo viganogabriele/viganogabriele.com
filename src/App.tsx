@@ -387,12 +387,20 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
       // happen on a tap that scrolled nothing at all.
       //
       // That leaves a gap the guard cannot cover: the scroll the reader's own
-      // wheel or touch produces, which WebKit is allowed to deliver both before
-      // that frame and before React has committed `onSettled` and mounted
-      // `capture` at all. One short-lived listener covers it, independent of
-      // the guard — the takeover has already happened, so the next scroll is
-      // the reader's, and the loop's own scrollTo calls have stopped.
+      // wheel or touch produces, which WebKit is allowed to deliver before that
+      // frame has run. One short-lived listener covers it, independent of the
+      // guard.
+      //
+      // Being independent of the guard is exactly what makes it dangerous, so
+      // it filters by position rather than by trusting its own timing: WebKit
+      // also delivers the loop's *last* scrollTo event after the input that
+      // stopped the loop, and that event reports the page still sitting where
+      // the loop put it — on an unreachable restore, the clamp. So it waits
+      // for a scroll that actually moved somewhere else, which is the only
+      // thing the reader can produce and the loop no longer can.
+      const scrollYAtTakeOver = window.scrollY;
       captureTakeOverScroll = () => {
+        if (Math.abs(window.scrollY - scrollYAtTakeOver) <= 1) return;
         if (window.location.pathname === location.pathname) positions.current.set(location.key, getScrollSnapshot());
         window.removeEventListener("scroll", captureTakeOverScroll!);
         captureTakeOverScroll = null;
