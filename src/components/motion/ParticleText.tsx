@@ -402,6 +402,16 @@ export function ParticleText({ active, compact = false }: { active: boolean; com
         });
       recolor();
       if (preserveSettledField) {
+        // Every other path out of here goes through setActiveState, which
+        // clears the pending text-hide timer as its first act. This one does
+        // not, and has to clear it itself: the timer adds the particles class
+        // when it fires, so a resample that lands between the timer being armed
+        // and firing would have it re-armed state applied on top of the field
+        // this branch just settled. It has never been observed because
+        // TEXT_HIDE_DELAY_MS is 16ms and this branch requires !gathering, so
+        // in practice the timer has always fired — an invariant of two
+        // unrelated constants is not one to leave the correctness resting on.
+        clearTextTimer();
         gathering = false;
         releasing = false;
         for (const particle of particles) {
