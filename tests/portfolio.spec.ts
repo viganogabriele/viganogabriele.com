@@ -1621,12 +1621,19 @@ test("a restore that cannot reach its target never records the clamp as a reader
   await page.waitForTimeout(1_000);
   expect(await reads(), "the restore recorded its own clamp as a reader position").toBe(0);
 
-  // The guard has to lift the moment the reader takes over, or nothing would
-  // record a position again for the rest of this route's life. A synthetic
-  // wheel event rather than page.mouse.wheel: it is the takeOver signal the app
-  // listens for, dispatched identically in all three engines. Polling lets the
-  // route mount its ordinary reader-scroll listener after the takeover.
-  await page.evaluate(() => window.dispatchEvent(new WheelEvent("wheel", { deltaY: -50 })));
+  // `pointerdown` rather than `wheel`, because it is the one takeOver signal
+  // the capture listener listens for too. The takeover handler is registered
+  // from a child's layout effect, so it runs first on this very event: if it
+  // released the guard inline, capture would run next, in the same dispatch,
+  // and store the clamp as this entry's reader position — a tap that scrolled
+  // nothing, undoing the whole fix above. Synthetic rather than page.mouse,
+  // so it is dispatched identically in all three engines.
+  await page.evaluate(() => window.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
+  expect(await reads(), "a takeover tap recorded the clamp it did not scroll").toBe(0);
+
+  // The guard still has to lift the moment the reader takes over, or nothing
+  // would record a position again for the rest of this route's life. Polling
+  // lets the route mount its ordinary reader-scroll listener after the takeover.
   await expect.poll(async () => {
     // A clamped restore normally leaves us at maxScroll, but WebKit can apply
     // native history restoration after that frame and leave us at zero. Move

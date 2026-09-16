@@ -303,18 +303,9 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
       guarding = true;
       restoringRef.current += 1;
     };
-    const endRestore = (immediate = false) => {
+    const endRestore = () => {
       if (!guarding || released) return;
       released = true;
-      // A reader takeover cancels the only pending rAF before releasing the
-      // guard, so there is no remaining application scroll to mistake for
-      // reader intent. Releasing immediately makes the scroll caused by that
-      // same wheel/touch input capturable in WebKit, whose scroll event can be
-      // delivered after the following rAF rather than before it.
-      if (immediate) {
-        restoringRef.current = Math.max(0, restoringRef.current - 1);
-        return;
-      }
       requestAnimationFrame(() => { restoringRef.current = Math.max(0, restoringRef.current - 1); });
     };
     const noteReturn = readNoteNavigationState(location.state)?.noteReturn.snapshot;
@@ -322,13 +313,11 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
     const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.current.get(location.key);
     if (!snapshot && location.hash) {
       document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
-      endRestore();
       onSettled(location.key);
       return;
     }
     if (!snapshot) {
       window.scrollTo({ top: 0, behavior: "auto" });
-      endRestore();
       onSettled(location.key);
       return;
     }
@@ -390,12 +379,19 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
       if (cancelled) return;
       cancelled = true;
       cancelAnimationFrame(frame);
-      endRestore(true);
-      // WebKit is allowed to deliver the scroll produced by this input before
-      // React has committed `onSettled` and mounted RouteScrollManager's
-      // ordinary capture listener. Keep one short-lived listener in that gap:
-      // it observes only the next real scroll after an explicit takeover, never
-      // one of the restore's own scrollTo calls.
+      endRestore();
+      // The guard stays up for one more frame, deliberately: `capture` also
+      // listens for `pointerdown`, and this runs first on the very same event,
+      // so releasing inline here would hand it the clamp to store as a reader
+      // position — the exact write the guard exists to reject, and it would
+      // happen on a tap that scrolled nothing at all.
+      //
+      // That leaves a gap the guard cannot cover: the scroll the reader's own
+      // wheel or touch produces, which WebKit is allowed to deliver both before
+      // that frame and before React has committed `onSettled` and mounted
+      // `capture` at all. One short-lived listener covers it, independent of
+      // the guard — the takeover has already happened, so the next scroll is
+      // the reader's, and the loop's own scrollTo calls have stopped.
       captureTakeOverScroll = () => {
         if (window.location.pathname === location.pathname) positions.current.set(location.key, getScrollSnapshot());
         window.removeEventListener("scroll", captureTakeOverScroll!);
