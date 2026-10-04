@@ -63,6 +63,7 @@ export function CircularCarousel<T>({
   const pointer = useRef<{ id: number; x: number; y: number; time: number; horizontal: boolean } | null>(null);
   const hovering = useRef(false);
   const focusWithin = useRef(false);
+  const resumedWithFocus = useRef(false);
   const [paused, setPaused] = useState(false);
   const moveFrame = useRef<number | null>(null);
   /** Set by the gestures a reader performs on purpose, so the live region does
@@ -267,7 +268,7 @@ export function CircularCarousel<T>({
           rotation.current += velocity.current * elapsed;
           velocity.current *= Math.exp(-elapsed / 260);
           if (Math.abs(velocity.current) <= 0.003) { velocity.current = 0; settle(); }
-        } else if ((!hovering.current || !rootRef.current?.matches(":hover")) && !focusWithin.current && now >= pauseUntil.current) {
+        } else if ((!hovering.current || !rootRef.current?.matches(":hover")) && (!focusWithin.current || resumedWithFocus.current) && now >= pauseUntil.current) {
           // WebKit can retarget the pointer without delivering pointerleave
           // after a control changes. Confirm the cached hover against the DOM
           // so a stale event cannot prevent an explicit Resume forever.
@@ -296,6 +297,7 @@ export function CircularCarousel<T>({
   const select = useCallback((index: number) => {
     if (!items.length) return;
     deliberate.current = true;
+    resumedWithFocus.current = false;
     setPaused(true);
     pause();
     velocity.current = 0;
@@ -433,7 +435,7 @@ export function CircularCarousel<T>({
       aria-roledescription="3D carousel"
       aria-label={ariaLabel}
       tabIndex={0}
-      onFocusCapture={() => { focusWithin.current = true; }}
+      onFocusCapture={() => { focusWithin.current = true; resumedWithFocus.current = false; }}
       onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) focusWithin.current = false; }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -475,7 +477,13 @@ export function CircularCarousel<T>({
         ))}
       </div>
       <div className="circular-carousel__controls" aria-label="Carousel controls">
-        {!reducedMotion && <button type="button" className="circular-carousel__control" onClick={() => setPaused((value) => !value)} aria-label={paused ? "Resume automatic rotation" : "Pause automatic rotation"}>{paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}</button>}
+        {!reducedMotion && <button type="button" className="circular-carousel__control" onClick={() => {
+          // Explicit Resume takes precedence over the focus hold. A later
+          // focus movement within the carousel restores the automatic hold.
+          resumedWithFocus.current = paused;
+          if (paused) pauseUntil.current = 0;
+          setPaused(!paused);
+        }} aria-label={paused ? "Resume automatic rotation" : "Pause automatic rotation"}>{paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}</button>}
         <button type="button" className="circular-carousel__control" onClick={() => navigate(-1)} aria-label={previousControlLabel}><ChevronLeft aria-hidden="true" /></button>
         <span className="font-mono text-[11px] tracking-[0.15em] text-zinc-500" aria-hidden="true">{String(activeIndex + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
         <button type="button" className="circular-carousel__control" onClick={() => navigate(1)} aria-label={nextControlLabel}><ChevronRight aria-hidden="true" /></button>

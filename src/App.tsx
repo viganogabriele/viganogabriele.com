@@ -315,9 +315,28 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
     const queuedReturn = location.pathname === "/" ? takeQueuedNoteReturn() : null;
     const snapshot = queuedReturn ?? noteReturn ?? getRegisteredNoteReturn(location.key) ?? positions.current.get(location.key);
     if (!snapshot && location.hash) {
-      document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
+      const alignSection = () => document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "auto" });
+      alignSection();
       onSettled(location.key);
-      return;
+      // Keep the page usable while fonts load, then correct their layout shift.
+      // Reader input or another history entry retires this correction permanently.
+      const historyKey = window.history.state?.key;
+      const takeOverEvents = ["wheel", "touchstart", "pointerdown", "keydown", "popstate"] as const;
+      const takeOver = () => {
+        cancelled = true;
+        cancelAnimationFrame(frame);
+        for (const event of takeOverEvents) window.removeEventListener(event, takeOver);
+      };
+      for (const event of takeOverEvents) window.addEventListener(event, takeOver, { passive: true });
+      void document.fonts.ready.then(() => {
+        if (cancelled) return;
+        frame = requestAnimationFrame(() => {
+          if (cancelled || window.location.pathname !== location.pathname || window.location.hash !== location.hash || window.history.state?.key !== historyKey) return;
+          alignSection();
+          takeOver();
+        });
+      });
+      return takeOver;
     }
     if (!snapshot) {
       window.scrollTo({ top: 0, behavior: "auto" });

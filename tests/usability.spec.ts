@@ -13,7 +13,7 @@ test("landscape menu scrolls to its last action without scrolling the page", asy
   const contact = menu.getByRole("link", { name: "Contact", exact: true });
   await contact.focus();
   await expect(contact).toBeInViewport({ ratio: 1 });
-  expect(await menu.evaluate((el) => el.scrollHeight > el.clientHeight && el.scrollTop > 0)).toBe(true);
+  await expect.poll(() => menu.evaluate((el) => el.scrollHeight > el.clientHeight && el.scrollTop > 0)).toBe(true);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Toggle navigation" })).toBeFocused();
 });
@@ -67,9 +67,9 @@ test("manual carousel selection stays paused and rotation can be resumed", async
   const transform = await card.evaluate((el) => el.style.transform);
   await page.waitForTimeout(3400);
   expect(await card.evaluate((el) => el.style.transform)).toBe(transform);
-  await carousel.getByRole("button", { name: "Resume automatic rotation" }).click();
-  await page.mouse.move(0, 0);
-  await page.locator("main").evaluate((el) => el.focus({ preventScroll: true }));
+  await carousel.getByRole("button", { name: "Resume automatic rotation" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(carousel.getByRole("button", { name: "Pause automatic rotation" })).toBeFocused();
   await expect(carousel).toBeInViewport();
   await expect.poll(() => card.evaluate((el) => el.style.transform)).not.toBe(transform);
 });
@@ -128,4 +128,50 @@ test("fullscreen CV keeps the page inside the available viewport", async ({ page
   await expect(page.locator(".react-pdf__Page__textContent")).toContainText("Gabriele");
   await expect.poll(() => page.locator("[data-cv-viewport]").evaluate((el) => el.getBoundingClientRect().bottom - window.innerHeight)).toBeLessThanOrEqual(1);
   await page.evaluate(() => document.exitFullscreen());
+});
+
+test("late fonts preserve the initial section alignment", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/*.woff2", async (route) => { await gate; await route.continue(); });
+  try {
+    await page.goto("/#notes", { waitUntil: "domcontentloaded" });
+    await ready(page);
+    await expect.poll(() => page.evaluate(() => document.fonts.status)).toBe("loading");
+    await expect(page.locator("#notes")).toBeInViewport();
+    const before = await page.locator("#notes").evaluate((el) => el.getBoundingClientRect().top);
+    release();
+    await page.evaluate(() => document.fonts.ready);
+    await expect.poll(async () => Math.abs(await page.locator("#notes").evaluate((el) => el.getBoundingClientRect().top) - before)).toBeLessThan(24);
+  } finally { release(); }
+});
+
+test("reader input cancels the application's pending font correction", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/*.woff2", async (route) => { await gate; await route.continue(); });
+  try {
+    await page.goto("/#notes", { waitUntil: "domcontentloaded" });
+    await ready(page);
+    await expect.poll(() => page.evaluate(() => document.fonts.status)).toBe("loading");
+    await expect(page.locator("#notes")).toBeInViewport();
+    // Firefox can also reapply its native URL fragment when fonts finish.
+    // Observe application calls independently of that browser-owned scroll.
+    await page.evaluate(() => {
+      const original = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function (...args) {
+        this.setAttribute("data-font-correction", "true");
+        original.apply(this, args);
+      };
+    });
+    await page.mouse.move(195, 422);
+    await page.mouse.wheel(0, -600);
+    release();
+    await page.evaluate(() => document.fonts.ready);
+    // A negative assertion needs time for the scheduled correction to run.
+    await page.waitForTimeout(500);
+    await expect(page.locator("#notes")).not.toHaveAttribute("data-font-correction", "true");
+  } finally { release(); }
 });
