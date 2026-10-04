@@ -1916,3 +1916,75 @@ html[data-webkit-safe][data-system-mode="on"] .ambient-layer {
 @media (max-width: 639px) {
   [data-cv-page-frame] { aspect-ratio: var(--cv-page-aspect, 0.7071); }
 }
+
+/* The fullscreen element is the viewer wrapper, not its scrolling child.
+   Use native selectors: fullscreen: is not a generated Tailwind variant. */
+[data-cv-viewer]:fullscreen {
+  display: flex;
+  flex-direction: column;
+  width: 100dvw;
+  height: 100dvh;
+  border: 0;
+}
+[data-cv-viewer]:fullscreen > :not([data-cv-viewport]) { flex-shrink: 0; }
+:fullscreen > [data-cv-viewport] {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  overflow: auto;
+}
+
+@media print {
+  @page { margin: 16mm; }
+  html, body, #root, main, .noise {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+  main { position: static !important; padding: 0 !important; }
+  main * {
+    color: black !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+  }
+  main div, main section, main article, main h1, main h2, main h3,
+  main p, main span { transform: none !important; }
+  nav, .safe-nav, .skip-link, [data-preloader], [data-reading-progress],
+  .ambient-layer, .noise::before, .noise::after, [data-custom-cursor],
+  .system-overlay, [data-system-wipe],
+  main button, main footer, .capability-artifact, .capability-legend,
+  .tool-marquee, .circular-carousel__controls, .hero-visual-frame,
+  .react-pdf__Page__textContent, .react-pdf__Page__annotations { display: none !important; }
+  .hero-viewport { height: auto !important; min-height: 0 !important; }
+  main [class*="sticky"] { position: static !important; }
+  main canvas:not(.react-pdf__Page__canvas), .hero-scanlines, .expertise-glow, .expertise-dot { display: none !important; }
+  main section, main footer { margin-top: 2rem !important; }
+  main h1 { font-size: 32pt !important; }
+  main h2 { font-size: 24pt !important; }
+  main h3 { font-size: 16pt !important; }
+  main p, main li { font-size: 11pt !important; }
+  main h1, main h2, main h3 { break-after: avoid; }
+  main a { text-decoration: underline; }
+  .circular-carousel, .circular-carousel__stage {
+    height: auto !important;
+    overflow: visible !important;
+    perspective: none !important;
+  }
+  .circular-carousel__stage { display: block; }
+  .circular-carousel__card {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 1rem 0;
+    break-inside: avoid;
+    transform: none !important;
+  }
+  [data-cv-viewport] { height: auto !important; min-height: 0 !important; overflow: visible !important; }
+}

@@ -15,7 +15,6 @@ const CvPage = lazy(() => loadCvPage().then((module) => ({ default: module.CvPag
 const NotFoundPage = lazy(() => loadNotFoundPage().then((module) => ({ default: module.NotFoundPage })));
 // Readiness improves the handoff, but a stalled resource must never turn it
 // into an infinite loading screen or a permanent scroll-correction loop.
-const FONT_READY_TIMEOUT_MS = 3_000;
 const SCROLL_SETTLE_TIMEOUT_MS = 5_000;
 
 function useRoutePrefetching() {
@@ -206,18 +205,22 @@ function RouteScrollManager() {
     };
   }, [loading]);
 
-  const markReady = useCallback((key: string) => {
-    const fonts = document.fonts?.ready ?? Promise.resolve();
-    let settled = false;
-    const ready = () => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeout);
-      setReadyKey(key);
-    };
-    const timeout = window.setTimeout(ready, FONT_READY_TIMEOUT_MS);
-    void fonts.then(ready, ready);
-  }, []);
+  // Fonts and the decorative portrait can finish after the readable route.
+  const markReady = useCallback((key: string) => setReadyKey(key), []);
+
+  const previousPath = useRef(location.pathname);
+  useEffect(() => {
+    if (preloaderVisible || previousPath.current === location.pathname) return;
+    const from = previousPath.current;
+    previousPath.current = location.pathname;
+    const returnLink = HOME_PATHS.has(location.pathname) && from.startsWith("/notes/")
+      ? document.querySelector<HTMLElement>(`a[href="${CSS.escape(from)}"]`) : null;
+    const target = returnLink ?? document.querySelector<HTMLElement>("main h1") ?? document.querySelector<HTMLElement>("main");
+    if (target) {
+      if (!target.matches("a[href], button, [tabindex]")) target.tabIndex = -1;
+      target.focus({ preventScroll: true });
+    }
+  }, [location.pathname, preloaderVisible]);
   const onSettled = useCallback((key: string) => setSettledKey(key), []);
   const onRouteError = useCallback((key: string) => {
     setReadyKey(key);
@@ -251,7 +254,7 @@ class RouteErrorBoundary extends Component<{ children: ReactNode; resetKey: stri
   }
   render() {
     if (!this.state.failed) return this.props.children;
-    return <main className="flex min-h-[100dvh] items-center justify-center bg-background px-6 text-bone"><div><p className="font-mono text-[10px] uppercase tracking-[0.18em] text-blue-soft">ERR / RENDER FAULT</p><h1 className="mt-4 text-5xl tracking-[-0.06em]">Signal interrupted.</h1><button type="button" onClick={() => window.location.reload()} className="mt-7 min-h-11 bg-bone px-5 text-sm font-semibold text-background">Reload the instrument</button></div></main>;
+    return <main className="flex min-h-[100dvh] items-center justify-center bg-background px-6 text-bone"><div><p className="font-mono text-[11px] uppercase tracking-[0.18em] text-blue-soft">ERR / RENDER FAULT</p><h1 className="mt-4 text-5xl tracking-[-0.06em]">Signal interrupted.</h1><button type="button" onClick={() => window.location.reload()} className="mt-7 min-h-11 bg-bone px-5 text-sm font-semibold text-background">Reload the instrument</button></div></main>;
   }
 }
 
@@ -261,7 +264,7 @@ function RouteScrollCommit({ location, positions, restoringRef, ready, onSettled
   // applies the DOM swap for the new route first, and every route here is
   // shorter than Home, so the browser clamps window.scrollY down to the new
   // maximum in that same mutation. The restore below does correct it, but it is
-  // gated on `ready` — which waits on fonts and on the lazy route chunk — so
+  // gated on `ready` — which waits on the lazy route chunk — so
   // until then the reader sat at the clamped position, i.e. the bottom of the
   // CV page. Running in a layout effect from the same commit as the swap means
   // that clamp is never painted.

@@ -1043,32 +1043,26 @@ test("SYS laser never changes page or viewport dimensions", async ({ page }) => 
 });
 
 test("the loading screen is a lightweight readiness gate without a minimum duration", async ({ page }) => {
-  // These routes must match whatever [data-hero-portrait] loads, because that is
-  // the image the readiness gate waits on: the photograph, not the SYS wireframe.
-  let releasePortrait!: () => void;
-  const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
-  await page.route("**/*gabriele-photo*", async (route) => {
-    await portraitReleased;
+  // Only code needed to render the route should hold the readiness gate.
+  // The portrait and fonts are deliberately allowed to finish afterwards.
+  let releaseChunk!: () => void;
+  const chunkReleased = new Promise<void>((resolve) => { releaseChunk = resolve; });
+  await page.route("**/CvPage-*.js", async (route) => {
+    await chunkReleased;
     await route.continue();
   });
-  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
-  const preloader = page.locator("[data-preloader]");
-  await expect(preloader).toBeVisible();
-  await expect(preloader.getByRole("progressbar", { name: "Loading page" })).toHaveCount(1);
-  releasePortrait();
-  await navigation;
-  await expect(preloader).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
-
-  // Drop the interception before measuring the warm reload. Holding every
-  // portrait request through a Playwright route handler costs WebKit enough to
-  // dominate what this assertion is timing: with the route still armed the
-  // reload measured 654-1846ms across six runs and tripped the budget on the
-  // slow tail, and without it 664-862ms. The budget is about the app, so the
-  // harness should not be inside it.
-  await page.unroute("**/*gabriele-photo*");
-  await page.reload();
-  await expect(preloader).toHaveCount(0, { timeout: 1500 });
+  try {
+    await page.goto("/cv", { waitUntil: "domcontentloaded" });
+    const preloader = page.locator("[data-preloader]");
+    await expect(preloader).toBeVisible();
+    await expect(preloader.getByRole("progressbar", { name: "Loading page" })).toHaveCount(1);
+    releaseChunk();
+    await expect(preloader).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
+    await page.unroute("**/CvPage-*.js");
+    await page.reload();
+    await expect(preloader).toHaveCount(0, { timeout: 1500 });
+  } finally { releaseChunk(); }
 });
 
 test("skip link is revealed only for keyboard focus", async ({ page }) => {
@@ -1085,24 +1079,25 @@ test("skip link is revealed only for keyboard focus", async ({ page }) => {
 
 test("preloader remains static with reduced motion and secondary routes dismiss it as soon as ready", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  let releasePortrait!: () => void;
-  const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
-  await page.route("**/*gabriele-photo*", async (route) => {
-    await portraitReleased;
+  let releaseChunk!: () => void;
+  const chunkReleased = new Promise<void>((resolve) => { releaseChunk = resolve; });
+  await page.route("**/CvPage-*.js", async (route) => {
+    await chunkReleased;
     await route.continue();
   });
-  await page.goto("/", { waitUntil: "commit" });
-  const preloader = page.locator('[data-preloader][data-reduced-motion="true"]');
-  await expect(preloader).toBeVisible();
-  releasePortrait();
-  await page.waitForLoadState("domcontentloaded");
-  await expect(page.locator("[data-preloader]")).toHaveCount(0);
-
-  await page.goto("/notes/noticing-what-the-association-wasnt-using");
-  await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
-  await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await page.goto("/does-not-exist");
-  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  try {
+    await page.goto("/cv", { waitUntil: "domcontentloaded" });
+    const preloader = page.locator('[data-preloader][data-reduced-motion="true"]');
+    await expect(preloader).toBeVisible();
+    await expect(preloader.locator(".route-progress-bar")).toHaveCSS("animation-name", "none");
+    releaseChunk();
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    await page.goto("/notes/noticing-what-the-association-wasnt-using");
+    await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    await page.goto("/does-not-exist");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  } finally { releaseChunk(); }
 });
 
 test("CV is readable before the PDF is, and the viewer says it is still working", async ({ page }) => {
@@ -1396,7 +1391,11 @@ test("home, note, and 404 have no runtime errors or failed same-origin requests"
   });
 
   for (const path of ["/", "/notes/noticing-what-the-association-wasnt-using"]) {
+    // The optional wordmark warm-up starts after 900ms, later than the
+    // networkidle window. Let that known request finish before navigating.
+    const warmup = path === "/" ? page.waitForResponse((response) => response.url().includes("/ParticleText-") && response.url().endsWith(".js")) : null;
     await page.goto(path);
+    if (warmup) await (await warmup).finished();
     await expect(page.locator("#main-content")).toBeVisible();
     // `#main-content` is synchronous on Home while its below-the-fold
     // components are still importing. Navigating the document at that point

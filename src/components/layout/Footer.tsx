@@ -51,6 +51,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
         setCopyMessage("");
       }, 1800);
     } catch {
+      setCopied(false);
       setCopyMessage(`Copy unavailable. Email ${profile.email}.`);
     }
   };
@@ -68,11 +69,11 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
 
   return (
     <ScrollReveal>
-      <footer className="mt-36 border-t border-white/[0.08] pb-7 pt-14 md:mt-48 md:pt-20">
+      <footer className="mt-24 sm:mt-36 border-t border-white/[0.08] pb-7 pt-14 md:mt-48 md:pt-20">
         <div ref={headingRef} className="grid gap-10 md:grid-cols-[1.5fr_1fr]">
           <div>
             <m.p
-              className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500"
+              className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500"
               initial={disableMotion ? false : { opacity: 0, y: 10 }}
               animate={disableMotion ? undefined : headingInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
@@ -159,7 +160,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                 type="button"
                 onClick={copy}
                 data-cursor="hover"
-                className="group relative inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-blue/60 hover:text-blue-soft"
+                className="group relative inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-blue/60 hover:text-blue-soft"
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {copied ? (
@@ -190,11 +191,11 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
                 </AnimatePresence>
               </button>
 
-              <span className="sr-only" aria-live="polite">{copyMessage}</span>
+              <span className={copyMessage && !copied ? "w-full break-words text-sm text-accent select-text" : "sr-only"} role="status">{copyMessage}</span>
             </div>
           </div>
 
-          <div className="flex flex-col justify-end gap-5 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
+          <div className="flex flex-col justify-end gap-5 font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-500">
             <a
               href={profile.github}
               target="_blank"
@@ -218,7 +219,7 @@ export function Footer({ context = "home" }: { context?: "home" | "cv" }) {
             </Link>
           </div>
         </div>
-        <div className="mt-24 flex flex-col justify-between gap-2 border-t border-white/[0.06] pt-5 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-600 sm:flex-row">
+        <div className="mt-24 flex flex-col justify-between gap-2 border-t border-white/[0.06] pt-5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 sm:flex-row">
           <span>Gabriele Viganò · Milan, IT</span>
           <span>© {new Date().getFullYear()} All rights reserved.</span>
         </div>

@@ -3,6 +3,7 @@ import { ArrowLeft, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Po
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 import { Link } from "react-router-dom";
 import { Footer } from "../components/layout/Footer";
 import { AppShell } from "../components/layout/AppShell";
@@ -61,6 +62,7 @@ function CvDocumentViewer() {
   const [viewportHeight, setViewportHeight] = useState(0);
   const [pageAspect, setPageAspect] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState("");
   const horizontalInset = viewportWidth >= 640 ? 32 : 16;
   const verticalInset = viewportWidth >= 640 ? 32 : 16;
   const widthToFit = Math.max(viewportWidth - horizontalInset, 280);
@@ -101,23 +103,29 @@ function CvDocumentViewer() {
   }, []);
 
   return (
-      <div ref={viewerRef} className="overflow-hidden border border-white/[0.11] bg-surface/80 shadow-2xl shadow-black/20 fullscreen:h-[100dvh] fullscreen:w-[100dvw] fullscreen:border-0">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500 sm:px-5">
+      <div ref={viewerRef} data-cv-viewer className="overflow-hidden border border-white/[0.11] bg-surface/80 shadow-2xl shadow-black/20">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 sm:px-5">
         <span className="inline-flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-accent" /> {profile.cvFilename}</span>
         <span className="hidden sm:inline">Integrated PDF viewer</span><a href={profile.cvPath} className="text-accent transition-colors hover:text-white sm:hidden">Tap to view full screen</a>
       </div>
       <div className="hidden items-center justify-end gap-2 border-b border-white/[0.08] bg-background/45 px-4 py-2 sm:flex" aria-label="PDF viewer controls">
         <div className="inline-flex items-center rounded-full border border-white/[0.1] bg-surface/60 p-1">
           <button type="button" onClick={() => setZoom((current) => clampZoom(current - 0.25))} disabled={zoom <= 0.75} data-cursor="hover" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
-          <span className="min-w-12 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-400" aria-live="polite">{Math.round(zoom * 100)}%</span>
+          <span className="min-w-12 text-center font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-400" aria-live="polite">{Math.round(zoom * 100)}%</span>
           <button type="button" onClick={() => setZoom((current) => clampZoom(current + 0.25))} disabled={zoom >= 2.5} data-cursor="hover" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
         </div>
-        <button type="button" onClick={() => { void viewerRef.current?.requestFullscreen?.(); }} data-cursor="hover" className="inline-flex h-10 items-center gap-2 border border-white/[0.1] px-3 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-300 transition-colors hover:border-accent hover:text-white" aria-label="View CV full screen"><Maximize2 className="h-3.5 w-3.5" /> Full screen</button>
+        <button type="button" onClick={async () => {
+          try {
+            if (!viewerRef.current?.requestFullscreen) throw new Error("Fullscreen unavailable");
+            await viewerRef.current.requestFullscreen();
+          } catch { setFullscreenError("Full screen is unavailable. Use Open in new tab above."); }
+        }} data-cursor="hover" className="inline-flex h-10 items-center gap-2 border border-white/[0.1] px-3 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-300 transition-colors hover:border-accent hover:text-white" aria-label="View CV full screen"><Maximize2 className="h-3.5 w-3.5" /> Full screen</button>
       </div>
+      {fullscreenError && <p role="status" className="px-4 py-2 text-sm text-accent">{fullscreenError}</p>}
       <div
         ref={viewportRef}
         data-cv-viewport
-        className="relative h-auto overflow-hidden bg-[#151a2b] p-2 sm:h-[min(84svh,72rem)] sm:min-h-[44rem] sm:overflow-auto sm:p-4 fullscreen:h-[calc(100dvh-3.75rem)] fullscreen:max-h-none"
+        className="relative h-auto overflow-hidden bg-[#151a2b] p-2 sm:h-[min(84svh,72rem)] sm:min-h-[44rem] sm:overflow-auto sm:p-4 "
       >
         {failed ? (
           <div className="flex h-full min-h-72 flex-col items-center justify-center px-6 text-center"><FileText className="h-6 w-6 text-accent" /><p className="mt-4 text-sm text-zinc-300">The document could not load in this viewer.</p><a href={profile.cvPath} target="_blank" rel="noopener noreferrer" className="mt-4 text-sm text-accent underline underline-offset-4">Open with your browser’s PDF viewer</a></div>
@@ -127,8 +135,8 @@ function CvDocumentViewer() {
             className="flex min-w-fit items-start justify-center sm:min-h-full"
             style={pageAspect ? ({ "--cv-page-aspect": String(pageAspect) } as CSSProperties) : undefined}
           >
-            <Document file={profile.cvPath} externalLinkTarget="_blank" onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
-              {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer={false} loading={<span className="mt-12 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500" role="status">Rendering page…</span>} />}
+            <Document file={profile.cvPath} externalLinkTarget="_blank" onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
+              {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer loading={<span className="mt-12 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500" role="status">Rendering page…</span>} />}
             </Document>
           </div>
         )}
@@ -188,10 +196,10 @@ export function CvPage() {
       <SystemModeOverlay active={systemActive} transitionId={systemTransitionId} safeMode={webkitSafeMode} laserEnabled={laserEnabled} />
       <header className="safe-nav fixed left-1/2 top-3 z-[60] w-[calc(100%-1.25rem)] max-w-6xl -translate-x-1/2 sm:top-6 sm:w-[calc(100%-2rem)]">
         <div className="flex items-center justify-between gap-3 border border-white/[0.09] bg-background/80 px-2 py-1.5 backdrop-blur-xl sm:px-4 sm:py-2">
-          <Link to="/" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 px-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:text-white">
+          <Link to="/" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 px-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:text-white">
             <ArrowLeft className="h-3.5 w-3.5" /> Back to home
           </Link>
-          <button type="button" onClick={toggleSystem} data-cursor="hover" data-sys-toggle className={`nav-sys-btn relative inline-flex h-11 min-w-[4.25rem] items-center justify-center gap-2 border px-2.5 font-mono text-[9px] uppercase tracking-[0.13em] transition-colors ${systemActive ? "border-accent/60 text-accent" : "border-white/[0.1] text-zinc-300"}`} aria-pressed={systemActive} aria-label="Toggle system mode" aria-keyshortcuts="Shift+S">
+          <button type="button" onClick={toggleSystem} data-cursor="hover" data-sys-toggle className={`nav-sys-btn relative inline-flex h-11 min-w-[4.25rem] items-center justify-center gap-2 border px-2.5 font-mono text-[11px] uppercase tracking-[0.13em] transition-colors ${systemActive ? "border-accent/60 text-accent" : "border-white/[0.1] text-zinc-300"}`} aria-pressed={systemActive} aria-label="Toggle system mode" aria-keyshortcuts="Shift+S">
             <Power className="h-3 w-3" /> SYS
           </button>
         </div>
@@ -199,7 +207,7 @@ export function CvPage() {
 
       <main id="main-content" className="relative mx-auto max-w-7xl px-5 pb-16 pt-28 sm:px-8 sm:pt-36 lg:px-10 lg:pt-40">
         <m.section initial={entrance} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.6, ease: ease.cinematic }} aria-labelledby="cv-title">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">{cvPageCopy.eyebrow}</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">{cvPageCopy.eyebrow}</p>
           <div className="mt-4 flex flex-col gap-6 border-b border-white/[0.09] pb-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <SplitText as="h1" id="cv-title" by="char" delay={0.08} stagger={0.018} text={cvPageCopy.title} className="text-5xl font-medium leading-[0.88] tracking-[-0.07em] whitespace-pre-line text-bone sm:text-7xl" />
@@ -209,7 +217,7 @@ export function CvPage() {
             </div>
             <div className="flex flex-wrap gap-3" aria-label="CV actions">
               <button type="button" onClick={() => void downloadCv()} disabled={downloading} data-cursor="hover" className="btn-solid inline-flex min-h-12 items-center gap-2 bg-bone px-5 text-sm font-semibold text-background disabled:cursor-wait disabled:opacity-70"><Download className="h-4 w-4" /> <span>{downloading ? "Preparing…" : "Download CV"}</span></button>
-              <a href={profile.cvPath} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent hover:text-white"><ExternalLink className="h-3.5 w-3.5" /> Open in new tab</a>
+              <a href={profile.cvPath} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="inline-flex min-h-12 items-center gap-2 border border-white/[0.14] px-5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent hover:text-white"><ExternalLink className="h-3.5 w-3.5" /> Open in new tab</a>
             </div>
           </div>
         </m.section>

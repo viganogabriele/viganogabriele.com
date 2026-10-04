@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 
 export interface CircularCarouselProps<T> {
   items: readonly T[];
@@ -62,6 +62,8 @@ export function CircularCarousel<T>({
   const moved = useRef(false);
   const pointer = useRef<{ id: number; x: number; y: number; time: number; horizontal: boolean } | null>(null);
   const hovering = useRef(false);
+  const focusWithin = useRef(false);
+  const [paused, setPaused] = useState(false);
   const moveFrame = useRef<number | null>(null);
   /** Set by the gestures a reader performs on purpose, so the live region does
    *  not narrate the idle rotation to a screen reader every few seconds. */
@@ -243,7 +245,7 @@ export function CircularCarousel<T>({
   }, [stopAnimation]);
 
   useEffect(() => {
-    if (reducedMotion || !items.length || !inView || !pageVisible) return;
+    if (reducedMotion || paused || !items.length || !inView || !pageVisible) return;
     // A selection animation or a momentum decay owns the slot until it
     // finishes and bumps tickerRevision, which re-runs this effect. Starting a
     // second loop on top of one used to overwrite frameRef and orphan it: the
@@ -265,7 +267,10 @@ export function CircularCarousel<T>({
           rotation.current += velocity.current * elapsed;
           velocity.current *= Math.exp(-elapsed / 260);
           if (Math.abs(velocity.current) <= 0.003) { velocity.current = 0; settle(); }
-        } else if (!hovering.current && now >= pauseUntil.current) {
+        } else if ((!hovering.current || !rootRef.current?.matches(":hover")) && !focusWithin.current && now >= pauseUntil.current) {
+          // WebKit can retarget the pointer without delivering pointerleave
+          // after a control changes. Confirm the cached hover against the DOM
+          // so a stale event cannot prevent an explicit Resume forever.
           // Free rotation has resumed, so whatever comes next is the carousel's
           // doing and not the reader's — including the case where they selected
           // the card that was already at the front and nothing consumed the flag.
@@ -286,11 +291,12 @@ export function CircularCarousel<T>({
     // cleaned up another driver may already own the slot, and cancelling that
     // one would strand its rotation mid-arc with selectionTarget still set.
     return () => { if (run === runRef.current) stopAnimation(); };
-  }, [autoRotateSpeed, inView, items.length, pageVisible, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
+  }, [autoRotateSpeed, inView, items.length, pageVisible, paused, reducedMotion, settle, stopAnimation, tickerRevision, updateCards]);
 
   const select = useCallback((index: number) => {
     if (!items.length) return;
     deliberate.current = true;
+    setPaused(true);
     pause();
     velocity.current = 0;
     const step = 360 / items.length;
@@ -374,7 +380,7 @@ export function CircularCarousel<T>({
     if (moveFrame.current !== null) { window.cancelAnimationFrame(moveFrame.current); moveFrame.current = null; }
     pointer.current = null;
     dragging.current = false;
-    if (moved.current) deliberate.current = true;
+    if (moved.current) { deliberate.current = true; setPaused(true); }
     pause();
     if (reducedMotion || !moved.current) { velocity.current = 0; settle(); }
     else {
@@ -427,9 +433,11 @@ export function CircularCarousel<T>({
       aria-roledescription="3D carousel"
       aria-label={ariaLabel}
       tabIndex={0}
+      onFocusCapture={() => { focusWithin.current = true; }}
+      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) focusWithin.current = false; }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerEnter={() => { hovering.current = pauseOnHover; if (pauseOnHover) pause(); }}
+      onPointerEnter={(event) => { hovering.current = pauseOnHover && event.pointerType === "mouse"; if (hovering.current) pause(); }}
       onPointerLeave={() => { hovering.current = false; if (pauseOnHover && !dragging.current) pause(); }}
       onKeyDown={(event) => {
         if (event.key === "ArrowLeft") { event.preventDefault(); navigate(-1); }
@@ -467,8 +475,9 @@ export function CircularCarousel<T>({
         ))}
       </div>
       <div className="circular-carousel__controls" aria-label="Carousel controls">
+        {!reducedMotion && <button type="button" className="circular-carousel__control" onClick={() => setPaused((value) => !value)} aria-label={paused ? "Resume automatic rotation" : "Pause automatic rotation"}>{paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}</button>}
         <button type="button" className="circular-carousel__control" onClick={() => navigate(-1)} aria-label={previousControlLabel}><ChevronLeft aria-hidden="true" /></button>
-        <span className="font-mono text-[9px] tracking-[0.15em] text-zinc-500" aria-hidden="true">{String(activeIndex + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
+        <span className="font-mono text-[11px] tracking-[0.15em] text-zinc-500" aria-hidden="true">{String(activeIndex + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
         <button type="button" className="circular-carousel__control" onClick={() => navigate(1)} aria-label={nextControlLabel}><ChevronRight aria-hidden="true" /></button>
       </div>
     </div>
