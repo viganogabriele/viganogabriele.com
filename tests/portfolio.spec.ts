@@ -244,7 +244,25 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await expect(track).toHaveCSS("transform", parkedTransform);
 });
 
-test("the toolkit logo loop uses legible large marks", async ({ page, browserName }) => {
+async function warmMarqueeClock(page: import("@playwright/test").Page, readX: () => Promise<number>) {
+  // The lazy component's ResizeObserver and React effect must start the track
+  // before measuring speed. Advance animation time until it actually moves.
+  await expect.poll(async () => {
+    const before = await readX();
+    await page.clock.runFor(100);
+    return Math.abs((await readX()) - before);
+  }).toBeGreaterThan(0);
+  await page.clock.runFor(400);
+}
+
+function marqueeDistance(before: number, after: number, sequenceWidth: number) {
+  // The track wraps at one sequence width; crossing that seam is a small
+  // forward movement, not a sudden sequence-sized change in velocity.
+  return ((before - after) % sequenceWidth + sequenceWidth) % sequenceWidth;
+}
+
+test("the toolkit logo loop uses legible large marks", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
@@ -259,11 +277,18 @@ test("the toolkit logo loop uses legible large marks", async ({ page, browserNam
   expect(geometry.strip).toBeGreaterThanOrEqual(60);
   expect(geometry.mark).toBeGreaterThanOrEqual(34);
 
+  // Freeze the JS-driven track while placing the pointer. Otherwise the logo
+  // can move away between a bounding-box read and mouse.move under CPU load.
+  await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
+
   const track = marquee.locator(".logo-loop > div");
   const readX = () => track.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
+  await warmMarqueeClock(page, readX);
+  const sequenceWidth = await marquee.locator(".logo-loop-sequence").first().evaluate((element) => Math.ceil(element.getBoundingClientRect().width));
   const start = await readX();
-  await page.waitForTimeout(400);
-  const normalDistance = Math.abs((await readX()) - start);
+  await page.clock.runFor(400);
+  const normalDistance = marqueeDistance(start, await readX(), sequenceWidth);
+  expect(normalDistance).toBeGreaterThan(0);
   // A margin from both edges, not just "fully visible": the strip keeps
   // scrolling, so a mark picked right at the boundary (rect.left === 0) can
   // drift out from under the mouse — clipped by the container's own
@@ -274,37 +299,20 @@ test("the toolkit logo loop uses legible large marks", async ({ page, browserNam
     return rect.left >= 60 && rect.right <= window.innerWidth - 60;
   }));
   const mark = marquee.locator(".logo-loop-item").nth(markIndex);
-  // Re-centers on every iteration rather than hovering once and polling: the
-  // strip keeps translating, and hovering an item is exactly what speeds the
-  // strip up to HOVER_SPEED — so a single static mouse position can lose
-  // :hover to the item's own accelerated drift before the 180ms CSS
-  // transition has had continuous coverage long enough to finish, especially
-  // right after entering with little of the item's width still ahead of the
-  // cursor. Chasing its live boundingBox each tick keeps the pointer over it
-  // however fast it moves.
-  let scale = 1;
-  const deadline = Date.now() + 8000;
-  while (Date.now() < deadline) {
-    const liveBox = await mark.boundingBox();
-    if (!liveBox) break;
-    await page.mouse.move(liveBox.x + liveBox.width / 2, liveBox.y + liveBox.height / 2);
-    scale = await mark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a);
-    if (scale > 1.2) break;
-    await page.waitForTimeout(30);
-  }
-  expect(scale).toBeGreaterThan(1.2);
+  expect(markIndex, "no fully visible marquee logo").toBeGreaterThanOrEqual(0);
+  await mark.hover();
+  await expect.poll(() => mark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a)).toBeGreaterThan(1.2);
   await expect(mark).toHaveCSS("filter", "none");
-  await page.waitForTimeout(150);
+  // These are animation-time intervals, independent of runner scheduling.
+  await page.clock.runFor(150);
   const fastStart = await readX();
-  await page.waitForTimeout(400);
-  const fastDistance = Math.abs((await readX()) - fastStart);
-  // Headless WebKit only delivers an isolated rAF when driven by automation,
-  // so validate the interactive CSS there and measure loop velocity in the
-  // two engines whose test clocks continuously advance animation frames.
-  if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+  await page.clock.runFor(400);
+  const fastDistance = marqueeDistance(fastStart, await readX(), sequenceWidth);
+  expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
 });
 
-test("a press on a marquee logo accelerates it and grows the mark, then releases on pointerup", async ({ page, browserName }) => {
+test("a press on a marquee logo accelerates it and grows the mark, then releases on pointerup", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
@@ -313,42 +321,40 @@ test("a press on a marquee logo accelerates it and grows the mark, then releases
   const track = marquee.locator(".logo-loop > div");
   const readX = () => track.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
 
-  const item = marquee.locator(".logo-loop-item").first();
+  await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
+  await warmMarqueeClock(page, readX);
+  const sequenceWidth = await marquee.locator(".logo-loop-sequence").first().evaluate((element) => Math.ceil(element.getBoundingClientRect().width));
+  const start = await readX();
+  await page.clock.runFor(400);
+  const normalDistance = marqueeDistance(start, await readX(), sequenceWidth);
+  expect(normalDistance).toBeGreaterThan(0);
+  // A clipped first copy may not paint its transition at all in WebKit.
+  const itemIndex = await marquee.locator(".logo-loop-item").evaluateAll((items) => items.findIndex((item) => {
+    const rect = item.getBoundingClientRect();
+    return rect.left >= 40 && rect.right <= window.innerWidth - 40;
+  }));
+  expect(itemIndex, "no fully visible marquee logo").toBeGreaterThanOrEqual(0);
+  const item = marquee.locator(".logo-loop-item").nth(itemIndex);
   const fire = (type: string) => item.evaluate((element, eventType) => {
     element.dispatchEvent(new PointerEvent(eventType, { pointerId: 11, pointerType: "touch", bubbles: true, cancelable: true }));
   }, type);
-  const start = await readX();
-  await page.waitForTimeout(400);
-  const normalDistance = Math.abs((await readX()) - start);
-
   await fire("pointerdown");
   await expect(item).toHaveClass(/logo-loop-item--pressed/);
-  // Headless WebKit doesn't reliably recompute style for a script-dispatched
-  // PointerEvent the way it does for a real Playwright-driven action (the
-  // class lands and stays, provably, but getComputedStyle keeps answering
-  // with the pre-transition value) — the same automation gap the hover
-  // version of this test already routes around below by skipping the
-  // velocity check there. The class assertion above already proves the
-  // press was recognized; this only additionally confirms what it renders
-  // to, so skip it on the one engine that can't reflect it back here.
-  if (browserName !== "webkit") {
-    await expect
-      .poll(() => item.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a))
-      .toBeGreaterThan(1.2);
-  }
+  await expect
+    .poll(() => item.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a))
+    .toBeGreaterThan(1.2);
 
   const fastStart = await readX();
-  await page.waitForTimeout(400);
-  const fastDistance = Math.abs((await readX()) - fastStart);
-  // Same headless-WebKit rAF caveat as the hover version of this assertion.
-  if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+  await page.clock.runFor(400);
+  const fastDistance = marqueeDistance(fastStart, await readX(), sequenceWidth);
+  expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
 
   await fire("pointerup");
   await expect(item).not.toHaveClass(/logo-loop-item--pressed/);
   const releasedStart = await readX();
-  await page.waitForTimeout(400);
-  const releasedDistance = Math.abs((await readX()) - releasedStart);
-  if (browserName !== "webkit") expect(releasedDistance).toBeLessThan(fastDistance);
+  await page.clock.runFor(400);
+  const releasedDistance = marqueeDistance(releasedStart, await readX(), sequenceWidth);
+  expect(releasedDistance).toBeLessThan(fastDistance);
 });
 
 test("a marquee press that never gets a pointerup still releases on its own", async ({ page }) => {
@@ -682,7 +688,9 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
   await expect(page.locator("[data-system-orbit]")).toBeVisible();
   await expect(page.getByText(/System layer active|SYS \/ violet trace|Structure visible/i)).toHaveCount(0);
-  await expect(page.locator("[data-system-wipe]")).toHaveCount(1);
+  // Appearance is recorded above. By now slow assertions may have outlived
+  // the wipe; its completion, rather than continued presence, is the contract.
+  await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
   await page.reload();
   await expect(system).toHaveAttribute("aria-pressed", "false");
 });
@@ -1060,8 +1068,17 @@ test("the loading screen is a lightweight readiness gate without a minimum durat
     await expect(preloader).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
     await page.unroute("**/CvPage-*.js");
+    // Allow async route code to load, but measure the gate's completion in
+    // animation time rather than imposing a runner-dependent reload deadline.
+    await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+    await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
     await page.reload();
-    await expect(preloader).toHaveCount(0, { timeout: 1500 });
+    await expect.poll(async () => {
+      await page.clock.runFor(100);
+      return page.locator("#cv-title").count();
+    }).toBe(1);
+    await page.clock.runFor(300);
+    await expect(preloader).toHaveCount(0);
   } finally { releaseChunk(); }
 });
 
@@ -1567,6 +1584,45 @@ test("a same-path history navigation cannot let the previous entry capture after
   expect(await page.evaluate(() => (window as SnapshotCounter).snapshotReads ?? 0)).toBe(0);
 });
 
+test("reader input resumes scroll capture after cancelling a suspended route", async ({ page }) => {
+  await page.addInitScript((selector) => {
+    const counter = window as SnapshotCounter;
+    counter.snapshotReads = 0;
+    const query = Document.prototype.querySelectorAll;
+    Document.prototype.querySelectorAll = function patched(this: Document, selectors: string) {
+      if (selectors === selector) counter.snapshotReads = (counter.snapshotReads ?? 0) + 1;
+      return query.call(this, selectors);
+    } as typeof Document.prototype.querySelectorAll;
+  }, SNAPSHOT_SELECTOR);
+  let release!: () => void;
+  const chunkPending = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/CvPage-*.js", async (route) => { await chunkPending; await route.continue(); });
+  try {
+    await page.goto("/");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    const homeKey: unknown = await page.evaluate(() => window.history.state?.key);
+    await page.locator("#top").getByRole("link", { name: "View CV" }).evaluate((element: HTMLElement) => element.click());
+    await expect(page).toHaveURL(/\/cv$/);
+    await expect(page.locator("#top")).toBeVisible();
+    await expect(page.locator("#cv-title")).toHaveCount(0);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/$/);
+    expect(await page.evaluate(() => window.history.state?.key)).toBe(homeKey);
+    await page.evaluate(() => {
+      (window as SnapshotCounter).snapshotReads = 0;
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(await page.evaluate(() => (window as SnapshotCounter).snapshotReads)).toBe(0);
+
+    // The old listener must reject stale navigation events, then resume for
+    // reader intent even though React never committed a different route key.
+    await page.mouse.move(400, 400);
+    await page.mouse.wheel(0, 500);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    await expect.poll(() => page.evaluate(() => (window as SnapshotCounter).snapshotReads ?? 0)).toBeGreaterThan(0);
+  } finally { release(); }
+});
+
 test("a restore that cannot reach its target never records the clamp as a reader position", async ({ page }) => {
   // The settle loop clamps an unreachable target to the bottom of the page so
   // it can keep converging as layout grows in. That clamp is a real scroll and
@@ -1581,7 +1637,9 @@ test("a restore that cannot reach its target never records the clamp as a reader
     counter.snapshotReads = 0;
     const native = Document.prototype.querySelectorAll;
     Document.prototype.querySelectorAll = function patched(this: Document, selectors: string) {
-      if (selectors === selector) counter.snapshotReads = (counter.snapshotReads ?? 0) + 1;
+      // Footer removal can dispatch a legitimate CV layout scroll before
+      // goBack runs. Only Home captures belong to the restore under test.
+      if (selectors === selector && window.location.pathname === "/") counter.snapshotReads = (counter.snapshotReads ?? 0) + 1;
       return native.call(this, selectors);
     } as typeof Document.prototype.querySelectorAll;
   }, SNAPSHOT_SELECTOR);
@@ -1599,6 +1657,9 @@ test("a restore that cannot reach its target never records the clamp as a reader
   const cvLink = page.locator("footer").getByRole("link", { name: "View CV" });
   await cvLink.evaluate((element) => { element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); (element as HTMLElement).click(); });
   await expect(page).toHaveURL(/\/cv$/);
+  // The URL changes before a lazy route commits. Home's old preloader may
+  // still be absent, so waiting for it alone can go Back before CV ever mounts.
+  await expect(page.locator("#cv-title")).toBeVisible();
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   // Content below the saved anchor is what has to disappear. Removing content
@@ -1613,6 +1674,8 @@ test("a restore that cannot reach its target never records the clamp as a reader
   await page.evaluate(() => { (window as SnapshotCounter).snapshotReads = 0; });
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("#top")).toBeVisible();
+  await expect(page.locator("[data-preloader]")).toBeVisible();
   const maxScroll = await page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
   expect(expectedY, "saved position is meant to be out of reach on this mount").toBeGreaterThan(maxScroll);
   // Long enough to cover many frames of the loop clamping, well short of the
@@ -1639,20 +1702,26 @@ test("a restore that cannot reach its target never records the clamp as a reader
   });
   expect(await reads(), "a takeover tap recorded the clamp it did not scroll").toBe(0);
 
-  // The guard still has to lift the moment the reader takes over, or nothing
-  // would record a position again for the rest of this route's life. Polling
-  // lets the route mount its ordinary reader-scroll listener after the takeover.
-  await expect.poll(async () => {
-    // A clamped restore normally leaves us at maxScroll, but WebKit can apply
-    // native history restoration after that frame and leave us at zero. Move
-    // in whichever direction is available so this is a real scroll, not a
-    // no-op at either endpoint.
-    await page.evaluate(() => {
-      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-      window.scrollTo({ top: window.scrollY > 0 ? 0 : Math.min(30, maxScroll), behavior: "auto" });
-    });
-    return reads();
-  }, { message: "reader scrolling is no longer recorded after a restore" }).toBeGreaterThan(0);
+  // Release is deliberately deferred to the next frame. Wait for that frame
+  // rather than repeatedly toggling scrollY before WebKit dispatches its
+  // coalesced scroll event, which can cancel every movement being observed.
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+  const readerY = await page.evaluate(() => {
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    const target = window.scrollY > 0 ? 0 : Math.min(100, maxScroll);
+    window.scrollTo({ top: target, behavior: "auto" });
+    return target;
+  });
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(readerY);
+  await expect.poll(reads, { message: "reader scrolling is no longer recorded after a restore" }).toBeGreaterThan(0);
+
+  // The takeover listener can capture one movement even while the guard is
+  // raised. A second movement must reach the ordinary capture listener too.
+  await page.evaluate(() => { (window as SnapshotCounter).snapshotReads = 0; });
+  const nextReaderY = readerY === 0 ? 100 : 0;
+  await page.evaluate((target) => window.scrollTo({ top: target, behavior: "auto" }), nextReaderY);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(nextReaderY);
+  await expect.poll(reads, { message: "the ordinary capture listener remained guarded after takeover" }).toBeGreaterThan(0);
 });
 
 test("a deep-linked CV visit still restores Home's position on the way back", async ({ page }) => {

@@ -171,19 +171,28 @@ function RouteScrollManager() {
     const historyKey = window.history.state?.key;
     let stale = false;
     const goneStale = () => { stale = true; };
-    const capture = () => {
+    const capture = (event: Event) => {
       if (restoringRef.current > 0) return;
-      if (stale || window.location.pathname !== pathname || window.history.state?.key !== historyKey) return;
+      if (window.location.pathname !== pathname || window.history.state?.key !== historyKey) return;
+      if (stale) {
+        // Back can cancel a suspended lazy navigation without changing the
+        // committed location, so this effect may never reattach. Keep rejecting
+        // navigation/layout scrolls, but let reader input resume capture when
+        // the browser is back on this exact history entry.
+        if (!["pointerdown", "wheel", "touchstart", "keydown"].includes(event.type)) return;
+        stale = false;
+      }
       positions.current.set(key, getScrollSnapshot());
     };
-    window.addEventListener("scroll", capture, { passive: true });
-    window.addEventListener("resize", capture);
-    window.addEventListener("pointerdown", capture, { passive: true });
+    const captureEvents = ["scroll", "resize", "pointerdown"] as const;
+    const resumeEvents = ["wheel", "touchstart", "keydown"] as const;
+    const resumeCapture = (event: Event) => { if (stale) capture(event); };
+    for (const event of captureEvents) window.addEventListener(event, capture, { passive: true });
+    for (const event of resumeEvents) window.addEventListener(event, resumeCapture, { passive: true });
     window.addEventListener("popstate", goneStale);
     return () => {
-      window.removeEventListener("scroll", capture);
-      window.removeEventListener("resize", capture);
-      window.removeEventListener("pointerdown", capture);
+      for (const event of captureEvents) window.removeEventListener(event, capture);
+      for (const event of resumeEvents) window.removeEventListener(event, resumeCapture);
       window.removeEventListener("popstate", goneStale);
     };
   }, [location.key, location.pathname, routeReady]);
