@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
-import { notes } from "../src/data/notes.ts";
+import { notes, type NoteItem } from "../src/data/notes.ts";
 import { cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site.ts";
 
 const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^>]*>\s*|<meta\s+(?:name|property)="(?:description|robots|twitter:[^"]+|og:[^"]+|article:[^"]+)"[^>]*>\s*|<script\s+type="application\/ld\+json"\s+data-jsonld="[^"]+">[\s\S]*?<\/script>\s*/g;
@@ -14,6 +14,8 @@ const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^
 // high-priority-fetch a photo it never paints, competing with that page's
 // actual LCP resource. Stripped here, then re-added for the home shell alone.
 const heroPreloadPattern = /<link\s+rel="preload"\s+as="image"[^>]*>\s*/;
+
+const rootPattern = /<div id="root"><\/div>/;
 
 function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -67,6 +69,44 @@ function headFor(metadata: PageMetadata, structuredData?: { id: string; data: Re
   if (metadata.modifiedTime) tags.push(meta("property", "article:modified_time", metadata.modifiedTime));
   if (structuredData) tags.push(jsonLd(structuredData.id, structuredData.data));
   return tags.join("\n    ");
+}
+
+/**
+ * The note itself, in the shell, for anything that reads HTML without running it.
+ *
+ * The metadata above is what makes a link unfurl; it is not what makes a page
+ * findable or answerable. The notes are the only long-form prose on the site and
+ * every word of it lived inside the JS bundle: Googlebot renders and sees it,
+ * Bingbot is inconsistent, and the crawlers behind AI answers largely do not
+ * execute JS at all — they got four metadata-only shells.
+ *
+ * The prose is a real `<noscript>` fallback, adjacent to #root. It is readable
+ * with scripting disabled and has no visual handoff cost for normal clients:
+ * with scripting enabled the HTML parser keeps a body's noscript contents as
+ * text, while createRoot owns and replaces its otherwise-empty #root.
+ *
+ * It is deliberately unstyled. Semantic structure and reading order make it
+ * useful to a reader without introducing a second presentation that could
+ * drift from NotePage.
+ */
+function noteBody(note: NoteItem) {
+  const tags = note.tags.map((tag) => `<li>${escapeHtml(tag)}</li>`).join("");
+  const paragraphs = note.body.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
+  return [
+    `<noscript><main data-prerendered="note-${note.slug}"><article>`,
+    `<h1>${escapeHtml(note.title)}</h1>`,
+    `<p>${escapeHtml(note.date)} / ${escapeHtml(note.readingTime)}</p>`,
+    `<ul aria-label="Topics">${tags}</ul>`,
+    paragraphs,
+    '</article><p><a href="/">Back to home</a></p></main></noscript>',
+  ].join("");
+}
+
+function withBody(shell: string, body: string) {
+  // Fail the build rather than silently shipping metadata-only note shells if
+  // the emitted root element ever stops matching.
+  if (!rootPattern.test(shell)) throw new Error("static-pages: root element not found in the built shell; update rootPattern.");
+  return shell.replace(rootPattern, `<div id="root"></div>${body}`);
 }
 
 function withMetadata(shell: string, metadata: PageMetadata, structuredData?: { id: string; data: Record<string, unknown> }) {
@@ -134,7 +174,7 @@ async function generateStaticPages(outDir: string) {
     await mkdir(directory, { recursive: true });
     await writeFile(
       resolve(directory, `${note.slug}.html`),
-      withMetadata(otherShell, noteMetadata(note), { id: `note-${note.slug}`, data: noteJsonLd(note) }),
+      withBody(withMetadata(otherShell, noteMetadata(note), { id: `note-${note.slug}`, data: noteJsonLd(note) }), noteBody(note)),
     );
   }));
   await writeFile(resolve(outDir, "sitemap.xml"), sitemap());

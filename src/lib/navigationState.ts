@@ -66,7 +66,7 @@ export function createNoteNavigationState(location: Location, anchor?: HTMLEleme
       key: location.key,
       pathname: location.pathname,
       search: location.search,
-      hash: location.hash,
+      hash: window.location.hash,
       snapshot,
     },
   };

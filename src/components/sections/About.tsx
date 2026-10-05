@@ -27,7 +27,7 @@ export function About() {
           <p className="max-w-2xl text-xl leading-[1.45] tracking-[-0.025em] text-zinc-300 md:text-2xl">
             {aboutSection.body}
           </p>
-          <div className="border-t border-white/[0.1] pt-4 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
+          <div className="border-t border-white/[0.1] pt-4 font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-500">
             <span className="text-blue-soft">{aboutSection.curiosity.label}</span>
             <p className="mt-3 max-w-xs leading-relaxed text-zinc-400">
               {aboutSection.curiosity.text}
@@ -64,7 +64,7 @@ export function About() {
                   look like a different kind of thing rather than like a link;
                   the arrow and the underline carry that job now. */}
               {item.link ? (
-                <a href={item.link} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="group mt-auto flex min-h-11 items-end py-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-zinc-500 transition-colors hover:text-accent">
+                <a href={item.link} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="group mt-auto flex min-h-11 items-end py-2 font-mono text-[11px] uppercase leading-relaxed tracking-[0.12em] text-zinc-500 transition-colors hover:text-accent">
                   {/* The arrow trails the last word inline rather than sitting
                       at the cell's far edge, which on a wrapped label read as a
                       stray mark instead of part of the link. */}
@@ -74,7 +74,7 @@ export function About() {
                   </span>
                 </a>
               ) : (
-                <p className="mt-auto font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500">{item.label}</p>
+                <p className="mt-auto font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500">{item.label}</p>
               )}
             </m.div>
           ))}
@@ -92,7 +92,7 @@ export function About() {
               transition={{ duration: 0.75, delay: index * 0.12, ease: ease.cinematic }}
               className="group flex items-center gap-5 border-b border-white/[0.06] py-5 last:border-b-0"
             >
-              <span className="font-mono text-[10px] text-zinc-600">0{index + 1}</span>
+              <span className="font-mono text-[11px] text-zinc-600">0{index + 1}</span>
               <p className="text-lg tracking-[-0.03em] text-zinc-300 transition-[color,font-variation-settings] group-hover:text-accent group-hover:[font-variation-settings:'wght'_620] md:text-2xl">
                 {line}
               </p>

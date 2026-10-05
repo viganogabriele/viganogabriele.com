@@ -23,9 +23,9 @@ export function NotFoundPage() {
         <header className="not-found-header relative z-10 flex min-w-0 items-center justify-between gap-4 border-b border-white/[0.09] pb-4 sm:pb-5">
           <Link to="/" data-cursor="hover" className="flex min-h-11 min-w-0 items-center gap-3" aria-label="Return to home">
             <img src={logo} alt="" width="160" height="134" className="h-5 w-auto invert" />
-            <span className="truncate font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400">Gabriele Viganò</span>
+            <span className="truncate font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400">Gabriele Viganò</span>
           </Link>
-          <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">Error / 404</span>
+          <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500">Error / 404</span>
         </header>
 
         <section className="not-found-section relative flex min-w-0 flex-1 items-center py-16 sm:py-20" aria-labelledby="not-found-title">
@@ -44,7 +44,7 @@ export function NotFoundPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: ease.cinematic }}
           >
-            <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+            <div className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
               <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_14px_var(--accent)]" />
               Signal lost / route unavailable
             </div>
@@ -58,20 +58,20 @@ export function NotFoundPage() {
                 <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
                 <span>Return to the index</span>
               </Link>
-              <a href={`mailto:${profile.email}`} data-cursor="hover" className="group inline-flex min-h-12 items-center gap-3 border border-white/[0.14] px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent/60 hover:text-accent-soft">
+              <a href={`mailto:${profile.email}`} data-cursor="hover" className="group inline-flex min-h-12 items-center gap-3 border border-white/[0.14] px-5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-accent/60 hover:text-accent-soft">
                 Report a broken link
                 <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </a>
             </div>
 
-            <div className="not-found-coordinate mt-14 min-w-0 max-w-2xl border-y border-white/[0.08] py-4 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 sm:flex sm:items-center sm:justify-between sm:gap-6">
+            <div className="not-found-coordinate mt-14 min-w-0 max-w-2xl border-y border-white/[0.08] py-4 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500 sm:flex sm:items-center sm:justify-between sm:gap-6">
               <span>Requested coordinate</span>
               <code className="mt-2 block min-w-0 max-w-full truncate text-zinc-300 sm:mt-0 sm:max-w-[58%] sm:text-right" title={pathname}>{pathname}</code>
             </div>
           </m.div>
         </section>
 
-        <footer className="not-found-footer relative z-10 flex min-w-0 flex-wrap justify-between gap-3 border-t border-white/[0.09] pt-4 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600 sm:pt-5">
+        <footer className="not-found-footer relative z-10 flex min-w-0 flex-wrap justify-between gap-3 border-t border-white/[0.09] pt-4 font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-600 sm:pt-5">
           <span>Gabriele Viganò · Milan, IT</span>
           <span>Route recovery / ready</span>
         </footer>
