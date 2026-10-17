@@ -15,20 +15,23 @@ import { ScrollBar } from "../components/motion/ScrollBar";
 import { useSystemMode } from "../hooks/useSystemMode";
 import { homeMetadata, websitePersonJsonLd } from "../data/site";
 import { JsonLd, PageMeta } from "../lib/seo";
-import { useRouteReadyAfterImage } from "../hooks/useRouteReady";
+import { useRouteReady } from "../hooks/useRouteReady";
 import { useMotionProfile } from "../hooks/useMotionProfile";
-import { HERO_PORTRAIT_MEDIA } from "../lib/viewport";
 
 export const HomePage = memo(function HomePage() {
   const { prefersReducedMotion: reduced } = useMotionProfile();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
-  const portraitVisible = window.matchMedia(HERO_PORTRAIT_MEDIA).matches;
-  useRouteReadyAfterImage("[data-hero-portrait]", portraitVisible);
+  useRouteReady();
 
   const scrollToSection = useCallback((target: string) => {
     const selector = target === "body" ? "body" : target;
     const element = document.querySelector<HTMLElement>(selector);
     if (!element) return;
+    // Keep the current history entry and its restoration key. A section jump
+    // should not remount the route or replay its loading overlay.
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}${target === "body" ? "" : target}`);
+    element.tabIndex = -1;
+    element.focus({ preventScroll: true });
     if (selector === "body") {
       window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
       return;

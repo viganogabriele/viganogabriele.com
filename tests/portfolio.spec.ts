@@ -244,7 +244,25 @@ test("skills carousel retains manual navigation with reduced motion", async ({ p
   await expect(track).toHaveCSS("transform", parkedTransform);
 });
 
-test("the toolkit logo loop uses legible large marks", async ({ page, browserName }) => {
+async function warmMarqueeClock(page: import("@playwright/test").Page, readX: () => Promise<number>) {
+  // The lazy component's ResizeObserver and React effect must start the track
+  // before measuring speed. Advance animation time until it actually moves.
+  await expect.poll(async () => {
+    const before = await readX();
+    await page.clock.runFor(100);
+    return Math.abs((await readX()) - before);
+  }).toBeGreaterThan(0);
+  await page.clock.runFor(400);
+}
+
+function marqueeDistance(before: number, after: number, sequenceWidth: number) {
+  // The track wraps at one sequence width; crossing that seam is a small
+  // forward movement, not a sudden sequence-sized change in velocity.
+  return ((before - after) % sequenceWidth + sequenceWidth) % sequenceWidth;
+}
+
+test("the toolkit logo loop uses legible large marks", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
@@ -259,11 +277,18 @@ test("the toolkit logo loop uses legible large marks", async ({ page, browserNam
   expect(geometry.strip).toBeGreaterThanOrEqual(60);
   expect(geometry.mark).toBeGreaterThanOrEqual(34);
 
+  // Freeze the JS-driven track while placing the pointer. Otherwise the logo
+  // can move away between a bounding-box read and mouse.move under CPU load.
+  await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
+
   const track = marquee.locator(".logo-loop > div");
   const readX = () => track.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
+  await warmMarqueeClock(page, readX);
+  const sequenceWidth = await marquee.locator(".logo-loop-sequence").first().evaluate((element) => Math.ceil(element.getBoundingClientRect().width));
   const start = await readX();
-  await page.waitForTimeout(400);
-  const normalDistance = Math.abs((await readX()) - start);
+  await page.clock.runFor(400);
+  const normalDistance = marqueeDistance(start, await readX(), sequenceWidth);
+  expect(normalDistance).toBeGreaterThan(0);
   // A margin from both edges, not just "fully visible": the strip keeps
   // scrolling, so a mark picked right at the boundary (rect.left === 0) can
   // drift out from under the mouse — clipped by the container's own
@@ -274,37 +299,20 @@ test("the toolkit logo loop uses legible large marks", async ({ page, browserNam
     return rect.left >= 60 && rect.right <= window.innerWidth - 60;
   }));
   const mark = marquee.locator(".logo-loop-item").nth(markIndex);
-  // Re-centers on every iteration rather than hovering once and polling: the
-  // strip keeps translating, and hovering an item is exactly what speeds the
-  // strip up to HOVER_SPEED — so a single static mouse position can lose
-  // :hover to the item's own accelerated drift before the 180ms CSS
-  // transition has had continuous coverage long enough to finish, especially
-  // right after entering with little of the item's width still ahead of the
-  // cursor. Chasing its live boundingBox each tick keeps the pointer over it
-  // however fast it moves.
-  let scale = 1;
-  const deadline = Date.now() + 8000;
-  while (Date.now() < deadline) {
-    const liveBox = await mark.boundingBox();
-    if (!liveBox) break;
-    await page.mouse.move(liveBox.x + liveBox.width / 2, liveBox.y + liveBox.height / 2);
-    scale = await mark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a);
-    if (scale > 1.2) break;
-    await page.waitForTimeout(30);
-  }
-  expect(scale).toBeGreaterThan(1.2);
+  expect(markIndex, "no fully visible marquee logo").toBeGreaterThanOrEqual(0);
+  await mark.hover();
+  await expect.poll(() => mark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a)).toBeGreaterThan(1.2);
   await expect(mark).toHaveCSS("filter", "none");
-  await page.waitForTimeout(150);
+  // These are animation-time intervals, independent of runner scheduling.
+  await page.clock.runFor(150);
   const fastStart = await readX();
-  await page.waitForTimeout(400);
-  const fastDistance = Math.abs((await readX()) - fastStart);
-  // Headless WebKit only delivers an isolated rAF when driven by automation,
-  // so validate the interactive CSS there and measure loop velocity in the
-  // two engines whose test clocks continuously advance animation frames.
-  if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+  await page.clock.runFor(400);
+  const fastDistance = marqueeDistance(fastStart, await readX(), sequenceWidth);
+  expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
 });
 
-test("a press on a marquee logo accelerates it and grows the mark, then releases on pointerup", async ({ page, browserName }) => {
+test("a press on a marquee logo accelerates it and grows the mark, then releases on pointerup", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
@@ -313,42 +321,40 @@ test("a press on a marquee logo accelerates it and grows the mark, then releases
   const track = marquee.locator(".logo-loop > div");
   const readX = () => track.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
 
-  const item = marquee.locator(".logo-loop-item").first();
+  await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
+  await warmMarqueeClock(page, readX);
+  const sequenceWidth = await marquee.locator(".logo-loop-sequence").first().evaluate((element) => Math.ceil(element.getBoundingClientRect().width));
+  const start = await readX();
+  await page.clock.runFor(400);
+  const normalDistance = marqueeDistance(start, await readX(), sequenceWidth);
+  expect(normalDistance).toBeGreaterThan(0);
+  // A clipped first copy may not paint its transition at all in WebKit.
+  const itemIndex = await marquee.locator(".logo-loop-item").evaluateAll((items) => items.findIndex((item) => {
+    const rect = item.getBoundingClientRect();
+    return rect.left >= 40 && rect.right <= window.innerWidth - 40;
+  }));
+  expect(itemIndex, "no fully visible marquee logo").toBeGreaterThanOrEqual(0);
+  const item = marquee.locator(".logo-loop-item").nth(itemIndex);
   const fire = (type: string) => item.evaluate((element, eventType) => {
     element.dispatchEvent(new PointerEvent(eventType, { pointerId: 11, pointerType: "touch", bubbles: true, cancelable: true }));
   }, type);
-  const start = await readX();
-  await page.waitForTimeout(400);
-  const normalDistance = Math.abs((await readX()) - start);
-
   await fire("pointerdown");
   await expect(item).toHaveClass(/logo-loop-item--pressed/);
-  // Headless WebKit doesn't reliably recompute style for a script-dispatched
-  // PointerEvent the way it does for a real Playwright-driven action (the
-  // class lands and stays, provably, but getComputedStyle keeps answering
-  // with the pre-transition value) — the same automation gap the hover
-  // version of this test already routes around below by skipping the
-  // velocity check there. The class assertion above already proves the
-  // press was recognized; this only additionally confirms what it renders
-  // to, so skip it on the one engine that can't reflect it back here.
-  if (browserName !== "webkit") {
-    await expect
-      .poll(() => item.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a))
-      .toBeGreaterThan(1.2);
-  }
+  await expect
+    .poll(() => item.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a))
+    .toBeGreaterThan(1.2);
 
   const fastStart = await readX();
-  await page.waitForTimeout(400);
-  const fastDistance = Math.abs((await readX()) - fastStart);
-  // Same headless-WebKit rAF caveat as the hover version of this assertion.
-  if (browserName !== "webkit") expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
+  await page.clock.runFor(400);
+  const fastDistance = marqueeDistance(fastStart, await readX(), sequenceWidth);
+  expect(fastDistance).toBeGreaterThan(Math.max(8, normalDistance * 1.8));
 
   await fire("pointerup");
   await expect(item).not.toHaveClass(/logo-loop-item--pressed/);
   const releasedStart = await readX();
-  await page.waitForTimeout(400);
-  const releasedDistance = Math.abs((await readX()) - releasedStart);
-  if (browserName !== "webkit") expect(releasedDistance).toBeLessThan(fastDistance);
+  await page.clock.runFor(400);
+  const releasedDistance = marqueeDistance(releasedStart, await readX(), sequenceWidth);
+  expect(releasedDistance).toBeLessThan(fastDistance);
 });
 
 test("a marquee press that never gets a pointerup still releases on its own", async ({ page }) => {
@@ -682,7 +688,9 @@ test("SYS mode starts clean, then activates only after an explicit control inter
   await expect(page.locator("html")).toHaveAttribute("data-system-mode", "on");
   await expect(page.locator("[data-system-orbit]")).toBeVisible();
   await expect(page.getByText(/System layer active|SYS \/ violet trace|Structure visible/i)).toHaveCount(0);
-  await expect(page.locator("[data-system-wipe]")).toHaveCount(1);
+  // Appearance is recorded above. By now slow assertions may have outlived
+  // the wipe; its completion, rather than continued presence, is the contract.
+  await expect(page.locator("[data-system-wipe]")).toHaveCount(0);
   await page.reload();
   await expect(system).toHaveAttribute("aria-pressed", "false");
 });
@@ -1043,32 +1051,35 @@ test("SYS laser never changes page or viewport dimensions", async ({ page }) => 
 });
 
 test("the loading screen is a lightweight readiness gate without a minimum duration", async ({ page }) => {
-  // These routes must match whatever [data-hero-portrait] loads, because that is
-  // the image the readiness gate waits on: the photograph, not the SYS wireframe.
-  let releasePortrait!: () => void;
-  const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
-  await page.route("**/*gabriele-photo*", async (route) => {
-    await portraitReleased;
+  // Only code needed to render the route should hold the readiness gate.
+  // The portrait and fonts are deliberately allowed to finish afterwards.
+  let releaseChunk!: () => void;
+  const chunkReleased = new Promise<void>((resolve) => { releaseChunk = resolve; });
+  await page.route("**/CvPage-*.js", async (route) => {
+    await chunkReleased;
     await route.continue();
   });
-  const navigation = page.goto("/", { waitUntil: "domcontentloaded" });
-  const preloader = page.locator("[data-preloader]");
-  await expect(preloader).toBeVisible();
-  await expect(preloader.getByRole("progressbar", { name: "Loading page" })).toHaveCount(1);
-  releasePortrait();
-  await navigation;
-  await expect(preloader).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
-
-  // Drop the interception before measuring the warm reload. Holding every
-  // portrait request through a Playwright route handler costs WebKit enough to
-  // dominate what this assertion is timing: with the route still armed the
-  // reload measured 654-1846ms across six runs and tripped the budget on the
-  // slow tail, and without it 664-862ms. The budget is about the app, so the
-  // harness should not be inside it.
-  await page.unroute("**/*gabriele-photo*");
-  await page.reload();
-  await expect(preloader).toHaveCount(0, { timeout: 1500 });
+  try {
+    await page.goto("/cv", { waitUntil: "domcontentloaded" });
+    const preloader = page.locator("[data-preloader]");
+    await expect(preloader).toBeVisible();
+    await expect(preloader.getByRole("progressbar", { name: "Loading page" })).toHaveCount(1);
+    releaseChunk();
+    await expect(preloader).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
+    await page.unroute("**/CvPage-*.js");
+    // Allow async route code to load, but measure the gate's completion in
+    // animation time rather than imposing a runner-dependent reload deadline.
+    await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+    await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
+    await page.reload();
+    await expect.poll(async () => {
+      await page.clock.runFor(100);
+      return page.locator("#cv-title").count();
+    }).toBe(1);
+    await page.clock.runFor(300);
+    await expect(preloader).toHaveCount(0);
+  } finally { releaseChunk(); }
 });
 
 test("skip link is revealed only for keyboard focus", async ({ page }) => {
@@ -1085,27 +1096,29 @@ test("skip link is revealed only for keyboard focus", async ({ page }) => {
 
 test("preloader remains static with reduced motion and secondary routes dismiss it as soon as ready", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  let releasePortrait!: () => void;
-  const portraitReleased = new Promise<void>((resolve) => { releasePortrait = resolve; });
-  await page.route("**/*gabriele-photo*", async (route) => {
-    await portraitReleased;
+  let releaseChunk!: () => void;
+  const chunkReleased = new Promise<void>((resolve) => { releaseChunk = resolve; });
+  await page.route("**/CvPage-*.js", async (route) => {
+    await chunkReleased;
     await route.continue();
   });
-  await page.goto("/", { waitUntil: "commit" });
-  const preloader = page.locator('[data-preloader][data-reduced-motion="true"]');
-  await expect(preloader).toBeVisible();
-  releasePortrait();
-  await page.waitForLoadState("domcontentloaded");
-  await expect(page.locator("[data-preloader]")).toHaveCount(0);
-
-  await page.goto("/notes/noticing-what-the-association-wasnt-using");
-  await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
-  await expect(page.locator("[data-preloader]")).toHaveCount(0);
-  await page.goto("/does-not-exist");
-  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  try {
+    await page.goto("/cv", { waitUntil: "domcontentloaded" });
+    const preloader = page.locator('[data-preloader][data-reduced-motion="true"]');
+    await expect(preloader).toBeVisible();
+    await expect(preloader.locator(".route-progress-bar")).toHaveCSS("animation-name", "none");
+    releaseChunk();
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    await page.goto("/notes/noticing-what-the-association-wasnt-using");
+    await expect(page.getByRole("heading", { name: /Noticing What the Association Wasn.t Using/i })).toBeVisible();
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    await page.goto("/does-not-exist");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  } finally { releaseChunk(); }
 });
 
 test("CV is readable before the PDF is, and the viewer says it is still working", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   let releasePdf!: () => void;
   const pdfReleased = new Promise<void>((resolve) => { releasePdf = resolve; });
   let markPdfRequested!: () => void;
@@ -1136,12 +1149,16 @@ test("CV is readable before the PDF is, and the viewer says it is still working"
   // Measured through offsetHeight, not getBoundingClientRect: the entrance is
   // a transform still interpolating while this runs, and a rect read mid-scale
   // comes back a fraction of a pixel off a layout that has not changed at all.
-  const viewportHeight = () => page.locator("[data-cv-viewport]").evaluate((node) => node.offsetHeight);
+  const viewportHeight = () => page.locator("[data-cv-viewport]").evaluate((node: HTMLElement) => node.offsetHeight);
   const heightBefore = await viewportHeight();
+  // A footer below the viewer catches layout shift that a viewport-only height
+  // check would miss. offsetTop excludes the CV section's entrance transform.
+  const footerTopBefore = await page.locator("footer").evaluate((node: HTMLElement) => node.offsetTop);
   expect(heightBefore).toBeGreaterThan(0);
   releasePdf();
   await expect(page.locator("[data-cv-viewport] canvas").first()).toBeVisible();
   expect(await viewportHeight()).toBe(heightBefore);
+  expect(await page.locator("footer").evaluate((node: HTMLElement) => node.offsetTop)).toBe(footerTopBefore);
 });
 
 test("the CV's own PDF links are announceable", async ({ page }) => {
@@ -1391,7 +1408,11 @@ test("home, note, and 404 have no runtime errors or failed same-origin requests"
   });
 
   for (const path of ["/", "/notes/noticing-what-the-association-wasnt-using"]) {
+    // The optional wordmark warm-up starts after 900ms, later than the
+    // networkidle window. Let that known request finish before navigating.
+    const warmup = path === "/" ? page.waitForResponse((response) => response.url().includes("/ParticleText-") && response.url().endsWith(".js")) : null;
     await page.goto(path);
+    if (warmup) await (await warmup).finished();
     await expect(page.locator("#main-content")).toBeVisible();
     // `#main-content` is synchronous on Home while its below-the-fold
     // components are still importing. Navigating the document at that point
@@ -1450,7 +1471,7 @@ test("closing a note restores its exact position on desktop and iPhone", async (
 
     // The row is already in view. A DOM click models the browser interaction
     // without Playwright's locator auto-scroll changing the captured offset.
-    await note.evaluate((element) => element.click());
+    await note.evaluate((element: HTMLElement) => element.click());
     await expect(page.getByRole("heading", { name: /The Prompt Was Never the Hard Part/i })).toBeVisible();
     await page.getByRole("button", { name: "Close note and return to home" }).click();
     await expect(note).toBeVisible();
@@ -1481,7 +1502,7 @@ test("browser back still restores the exact note position", async ({ page }) => 
     return transform === "none" ? 0 : Math.abs(new DOMMatrixReadOnly(transform).m42);
   })).toBeLessThanOrEqual(0.1);
   const expectedY = await page.evaluate(() => window.scrollY);
-  await note.evaluate((element) => element.click());
+  await note.evaluate((element: HTMLElement) => element.click());
   await page.goBack();
   await expect(note).toBeVisible();
   await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(2);
@@ -1528,6 +1549,179 @@ test("browser back also restores position across a Home <-> CV round trip", asyn
   // and replayed a real position instead of dropping back to 0 — holds well
   // inside this margin.
   await expect.poll(() => page.evaluate((target) => Math.abs(window.scrollY - target), expectedY)).toBeLessThanOrEqual(24);
+});
+
+/** The one selector getScrollSnapshot() uses, and nothing else does. */
+const SNAPSHOT_SELECTOR = "main section[id], [data-scroll-anchor]";
+type SnapshotCounter = Window & { snapshotReads?: number };
+
+test("a same-path history navigation cannot let the previous entry capture after its key changes", async ({ page }) => {
+  // A history push has no DOM event, and a same-path navigation leaves pathname
+  // unchanged. Dispatching a scroll immediately after pushState recreates the
+  // interval before React can clean up the previous route's listener. The old
+  // entry must reject it by key, rather than save the new entry's position.
+  await page.addInitScript((selector) => {
+    const counter = window as SnapshotCounter;
+    counter.snapshotReads = 0;
+    const query = Document.prototype.querySelectorAll;
+    Document.prototype.querySelectorAll = function patched(this: Document, selectors: string) {
+      if (selectors === selector) counter.snapshotReads = (counter.snapshotReads ?? 0) + 1;
+      return query.call(this, selectors);
+    } as typeof Document.prototype.querySelectorAll;
+  }, SNAPSHOT_SELECTOR);
+  await page.goto("/cv");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  await page.evaluate(() => {
+    const counter = window as SnapshotCounter;
+    counter.snapshotReads = 0;
+    // React Router writes this same per-entry state shape before it schedules
+    // its render. It is intentionally a raw History API call here so the test
+    // can dispatch inside the pre-cleanup interval deterministically.
+    const state = window.history.state ?? {};
+    window.history.pushState({ ...state, key: `${String(state.key)}-next` }, "", window.location.href);
+    window.dispatchEvent(new Event("scroll"));
+  });
+  expect(await page.evaluate(() => (window as SnapshotCounter).snapshotReads ?? 0)).toBe(0);
+});
+
+test("reader input resumes scroll capture after cancelling a suspended route", async ({ page }) => {
+  await page.addInitScript((selector) => {
+    const counter = window as SnapshotCounter;
+    counter.snapshotReads = 0;
+    const query = Document.prototype.querySelectorAll;
+    Document.prototype.querySelectorAll = function patched(this: Document, selectors: string) {
+      if (selectors === selector) counter.snapshotReads = (counter.snapshotReads ?? 0) + 1;
+      return query.call(this, selectors);
+    } as typeof Document.prototype.querySelectorAll;
+  }, SNAPSHOT_SELECTOR);
+  let release!: () => void;
+  const chunkPending = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/CvPage-*.js", async (route) => { await chunkPending; await route.continue(); });
+  try {
+    await page.goto("/");
+    await expect(page.locator("[data-preloader]")).toHaveCount(0);
+    const homeKey: unknown = await page.evaluate(() => window.history.state?.key);
+    await page.locator("#top").getByRole("link", { name: "View CV" }).evaluate((element: HTMLElement) => element.click());
+    await expect(page).toHaveURL(/\/cv$/);
+    await expect(page.locator("#top")).toBeVisible();
+    await expect(page.locator("#cv-title")).toHaveCount(0);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/$/);
+    expect(await page.evaluate(() => window.history.state?.key)).toBe(homeKey);
+    await page.evaluate(() => {
+      (window as SnapshotCounter).snapshotReads = 0;
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(await page.evaluate(() => (window as SnapshotCounter).snapshotReads)).toBe(0);
+
+    // The old listener must reject stale navigation events, then resume for
+    // reader intent even though React never committed a different route key.
+    await page.mouse.move(400, 400);
+    await page.mouse.wheel(0, 500);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    await expect.poll(() => page.evaluate(() => (window as SnapshotCounter).snapshotReads ?? 0)).toBeGreaterThan(0);
+  } finally { release(); }
+});
+
+test("a restore that cannot reach its target never records the clamp as a reader position", async ({ page }) => {
+  // The settle loop clamps an unreachable target to the bottom of the page so
+  // it can keep converging as layout grows in. That clamp is a real scroll and
+  // fires a real `scroll` event, so RouteScrollManager's capture listener would
+  // otherwise store bottom-of-page as this history entry's saved position — and
+  // every later return to it would then restore there. Counting snapshot reads
+  // is the only way to watch that decision from outside the app: the map it
+  // writes to is a ref, and in the unreachable case the value it would write is
+  // indistinguishable from where the clamp legitimately left the page.
+  await page.addInitScript((selector) => {
+    const counter = window as SnapshotCounter;
+    counter.snapshotReads = 0;
+    const native = Document.prototype.querySelectorAll;
+    Document.prototype.querySelectorAll = function patched(this: Document, selectors: string) {
+      // Footer removal can dispatch a legitimate CV layout scroll before
+      // goBack runs. Only Home captures belong to the restore under test.
+      if (selectors === selector && window.location.pathname === "/") counter.snapshotReads = (counter.snapshotReads ?? 0) + 1;
+      return native.call(this, selectors);
+    } as typeof Document.prototype.querySelectorAll;
+  }, SNAPSHOT_SELECTOR);
+  const reads = () => page.evaluate(() => (window as SnapshotCounter).snapshotReads ?? 0);
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  // The very bottom, so the saved position is the largest one this route has,
+  // and the same DOM click as the round-trip test above so navigating away does
+  // not move the page first.
+  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "auto" }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(800);
+  const expectedY = await page.evaluate(() => window.scrollY);
+  const cvLink = page.locator("footer").getByRole("link", { name: "View CV" });
+  await cvLink.evaluate((element) => { element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); (element as HTMLElement).click(); });
+  await expect(page).toHaveURL(/\/cv$/);
+  // The URL changes before a lazy route commits. Home's old preloader may
+  // still be absent, so waiting for it alone can go Back before CV ever mounts.
+  await expect(page.locator("#cv-title")).toBeVisible();
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  // Content below the saved anchor is what has to disappear. Removing content
+  // above it changes nothing: the target is anchor-relative by design, so the
+  // anchor moving up moves the target with it. Dropping the footer instead
+  // lowers the maximum scroll while leaving every anchor exactly where it was,
+  // which is the shape of the real case — a route that mounts with a section
+  // not yet at full height — held still long enough to assert on. Same
+  // document, so the style outlives the SPA navigation back to Home.
+  await page.addStyleTag({ content: "footer { display: none !important; }" });
+
+  await page.evaluate(() => { (window as SnapshotCounter).snapshotReads = 0; });
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("#top")).toBeVisible();
+  await expect(page.locator("[data-preloader]")).toBeVisible();
+  const maxScroll = await page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
+  expect(expectedY, "saved position is meant to be out of reach on this mount").toBeGreaterThan(maxScroll);
+  // Long enough to cover many frames of the loop clamping, well short of the
+  // 5s settle timeout: without the guard this counts one read per frame.
+  await page.waitForTimeout(1_000);
+  expect(await reads(), "the restore recorded its own clamp as a reader position").toBe(0);
+
+  // `pointerdown` rather than `wheel`, because it is the one takeOver signal
+  // the capture listener listens for too. The takeover handler is registered
+  // from a child's layout effect, so it runs first on this very event: if it
+  // released the guard inline, capture would run next, in the same dispatch,
+  // and store the clamp as this entry's reader position — a tap that scrolled
+  // nothing, undoing the whole fix above. Synthetic rather than page.mouse,
+  // so it is dispatched identically in all three engines.
+  await page.evaluate(() => {
+    window.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    // WebKit delivers the settle loop's last scrollTo event *after* the input
+    // that stopped the loop, and the takeover listener deliberately bypasses
+    // the guard, so that event is the one thing that can still reach it. The
+    // page has not moved, which is precisely what such an event reports —
+    // dispatching one here reproduces, in every engine and without depending
+    // on machine load, a failure that CI only ever saw on WebKit.
+    window.dispatchEvent(new Event("scroll"));
+  });
+  expect(await reads(), "a takeover tap recorded the clamp it did not scroll").toBe(0);
+
+  // Release is deliberately deferred to the next frame. Wait for that frame
+  // rather than repeatedly toggling scrollY before WebKit dispatches its
+  // coalesced scroll event, which can cancel every movement being observed.
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+  const readerY = await page.evaluate(() => {
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    const target = window.scrollY > 0 ? 0 : Math.min(100, maxScroll);
+    window.scrollTo({ top: target, behavior: "auto" });
+    return target;
+  });
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(readerY);
+  await expect.poll(reads, { message: "reader scrolling is no longer recorded after a restore" }).toBeGreaterThan(0);
+
+  // The takeover listener can capture one movement even while the guard is
+  // raised. A second movement must reach the ordinary capture listener too.
+  await page.evaluate(() => { (window as SnapshotCounter).snapshotReads = 0; });
+  const nextReaderY = readerY === 0 ? 100 : 0;
+  await page.evaluate((target) => window.scrollTo({ top: target, behavior: "auto" }), nextReaderY);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(nextReaderY);
+  await expect.poll(reads, { message: "the ordinary capture listener remained guarded after takeover" }).toBeGreaterThan(0);
 });
 
 test("a deep-linked CV visit still restores Home's position on the way back", async ({ page }) => {

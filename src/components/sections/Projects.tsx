@@ -23,12 +23,12 @@ const CircularCarousel = lazy(() =>
 function ProjectCard({ project, active }: { project: ProjectItem; active: boolean }) {
   return (
     <BorderGlow className="project-carousel-card h-full p-5 sm:p-6" backgroundColor="#0e1223" animated={active} sweepAtLiteLevel glowRadius={34} fillOpacity={0.32}>
-      <div className="flex items-start justify-between gap-4 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500">
+      <div className="flex items-start justify-between gap-4 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">
         <span>{project.index} / work</span>
         <span className="text-accent">{active ? "selected" : project.status}</span>
       </div>
       <h3 className="mt-5 whitespace-pre-line text-2xl font-medium leading-[0.86] tracking-[-0.06em] text-bone sm:text-3xl">{project.title}</h3>
-      <div className="mt-4 flex flex-wrap gap-1.5 border-t border-white/[0.08] pt-3 font-mono text-[8px] tracking-[0.08em] text-zinc-200">
+      <div className="mt-4 flex flex-wrap gap-1.5 border-t border-white/[0.08] pt-3 font-mono text-[11px] tracking-[0.08em] text-zinc-200">
         {project.stack.map((item) => <span key={item} className="border border-accent/30 bg-accent/[0.06] px-1.5 py-0.5">{item}</span>)}
       </div>
     </BorderGlow>
@@ -49,32 +49,32 @@ function ProjectDetail({ project }: { project: ProjectItem }) {
     >
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
         <div>
-          <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-accent">{project.index} / {project.eyebrow}</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-accent">{project.index} / {project.eyebrow}</p>
           <h3 className="mt-3 whitespace-pre-line text-4xl font-medium leading-[0.85] tracking-[-0.065em] text-bone sm:text-5xl">{project.title}</h3>
           <p className="mt-5 text-base leading-relaxed text-zinc-300 sm:min-h-[4.5rem]">{project.description}</p>
         </div>
         <div className="grid gap-6 text-sm leading-relaxed sm:grid-cols-2">
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">Role</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-600">Role</p>
             <p className="mt-2 text-zinc-200">{project.role}</p>
-            <p className="mt-6 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">Contribution</p>
+            <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-600">Contribution</p>
             <p className="mt-2 text-zinc-400">{project.contribution}</p>
           </div>
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">Outcome</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-600">Outcome</p>
             <p className="mt-2 text-zinc-300">{project.outcome}</p>
-            <p className="mt-5 border-l border-accent/50 pl-3 font-mono text-[10px] leading-relaxed text-accent/80">{project.proof}</p>
+            <p className="mt-5 border-l border-accent/50 pl-3 font-mono text-[11px] leading-relaxed text-accent/80">{project.proof}</p>
           </div>
         </div>
       </div>
       <div className="mt-7 grid gap-5 border-t border-white/[0.08] pt-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div>
-          <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600">Technology</p>
-          <div className="mt-2 flex flex-wrap gap-2 font-mono text-[10px] tracking-[0.08em] text-zinc-200">
+          <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-600">Technology</p>
+          <div className="mt-2 flex flex-wrap gap-2 font-mono text-[11px] tracking-[0.08em] text-zinc-200">
             {project.stack.map((item) => <span key={item} className="border border-accent/30 bg-accent/[0.06] px-2 py-1">{item}</span>)}
           </div>
         </div>
-        {project.link && <a href={project.link} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:border-accent hover:bg-accent/[0.08] hover:text-white">Open on GitHub <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" /></a>}
+        {project.link && <a href={project.link} target="_blank" rel="noopener noreferrer" data-cursor="hover" className="inline-flex min-h-11 items-center gap-2 border border-white/[0.14] px-4 font-mono text-[11px] uppercase tracking-[0.14em] text-blue-soft transition-colors hover:border-accent hover:bg-accent/[0.08] hover:text-white">Open on GitHub <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" /></a>}
       </div>
     </m.article>
   );
@@ -86,10 +86,10 @@ export function Projects() {
   const activeProject = projects[activeIndex];
 
   return (
-    <section id="projects" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
+    <section id="projects" className="relative mx-auto mt-24 sm:mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <SectionHeader index={projectsSection.index} title={projectsSection.title} />
       <div className="mt-7 border border-white/[0.1] bg-surface/80">
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-500">
+        <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4 font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-500">
           <span>Browse / selected work</span>
           <span className="text-accent">Select a card</span>
         </div>

@@ -24,7 +24,7 @@ export function SectionHeader({ index, title, subtitle }: { index: string; title
   return (
     <div ref={ref} className="mb-12 md:mb-16">
       <m.div
-        className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500"
+        className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500"
         initial={{ opacity: 0, y: 10 }}
         animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
         transition={{ duration: 0.5, ease: ease.softSettle }}

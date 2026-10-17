@@ -45,12 +45,12 @@ function ExpertiseItem({
           them to the card, so neither reaches into the timeline gutter. */}
       <span aria-hidden className="expertise-glow" />
       <div className="flex gap-3">
-        <span className="font-mono text-[10px] text-zinc-600">{activity.index}</span>
+        <span className="font-mono text-[11px] text-zinc-600">{activity.index}</span>
         <Icon className="h-4 w-4 text-accent/75" />
       </div>
       <div>
         <m.p
-          className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-400"
+          className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400"
           initial={staticMotion ? false : { opacity: 0, y: 8 }}
           animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
           transition={{ duration: 0.4, delay: 0.05, ease: ease.softSettle }}
@@ -74,7 +74,7 @@ function ExpertiseItem({
           {activity.description}
         </m.p>
         <m.div
-          className="mt-5 flex flex-wrap gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-zinc-200"
+          className="mt-5 flex flex-wrap gap-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-zinc-200"
           initial={staticMotion ? false : { opacity: 0 }}
           animate={staticMotion ? undefined : inView ? { opacity: 1 } : { opacity: 0 }}
           transition={{ duration: 0.4, delay: 0.28, ease: ease.softSettle }}
@@ -184,7 +184,7 @@ export function Expertise() {
   };
 
   return (
-    <section ref={sectionRef as never} id="expertise" data-inview={inView || undefined} className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
+    <section ref={sectionRef as never} id="expertise" data-inview={inView || undefined} className="relative mx-auto mt-24 sm:mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <div className="lg:grid lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
         <div className="lg:sticky lg:top-28 lg:h-fit">
           <SectionHeader
@@ -197,7 +197,7 @@ export function Expertise() {
               <li
                 key={activity.title}
                 data-active={activeIndex === index}
-                className="capability-legend-row border-b border-white/[0.06] font-mono text-[10px] uppercase tracking-[0.13em] text-zinc-600"
+                className="capability-legend-row border-b border-white/[0.06] font-mono text-[11px] uppercase tracking-[0.13em] text-zinc-600"
               >
                 <button
                   type="button"

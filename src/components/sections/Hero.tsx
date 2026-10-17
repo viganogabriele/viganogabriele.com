@@ -35,7 +35,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
   // does not wait on the network; an immediate toggle reuses the same import.
   useEffect(() => {
     if (reduced) return;
-    const timeout = window.setTimeout(() => { void loadParticleText(); }, 900);
+    const timeout = window.setTimeout(() => { void loadParticleText().catch(() => {}); }, 900);
     return () => window.clearTimeout(timeout);
   }, [reduced]);
 
@@ -123,7 +123,7 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
                   }}
                   className="hero-stat-cell flex min-w-0 flex-col justify-between border-b border-white/[0.07] py-4 last:border-b-0 sm:border-b-0 sm:px-4 sm:first:pl-0 sm:[&:not(:last-child)]:border-r"
                 >
-                  <dt className="text-[9px] uppercase tracking-[0.13em] leading-[1.35]">{s.label}</dt>
+                  <dt className="text-[11px] uppercase tracking-[0.13em] leading-[1.35]">{s.label}</dt>
                   <dd className="mt-2 text-xs font-normal leading-snug tracking-[0.01em] text-zinc-200">{s.value}</dd>
                 </m.div>
               ))}

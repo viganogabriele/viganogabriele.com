@@ -45,7 +45,7 @@ function JourneyItem({
         transition={{ duration: 0.55, delay: index * 0.07, ease: ease.softSettle }}
       >
         <m.p
-          className="mb-1 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-600 md:mb-0"
+          className="mb-1 font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-600 md:mb-0"
           initial={staticMotion ? false : { opacity: 0, y: 8 }}
           animate={staticMotion ? undefined : inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
           transition={{ duration: 0.45, delay: index * 0.07 + 0.15, ease: ease.softSettle }}
@@ -61,7 +61,7 @@ function JourneyItem({
             <Icon className="h-4 w-4 text-accent/75" />
             <h3 className="text-2xl tracking-[-0.045em] text-zinc-100">{item.title}</h3>
           </div>
-          <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-accent">{item.subtitle}</p>
+          <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-accent">{item.subtitle}</p>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">{item.description}</p>
         </m.div>
       </m.div>
@@ -119,7 +119,7 @@ export function Journey() {
   const indicatorY = useTransform(scrollY, scrollRange, [-4, railHeight - 4]);
 
   return (
-    <section id="journey" className="relative mx-auto mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
+    <section id="journey" className="relative mx-auto mt-24 sm:mt-36 max-w-7xl px-5 sm:px-8 lg:mt-48 lg:px-10">
       <SectionHeader
         index={journeySection.index}
         title={journeySection.title}
