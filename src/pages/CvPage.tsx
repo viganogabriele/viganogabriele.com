@@ -115,6 +115,7 @@ function CvDocumentViewer() {
           <button type="button" onClick={() => setZoom((current) => clampZoom(current + 0.25))} disabled={zoom >= 2.5} data-cursor="hover" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
         </div>
         <button type="button" onClick={async () => {
+          setFullscreenError("");
           try {
             if (!viewerRef.current?.requestFullscreen) throw new Error("Fullscreen unavailable");
             await viewerRef.current.requestFullscreen();

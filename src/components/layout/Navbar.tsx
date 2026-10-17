@@ -99,7 +99,8 @@ export function Navbar({ onNavigate, systemActive, onToggleSystem }: { onNavigat
     };
   }, [open]);
   const go = (event: React.MouseEvent<HTMLElement>, target: string) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    // Only real links have a native modified-click behaviour (new tab, etc.) to defer to.
+    if (event.currentTarget instanceof HTMLAnchorElement && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) return;
     event.preventDefault();
     // Release the mobile menu's scroll lock synchronously, before the smooth
     // scroll kicks off below — otherwise it starts while the body is still

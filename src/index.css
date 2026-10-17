@@ -95,6 +95,13 @@ a {
   outline-offset: 3px;
 }
 
+/* Route and section jumps move focus programmatically onto containers (main,
+   h1, sections) so assistive tech announces the change. They are not controls,
+   so they should not draw a focus ring around a whole page region. */
+[tabindex="-1"]:focus-visible {
+  outline: none;
+}
+
 .skip-link {
   position: fixed;
   left: 1rem;
@@ -594,6 +601,17 @@ html[data-touch] body {
 ::selection {
   background: color-mix(in srgb, var(--accent) 30%, transparent);
   color: #ede9e2;
+}
+
+/* The CV text layer sits over a white canvas and is transparent on purpose: the
+   canvas draws the glyphs. The global selection colour would paint the layer's
+   own copy near-white on top of them, doubling the text and leaving a pale
+   accent wash that barely registers on white. Keep the layer's text transparent
+   and use a darker tint that reads on paper. */
+.react-pdf__Page__textContent ::selection,
+.react-pdf__Page__textContent::selection {
+  background: rgba(40, 110, 255, 0.35);
+  color: transparent;
 }
 
 /* Noise texture overlay.

@@ -107,6 +107,27 @@ test("CV exposes selectable text and handles unavailable fullscreen", async ({ p
   await expect(page.getByRole("status").filter({ hasText: "Full screen is unavailable" })).toBeVisible();
 });
 
+test("selected CV text keeps its layer transparent and highlights visibly", async ({ page }) => {
+  await page.goto("/cv");
+  const span = page.locator(".react-pdf__Page__textContent span").first();
+  await expect(span).toBeAttached();
+  // A light selection colour would paint the transparent text layer on top of the canvas glyphs.
+  const style = await span.evaluate((el) => { const s = getComputedStyle(el, "::selection"); return { color: s.color, background: s.backgroundColor }; });
+  expect(style.color).toBe("rgba(0, 0, 0, 0)");
+  expect(style.background).toMatch(/^rgba\(\d+, \d+, \d+, 0\.\d+\)$/);
+});
+
+test("route focus does not draw a ring around the focused page region", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await ready(page);
+  const link = page.getByRole("navigation").getByRole("link", { name: "Projects", exact: true });
+  await link.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#projects")).toBeFocused();
+  await expect(page.locator("#projects")).toHaveCSS("outline-style", "none");
+});
+
 test("printed notes expose their full reading flow", async ({ page }) => {
   await page.goto("/notes/vpn-off-by-default");
   await ready(page);
