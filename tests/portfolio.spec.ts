@@ -600,6 +600,13 @@ test("home identity metadata and favicon are exact", async ({ page }) => {
   await expect(page).toHaveTitle("Gabriele Viganò");
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Gabriele Viganò");
   await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute("content", "Gabriele Viganò");
+  const description = "Computer Engineering student at Politecnico di Milano. PoliNetwork board member, product and QA owner, building self-hosted infrastructure and remote AI workflows.";
+  for (const selector of ['meta[name="description"]', 'meta[property="og:description"]', 'meta[name="twitter:description"]']) {
+    await expect(page.locator(selector)).toHaveAttribute("content", description);
+  }
+  const structuredData = JSON.parse(await page.locator('script[data-jsonld="website-person"]').innerText());
+  expect(structuredData["@graph"][1].jobTitle).toContain("Board Member & Treasurer at PoliNetwork");
+  await expect(page.locator('[data-prerendered="home"]')).toHaveCount(0);
   await expect(page.locator('link[rel="icon"][media="(prefers-color-scheme: dark)"]')).toHaveAttribute("href", /\/favicon-dark\.png/);
   await expect(page.locator('link[rel="icon"][media="(prefers-color-scheme: light)"]')).toHaveAttribute("href", /\/favicon-light\.png/);
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", /\/apple-touch-icon\.png/);
@@ -609,6 +616,26 @@ test("home identity metadata and favicon are exact", async ({ page }) => {
   expect(darkFavicon.ok()).toBe(true);
   expect(lightFavicon.ok()).toBe(true);
   expect(appleTouchIcon.ok()).toBe(true);
+});
+
+test("home serves current profile, projects and note links without JavaScript", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  try {
+    await page.goto("/");
+    const home = page.locator('[data-prerendered="home"]');
+    await expect(home.getByRole("heading", { level: 1 })).toHaveText("Gabriele Viganò");
+    await expect(home).toContainText("Board Member & Treasurer at PoliNetwork");
+    await expect(home).toContainText("Claude Code and Codex live on a VPS");
+    await expect(home.getByRole("heading", { level: 3 })).toHaveText(["Homelab & Remote Dev", "Interactive Portfolio", "Study Quest", "PoliNetwork Ecosystem"]);
+    await expect(home.locator('a[href*="/notes/"]')).toHaveCount(4);
+    const noteLink = home.locator('a[href*="/notes/"]').first();
+    await noteLink.click();
+    await expect(page.locator('[data-prerendered^="note-"]')).toBeVisible();
+    await expect(page.locator('[data-prerendered="home"]')).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
 });
 
 test("built route shells expose crawler-safe metadata, canonical URLs, and true 404s", async ({ request }) => {
@@ -635,6 +662,12 @@ test("built route shells expose crawler-safe metadata, canonical URLs, and true 
       expect(html).toMatch(new RegExp(`<meta property="og:type" content="${route.type}"\\s*/?>`));
       expect(html).toContain('content="https://www.viganogabriele.com/og-cover.jpg"');
       expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
+      if (route.path === "/") {
+        expect(html).toContain('content="Computer Engineering student at Politecnico di Milano. PoliNetwork board member, product and QA owner, building self-hosted infrastructure and remote AI workflows."');
+        expect(html).toContain('<main data-prerendered="home">');
+      } else {
+        expect(html).not.toContain('data-prerendered="home"');
+      }
     }
   }
 

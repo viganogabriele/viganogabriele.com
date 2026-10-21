@@ -7,7 +7,7 @@ export const site = {
   locale: "en_US",
   language: "en",
   title: "Gabriele Viganò",
-  description: "Computer Engineering student at Politecnico di Milano. I run self-hosted infrastructure and own product and QA for a student network of 500+ group chats.",
+  description: "Computer Engineering student at Politecnico di Milano. PoliNetwork board member, product and QA owner, building self-hosted infrastructure and remote AI workflows.",
   socialImage: {
     path: "/og-cover.jpg",
     width: 1200,
@@ -45,7 +45,7 @@ export const homeMetadata: PageMetadata = {
 
 export const cvMetadata: PageMetadata = {
   title: `${site.name} · CV`,
-  description: "Curriculum vitae of Gabriele Viganò: Computer Engineering at Politecnico di Milano, self-hosted infrastructure, product and QA for a student network.",
+  description: "CV of Gabriele Viganò: Computer Engineering at Politecnico di Milano, PoliNetwork board member and treasurer, product ownership, QA and self-hosted infrastructure.",
   path: "/cv",
   canonical: true,
   robots: "index, follow, max-image-preview:large",
@@ -84,7 +84,7 @@ export const websitePersonJsonLd = {
       "@id": `${site.url}/#website`,
       name: site.name,
       url: pageUrl("/"),
-      description: "Portfolio of Gabriele Viganò: self-hosted infrastructure, front-end and product work, and notes on the decisions behind them.",
+      description: site.description,
       inLanguage: site.language,
     },
     {
@@ -93,8 +93,13 @@ export const websitePersonJsonLd = {
       name: site.name,
       url: pageUrl("/"),
       image: pageUrl(site.socialImage.path),
-      jobTitle: "Computer Engineering Student",
-      affiliation: { "@type": "CollegeOrUniversity", name: "Politecnico di Milano" },
+      description: site.description,
+      jobTitle: ["Computer Engineering Student", profile.currentRole],
+      affiliation: [
+        { "@type": "CollegeOrUniversity", name: "Politecnico di Milano" },
+        { "@type": "Organization", name: "PoliNetwork" },
+      ],
+      knowsAbout: ["Self-hosted infrastructure", "Remote AI workflows", "Product ownership", "Quality assurance", "Front-end development"],
       sameAs: [profile.github, profile.linkedIn],
     },
   ],

@@ -4,6 +4,9 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
 import { notes, type NoteItem } from "../src/data/notes.ts";
+import { profile } from "../src/data/profile.ts";
+import { projects } from "../src/data/projects.ts";
+import { aboutSection, heroCopy } from "../src/data/sections.ts";
 import { cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site.ts";
 
 const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^>]*>\s*|<meta\s+(?:name|property)="(?:description|robots|twitter:[^"]+|og:[^"]+|article:[^"]+)"[^>]*>\s*|<script\s+type="application\/ld\+json"\s+data-jsonld="[^"]+">[\s\S]*?<\/script>\s*/g;
@@ -102,6 +105,30 @@ function noteBody(note: NoteItem) {
   ].join("");
 }
 
+// Share the visible home copy with readers and crawlers that do not execute JS,
+// using the same noscript handoff as notes so the React layout stays unchanged.
+function homeBody() {
+  const work = projects.map((project) => [
+    `<article><h3>${escapeHtml(project.title.replace(/\n/g, " "))}</h3>`,
+    `<p>${escapeHtml(project.description)}</p>`,
+    project.link ? `<a href="${escapeHtml(project.link)}">View project</a>` : "",
+    "</article>",
+  ].join("")).join("");
+  const articles = notes.map((note) => `<li><a href="${pageUrl(`/notes/${note.slug}`)}">${escapeHtml(note.title)}</a><p>${escapeHtml(note.preview)}</p></li>`).join("");
+  return [
+    '<noscript><main data-prerendered="home">',
+    `<h1>${escapeHtml(site.name)}</h1>`,
+    `<p>${escapeHtml(heroCopy.summary)}</p>`,
+    `<p>${escapeHtml(profile.education)}. ${escapeHtml(profile.currentRole)}.</p>`,
+    `<h2>About</h2><p>${escapeHtml(aboutSection.body)}</p>`,
+    `<p>${escapeHtml(aboutSection.curiosity.text)}</p>`,
+    `<h2>Selected work</h2>${work}`,
+    `<h2>Field notes</h2><ul>${articles}</ul>`,
+    `<p><a href="/cv">Curriculum vitae</a> · <a href="mailto:${profile.email}">Contact</a></p>`,
+    "</main></noscript>",
+  ].join("");
+}
+
 function withBody(shell: string, body: string) {
   // Fail the build rather than silently shipping metadata-only note shells if
   // the emitted root element ever stops matching.
@@ -164,7 +191,7 @@ async function generateStaticPages(outDir: string) {
   // preload, a Vite change to how it rewrites the asset URL).
   if (!heroPreloadPattern.test(index)) throw new Error("static-pages: hero image preload not found in the built shell; update heroPreloadPattern.");
   const otherShell = index.replace(heroPreloadPattern, "");
-  const home = withMetadata(index, homeMetadata, { id: "website-person", data: websitePersonJsonLd });
+  const home = withBody(withMetadata(index, homeMetadata, { id: "website-person", data: websitePersonJsonLd }), homeBody());
   await writeFile(indexPath, home);
   await writeFile(resolve(outDir, "cv.html"), withMetadata(otherShell, cvMetadata));
   await writeFile(resolve(outDir, "404.html"), withMetadata(otherShell, notFoundMetadata));
