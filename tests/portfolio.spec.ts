@@ -1221,10 +1221,19 @@ test("the CV's own PDF links are announceable", async ({ page }) => {
 test("likely internal destinations prefetch on intent", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
+  const rendererRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("CvPdfRenderer-")) rendererRequests.push(request.url());
+  });
   const cvRequest = page.waitForRequest((request) => request.url().includes("CvPage-") && request.url().endsWith(".js"));
   const pdfRequest = page.waitForRequest((request) => request.url().endsWith("/cv/Vigano_Gabriele_CV.pdf"));
   await page.locator("#top").getByRole("link", { name: "View CV" }).hover();
   await Promise.all([cvRequest, pdfRequest]);
+  expect(rendererRequests).toEqual([]);
+  await page.route("**/CvPdfRenderer-*.js", (route) => route.abort());
+  await page.locator("#top").getByRole("link", { name: "View CV" }).click();
+  await expect(page.getByRole("button", { name: "Download CV" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open with your browser’s PDF viewer" })).toBeVisible();
 });
 
 test("mobile Home does not wait for the hidden desktop portrait", async ({ page }) => {
