@@ -1,9 +1,6 @@
 import { m } from "framer-motion";
 import { ArrowLeft, Download, ExternalLink, FileText, Maximize2, Minus, Plus, Power } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
-import "react-pdf/dist/Page/AnnotationLayer.css";
-import "react-pdf/dist/Page/TextLayer.css";
 import { Link } from "react-router-dom";
 import { Footer } from "../components/layout/Footer";
 import { AppShell } from "../components/layout/AppShell";
@@ -17,16 +14,7 @@ import { useSystemMode } from "../hooks/useSystemMode";
 import { ease } from "../lib/motion";
 import { PageMeta } from "../lib/seo";
 import { useRouteReady } from "../hooks/useRouteReady";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-
-// `new URL("pdfjs-dist/...", import.meta.url)` does no module resolution: a bare
-// specifier is just concatenated onto the importing file's URL, so in the built
-// site it resolved to /assets/pdfjs-dist/build/pdf.worker.min.mjs and 404'd. pdf.js
-// then fell back to its fake worker and the viewer rendered nothing but its own
-// error state. `?url` makes Vite resolve the package and emit a hashed asset.
-// pdfjs-dist is pinned to the exact version react-pdf depends on, so the worker
-// can never drift from the API that drives it.
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+type PdfRenderer = typeof import("../components/ui/CvPdfRenderer").default;
 
 /**
  * A name for one of the PDF's own link annotations.
@@ -63,6 +51,17 @@ function CvDocumentViewer() {
   const [pageAspect, setPageAspect] = useState(0);
   const [failed, setFailed] = useState(false);
   const [fullscreenError, setFullscreenError] = useState("");
+  const [PdfRenderer, setPdfRenderer] = useState<PdfRenderer | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void import("../components/ui/CvPdfRenderer").then(
+      ({ default: renderer }) => { if (active) setPdfRenderer(() => renderer); },
+      () => { if (active) setFailed(true); },
+    );
+    return () => { active = false; };
+  }, []);
+
   const horizontalInset = viewportWidth >= 640 ? 32 : 16;
   const verticalInset = viewportWidth >= 640 ? 32 : 16;
   const widthToFit = Math.max(viewportWidth - horizontalInset, 280);
@@ -136,9 +135,9 @@ function CvDocumentViewer() {
             className="flex min-w-fit items-start justify-center sm:min-h-full"
             style={pageAspect ? ({ "--cv-page-aspect": String(pageAspect) } as CSSProperties) : undefined}
           >
-            <Document file={profile.cvPath} externalLinkTarget="_blank" onLoadSuccess={async (document) => { const page = await document.getPage(1); const viewport = page.getViewport({ scale: 1 }); setPageAspect(viewport.width / viewport.height); setFailed(false); }} onLoadError={() => setFailed(true)} loading={<span className="mt-12 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}>
-              {viewportWidth > 0 && <Page pageNumber={1} width={pageWidth} renderAnnotationLayer renderTextLayer loading={<span className="mt-12 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500" role="status">Rendering page…</span>} />}
-            </Document>
+            {PdfRenderer
+              ? <PdfRenderer width={viewportWidth > 0 ? pageWidth : 0} onAspect={setPageAspect} onError={() => setFailed(true)} />
+              : <span className="mt-12 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500" role="status">Loading document…</span>}
           </div>
         )}
         {!failed && <a href={profile.cvPath} className="absolute inset-0 z-10 sm:hidden" tabIndex={-1} aria-hidden="true" />}
