@@ -1,6 +1,6 @@
 import { AnimatePresence, m } from "framer-motion";
 import { ArrowUpRight, Mail, Menu, Power, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo-dark-small.webp";
 import { navItems } from "../../data/nav";
@@ -65,16 +65,16 @@ export function Navbar({ onNavigate, systemActive, onToggleSystem }: { onNavigat
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const firstLink = navRef.current?.querySelector<HTMLElement>("#mobile-navigation a");
-    requestAnimationFrame(() => firstLink?.focus());
+    firstLink?.focus({ preventScroll: true });
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
-        requestAnimationFrame(() => menuButtonRef.current?.focus());
+        menuButtonRef.current?.focus({ preventScroll: true });
         return;
       }
       if (event.key !== "Tab") return;
