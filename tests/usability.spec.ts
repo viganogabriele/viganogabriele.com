@@ -8,12 +8,26 @@ test("landscape menu scrolls to its last action without scrolling the page", asy
   await page.setViewportSize({ width: 609, height: 343 });
   await page.goto("/");
   await ready(page);
+  const pageTop = await page.evaluate(() => window.scrollY);
+  // Move focus as soon as the menu exists. A delayed opening callback must
+  // not move it back to the first link on the following frame.
+  await page.evaluate(() => {
+    const observer = new MutationObserver(() => {
+      const contact = document.querySelector<HTMLAnchorElement>('#mobile-navigation a[href^="mailto:"]');
+      if (contact) {
+        observer.disconnect();
+        contact.focus();
+      }
+    });
+    observer.observe(document.querySelector("nav")!, { childList: true, subtree: true });
+  });
   await page.getByRole("button", { name: "Toggle navigation" }).click();
   const menu = page.locator("#mobile-navigation");
   const contact = menu.getByRole("link", { name: "Contact", exact: true });
-  await contact.focus();
+  await expect(contact).toBeFocused();
   await expect(contact).toBeInViewport({ ratio: 1 });
   await expect.poll(() => menu.evaluate((el) => el.scrollHeight > el.clientHeight && el.scrollTop > 0)).toBe(true);
+  expect(await page.evaluate(() => window.scrollY)).toBe(pageTop);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Toggle navigation" })).toBeFocused();
 });
