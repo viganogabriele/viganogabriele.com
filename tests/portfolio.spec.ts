@@ -268,12 +268,17 @@ test("the toolkit logo loop uses legible large marks", async ({ page }) => {
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   const marquee = page.locator(".tool-marquee");
+  await expect(marquee.locator("svg")).toHaveCount(0);
+  expect(await page.evaluate(() => performance.getEntriesByType("resource")
+    .some((entry) => entry.name.includes("LogoLoop-")))).toBe(false);
+  const reservedHeight = await marquee.evaluate((node) => node.getBoundingClientRect().height);
   await marquee.scrollIntoViewIfNeeded();
   await expect(marquee.locator("svg").first()).toBeVisible();
   const geometry = await marquee.evaluate((node) => ({
     strip: node.getBoundingClientRect().height,
     mark: node.querySelector("svg")?.getBoundingClientRect().height ?? 0,
   }));
+  expect(geometry.strip).toBe(reservedHeight);
   expect(geometry.strip).toBeGreaterThanOrEqual(60);
   expect(geometry.mark).toBeGreaterThanOrEqual(34);
 
@@ -321,6 +326,8 @@ test("a press on a marquee logo accelerates it and grows the mark, then releases
   const track = marquee.locator(".logo-loop > div");
   const readX = () => track.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
 
+  // Let the viewport-triggered component mount before freezing animation frames.
+  await expect(track).toBeVisible();
   await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
   await warmMarqueeClock(page, readX);
   const sequenceWidth = await marquee.locator(".logo-loop-sequence").first().evaluate((element) => Math.ceil(element.getBoundingClientRect().width));
