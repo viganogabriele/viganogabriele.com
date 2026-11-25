@@ -38,29 +38,28 @@ export function layoutTop(element: HTMLElement) {
   return top;
 }
 
-/** Where the anchor sits relative to the current scroll offset, transform-free. */
-function anchorViewportOffset(element: HTMLElement) {
-  return layoutTop(element) - window.scrollY;
-}
-
 export function getScrollSnapshot(): ScrollSnapshot {
-  const anchors = Array.from(document.querySelectorAll<HTMLElement>("main section[id], [data-scroll-anchor]"));
-  const closest = anchors.reduce<HTMLElement | null>((candidate, element) => {
-    if (!candidate) return element;
-    return Math.abs(anchorViewportOffset(element)) < Math.abs(anchorViewportOffset(candidate)) ? element : candidate;
-  }, null);
-  const anchorId = closest?.dataset.scrollAnchor ?? closest?.id;
-
-  return {
-    y: window.scrollY,
-    anchor: closest && anchorId ? { id: anchorId, offset: anchorViewportOffset(closest) } : undefined,
-  };
+  const y = window.scrollY;
+  const anchors = document.querySelectorAll<HTMLElement>("main section[id], [data-scroll-anchor]");
+  let closest: HTMLElement | undefined;
+  let closestOffset = Infinity;
+  for (const element of anchors) {
+    const offset = layoutTop(element) - y;
+    if (Math.abs(offset) < Math.abs(closestOffset)) {
+      closest = element;
+      closestOffset = offset;
+    }
+  }
+  const id = closest?.dataset.scrollAnchor ?? closest?.id;
+  return { y, anchor: id ? { id, offset: closestOffset } : undefined };
 }
 
 export function createNoteNavigationState(location: Location, anchor?: HTMLElement): NoteNavigationState {
-  const snapshot = getScrollSnapshot();
   const anchorId = anchor?.dataset.scrollAnchor ?? anchor?.id;
-  if (anchor && anchorId) snapshot.anchor = { id: anchorId, offset: anchorViewportOffset(anchor) };
+  const y = window.scrollY;
+  const snapshot = anchor && anchorId
+    ? { y, anchor: { id: anchorId, offset: layoutTop(anchor) - y } }
+    : getScrollSnapshot();
   return {
     noteReturn: {
       key: location.key,
