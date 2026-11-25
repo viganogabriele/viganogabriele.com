@@ -326,6 +326,8 @@ test("a press on a marquee logo accelerates it and grows the mark, then releases
   const track = marquee.locator(".logo-loop > div");
   const readX = () => track.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
 
+  // Let the viewport-triggered component mount before freezing animation frames.
+  await expect(track).toBeVisible();
   await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
   await warmMarqueeClock(page, readX);
   const sequenceWidth = await marquee.locator(".logo-loop-sequence").first().evaluate((element) => Math.ceil(element.getBoundingClientRect().width));
