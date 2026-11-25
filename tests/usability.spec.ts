@@ -128,6 +128,14 @@ test("route focus does not draw a ring around the focused page region", async ({
   await expect(page.locator("#projects")).toHaveCSS("outline-style", "none");
 });
 
+test("printing the home page before scrolling shows the final statistics", async ({ page }) => {
+  await page.goto("/");
+  await ready(page);
+  await page.emulateMedia({ media: "print" });
+  const values = page.locator(".proof-stat > p:first-child");
+  await expect(values).toHaveText(["16TB", "500+", "1,000", "Education"], { useInnerText: true });
+});
+
 test("printed notes expose their full reading flow", async ({ page }) => {
   await page.goto("/notes/vpn-off-by-default");
   await ready(page);
