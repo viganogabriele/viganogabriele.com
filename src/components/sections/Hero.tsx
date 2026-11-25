@@ -14,7 +14,7 @@ const loadParticleText = () => import("../motion/ParticleText").then((module) =>
 const ParticleText = lazy(loadParticleText);
 
 export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; onToggleSystem: () => void }) {
-  const { level, isCompact, canUsePointerEffects, prefersReducedMotion: reduced } = useMotionProfile();
+  const { level, isCompact, saveData, canUsePointerEffects, prefersReducedMotion: reduced } = useMotionProfile();
   // Arm the canvas on the first explicit SYS interaction and keep it mounted
   // afterwards so leaving the mode can dissolve the particles over the real
   // type instead of dropping the canvas in one frame. Mobile gets a smaller
@@ -34,10 +34,10 @@ export function Hero({ systemActive, onToggleSystem }: { systemActive: boolean; 
   // the hero has settled. Normal navigation stays lean and a later SYS toggle
   // does not wait on the network; an immediate toggle reuses the same import.
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || saveData) return;
     const timeout = window.setTimeout(() => { void loadParticleText().catch(() => {}); }, 900);
     return () => window.clearTimeout(timeout);
-  }, [reduced]);
+  }, [reduced, saveData]);
 
   // The portrait plays BorderGlow's sweep once the preloader hands the hero
   // over — the same signal the wordmark reveal waits for, so the light runs

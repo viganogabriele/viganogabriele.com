@@ -24,7 +24,7 @@ const defaultProfile: MotionProfile = {
 const MotionProfileContext = createContext<MotionProfile>(defaultProfile);
 
 type NavigatorWithHints = Navigator & {
-  connection?: { saveData?: boolean };
+  connection?: EventTarget & { saveData?: boolean };
   deviceMemory?: number;
 };
 
@@ -69,6 +69,8 @@ export function MotionProfileProvider({ children }: { children: ReactNode }) {
       const next = readProfile();
       return Object.keys(next).every((key) => next[key as keyof MotionProfile] === current[key as keyof MotionProfile]) ? current : next;
     });
+    const connection = (navigator as NavigatorWithHints).connection;
+    connection?.addEventListener?.("change", refresh);
     reduced.addEventListener("change", refresh);
     pointer.addEventListener("change", refresh);
     // Nothing this profile reads can change from a width-unchanged resize
@@ -80,6 +82,7 @@ export function MotionProfileProvider({ children }: { children: ReactNode }) {
     const frame = requestAnimationFrame(refresh);
     return () => {
       cancelAnimationFrame(frame);
+      connection?.removeEventListener?.("change", refresh);
       reduced.removeEventListener("change", refresh);
       pointer.removeEventListener("change", refresh);
       removeResizeListener();
