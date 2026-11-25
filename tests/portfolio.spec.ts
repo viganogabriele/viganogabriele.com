@@ -1227,6 +1227,41 @@ test("likely internal destinations prefetch on intent", async ({ page }) => {
   await Promise.all([cvRequest, pdfRequest]);
 });
 
+test("data saver reserves SYS and CV requests for explicit activation", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "connection", { value: Object.assign(new EventTarget(), { saveData: true }) });
+  });
+  await page.goto("/");
+  await expect(page.locator("[data-preloader]")).toHaveCount(0);
+
+  const sys = page.getByRole("button", { name: "Toggle system mode" });
+  const portrait = page.locator('[data-hero-portrait-layer="system"]');
+  await sys.focus();
+  await sys.hover();
+  await expect(portrait.locator("source")).toHaveCount(0);
+  expect(await page.evaluate(() => performance.getEntriesByType("resource")
+    .some((entry) => entry.name.includes("ParticleText-")))).toBe(false);
+  await sys.click();
+  await expect(portrait).toHaveAttribute("data-visible", "true");
+  await expect(page.locator("h1 canvas")).toBeAttached();
+
+  const cvLink = page.locator("#top").getByRole("link", { name: "View CV" });
+  const cvResources = /(?:CvPage-[^/]+\.js|Vigano_Gabriele_CV\.pdf)$/;
+  const speculative: string[] = [];
+  await page.route(cvResources, (route) => {
+    speculative.push(route.request().url());
+    return route.abort();
+  });
+  await cvLink.focus();
+  await cvLink.hover();
+  await page.keyboard.press("Tab");
+  await page.unroute(cvResources);
+  expect(speculative).toEqual([]);
+
+  await cvLink.click();
+  await expect(page.locator("[data-cv-viewport] canvas")).toBeVisible();
+});
+
 test("mobile Home does not wait for the hidden desktop portrait", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/*gabriele-photo*", (route) => route.abort());

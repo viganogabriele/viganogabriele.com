@@ -17,8 +17,9 @@ const NotFoundPage = lazy(() => loadNotFoundPage().then((module) => ({ default: 
 // into an infinite loading screen or a permanent scroll-correction loop.
 const SCROLL_SETTLE_TIMEOUT_MS = 5_000;
 
-function useRoutePrefetching() {
+function useRoutePrefetching(saveData: boolean) {
   useEffect(() => {
+    if (saveData) return;
     const prefetch = (event: Event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
@@ -34,12 +35,12 @@ function useRoutePrefetching() {
       document.removeEventListener("pointerdown", prefetch);
       document.removeEventListener("focusin", prefetch);
     };
-  }, []);
+  }, [saveData]);
 }
 
 function RouteScrollManager() {
   const location = useLocation();
-  const { prefersReducedMotion } = useMotionProfile();
+  const { prefersReducedMotion, saveData } = useMotionProfile();
   const positions = useRef(new Map<string, ScrollSnapshot>());
   // Non-zero while RouteScrollCommit's own scrollTo calls are in flight. A
   // restore is not reader intent, and every scrollTo it makes fires a real
@@ -69,7 +70,7 @@ function RouteScrollManager() {
     if (loading) setPreloaderVisible(true);
   }
   const hidePreloader = useCallback(() => setPreloaderVisible(false), []);
-  useRoutePrefetching();
+  useRoutePrefetching(saveData);
 
   useEffect(() => {
     const previous = window.history.scrollRestoration;

@@ -3,6 +3,7 @@ import photoAvif from "../../assets/gabriele-photo.avif";
 import photoWebp from "../../assets/gabriele-photo.webp";
 import systemPhotoAvif from "../../assets/gabriele-photo-sys.avif";
 import systemPhotoWebp from "../../assets/gabriele-photo-sys.webp";
+import { useMotionProfile } from "../../hooks/useMotionProfile";
 import { heroCopy } from "../../data/sections";
 import { HERO_PORTRAIT_MEDIA } from "../../lib/viewport";
 
@@ -15,6 +16,7 @@ import { HERO_PORTRAIT_MEDIA } from "../../lib/viewport";
  * layer covers the gap exactly as it already does on a slow connection.
  */
 function useSystemPortraitArmed(systemActive: boolean) {
+  const { saveData } = useMotionProfile();
   const [armed, setArmed] = useState(systemActive);
   // Adjusted during render (React's documented pattern for state derived from
   // a prop change) rather than in an effect, so the source is on the element
@@ -22,7 +24,7 @@ function useSystemPortraitArmed(systemActive: boolean) {
   if (systemActive && !armed) setArmed(true);
 
   useEffect(() => {
-    if (armed) return;
+    if (armed || saveData) return;
     const arm = (event: Event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
@@ -35,7 +37,7 @@ function useSystemPortraitArmed(systemActive: boolean) {
       document.removeEventListener("pointerover", arm);
       document.removeEventListener("focusin", arm);
     };
-  }, [armed]);
+  }, [armed, saveData]);
 
   return armed;
 }
