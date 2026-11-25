@@ -196,3 +196,16 @@ test("reader input cancels the application's pending font correction", async ({ 
     await expect(page.locator("#notes")).not.toHaveAttribute("data-font-correction", "true");
   } finally { release(); }
 });
+
+test("CV downloads the original PDF directly when file sharing is unavailable", async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, "canShare", { value: undefined }));
+  await page.goto("/cv");
+  await expect(page.locator("[data-cv-viewport] canvas")).toBeVisible();
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download CV" }).click();
+  const download = await downloadEvent;
+  expect(new URL(download.url()).pathname).toBe("/cv/Vigano_Gabriele_CV.pdf");
+  expect(download.suggestedFilename()).toBe("Vigano_Gabriele_CV.pdf");
+  expect(await download.failure()).toBeNull();
+  await expect(page).toHaveURL(/\/cv$/);
+});
