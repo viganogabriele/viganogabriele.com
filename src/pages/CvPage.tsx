@@ -146,6 +146,15 @@ function CvDocumentViewer() {
   );
 }
 
+function saveCv(href: string) {
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = profile.cvFilename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+}
+
 export function CvPage() {
   const { level, prefersReducedMotion: reduced } = useMotionProfile();
   const { active: systemActive, transitionId: systemTransitionId, toggle: toggleSystem, webkitSafeMode, laserEnabled } = useSystemMode();
@@ -161,13 +170,17 @@ export function CvPage() {
   useRouteReady();
 
   const downloadCv = async () => {
+    if (!navigator.canShare || !navigator.share) {
+      saveCv(profile.cvPath);
+      return;
+    }
     setDownloading(true);
     try {
       const response = await fetch(profile.cvPath);
       if (!response.ok) throw new Error("CV download failed");
       const blob = await response.blob();
       const file = new File([blob], profile.cvFilename, { type: "application/pdf" });
-      if (navigator.canShare?.({ files: [file] })) {
+      if (navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title: "Gabriele Viganò CV" });
           return;
@@ -176,12 +189,7 @@ export function CvPage() {
         }
       }
       const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = profile.cvFilename;
-      document.body.append(link);
-      link.click();
-      link.remove();
+      saveCv(objectUrl);
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
     } catch {
       window.location.assign(profile.cvPath);
