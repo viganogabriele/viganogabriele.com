@@ -107,12 +107,12 @@ export function CountUp({
   return (
     <span ref={containerRef} className={cn("relative inline-block tabular-nums", className)}>
       {/* Invisible twin reserves the final width from frame 0 (incl. comma at 1,000). */}
-      <span aria-hidden="true" style={{ visibility: "hidden" }}>{value}</span>
+      <span aria-hidden="true" className="invisible print:hidden">{value}</span>
       {/* Animated overlay — absolutely positioned, contributes no layout width. */}
-      <span ref={animatedRef} aria-hidden="true" className="absolute inset-0">
+      <span ref={animatedRef} aria-hidden="true" className="absolute inset-0 print:hidden">
         {parsed.prefix}0{parsed.suffix}
       </span>
-      <span className="sr-only">{value}</span>
+      <span className="sr-only print:not-sr-only">{value}</span>
     </span>
   );
 }
