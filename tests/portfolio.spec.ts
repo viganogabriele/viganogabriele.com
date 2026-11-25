@@ -268,12 +268,17 @@ test("the toolkit logo loop uses legible large marks", async ({ page }) => {
   await expect(page.locator("[data-preloader]")).toHaveCount(0);
 
   const marquee = page.locator(".tool-marquee");
+  await expect(marquee.locator("svg")).toHaveCount(0);
+  expect(await page.evaluate(() => performance.getEntriesByType("resource")
+    .some((entry) => entry.name.includes("LogoLoop-")))).toBe(false);
+  const reservedHeight = await marquee.evaluate((node) => node.getBoundingClientRect().height);
   await marquee.scrollIntoViewIfNeeded();
   await expect(marquee.locator("svg").first()).toBeVisible();
   const geometry = await marquee.evaluate((node) => ({
     strip: node.getBoundingClientRect().height,
     mark: node.querySelector("svg")?.getBoundingClientRect().height ?? 0,
   }));
+  expect(geometry.strip).toBe(reservedHeight);
   expect(geometry.strip).toBeGreaterThanOrEqual(60);
   expect(geometry.mark).toBeGreaterThanOrEqual(34);
 
