@@ -60,6 +60,17 @@ test.describe("production security headers", () => {
     });
   }
 
+  test("each direct route preloads only its own page module", async ({ request }) => {
+    for (const [path, pageModule] of [
+      ["/", null], ["/cv", "CvPage"], ["/notes/vpn-off-by-default", "NotePage"], ["/unknown", "NotFoundPage"],
+    ] as const) {
+      const html = await (await request.get(path)).text();
+      const hints = [...html.matchAll(/<link rel="modulepreload" crossorigin href="([^"]*\/(CvPage|NotePage|NotFoundPage)-[^"]+\.js)">/g)];
+      expect(hints.map((hint) => hint[2]), path).toEqual(pageModule ? [pageModule] : []);
+      for (const [, href] of hints) expect((await request.get(href)).status()).toBe(200);
+    }
+  });
+
   test("the CV renders its PDF under a policy with no unsafe-eval", async ({ page }) => {
     // pdf.js has two `new Function` sites in its worker, behind its own
     // isEvalSupported probe: under this policy it degrades to the slower

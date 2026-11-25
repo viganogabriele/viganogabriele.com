@@ -136,11 +136,6 @@ function withBody(shell: string, body: string) {
   return shell.replace(rootPattern, `<div id="root"></div>${body}`);
 }
 
-function withMetadata(shell: string, metadata: PageMetadata, structuredData?: { id: string; data: Record<string, unknown> }) {
-  const head = headFor(metadata, structuredData);
-  return shell.replace(managedTagPattern, "").replace("</head>", `    ${head}\n  </head>`);
-}
-
 /**
  * `lastmod` for the two pages with no editorial date of their own.
  *
@@ -183,7 +178,14 @@ function sitemap() {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
 }
 
-async function generateStaticPages(outDir: string) {
+async function generateStaticPages(outDir: string, routeModules: Map<string, string>) {
+  function withMetadata(shell: string, metadata: PageMetadata, structuredData?: { id: string; data: Record<string, unknown> }) {
+    const head = headFor(metadata, structuredData);
+    const asset = routeModules.get(metadata.path);
+    const preload = asset ? `<link rel="modulepreload" crossorigin href="/${escapeHtml(asset)}">\n    ` : "";
+    return shell.replace(managedTagPattern, "").replace("</head>", `    ${preload}${head}\n  </head>`);
+  }
+
   const indexPath = resolve(outDir, "index.html");
   const index = await readFile(indexPath, "utf8");
   // Fail the build rather than silently shipping the preload everywhere if
@@ -211,8 +213,19 @@ async function generateStaticPages(outDir: string) {
 export function staticPages(): Plugin {
   return {
     name: "static-pages",
-    async closeBundle() {
-      await generateStaticPages(resolve(process.cwd(), "dist"));
+    async writeBundle(options, bundle) {
+      const routeModules = new Map<string, string>();
+      const routesByPage = new Map([
+        [resolve("src/pages/CvPage.tsx"), [cvMetadata.path]],
+        [resolve("src/pages/NotePage.tsx"), notes.map((note) => `/notes/${note.slug}`)],
+        [resolve("src/pages/NotFoundPage.tsx"), [notFoundMetadata.path]],
+      ]);
+      for (const output of Object.values(bundle)) {
+        if (output.type !== "chunk" || !output.facadeModuleId) continue;
+        const paths = routesByPage.get(resolve(output.facadeModuleId));
+        for (const path of paths ?? []) routeModules.set(path, output.fileName);
+      }
+      await generateStaticPages(resolve(options.dir ?? "dist"), routeModules);
     },
     configurePreviewServer(server) {
       return () => {
