@@ -6,7 +6,7 @@ import type { Plugin } from "vite";
 import { notes, type NoteItem } from "../src/data/notes.ts";
 import { profile } from "../src/data/profile.ts";
 import { projects } from "../src/data/projects.ts";
-import { aboutSection, heroCopy } from "../src/data/sections.ts";
+import { aboutSection, cvPageCopy, heroCopy } from "../src/data/sections.ts";
 import { cvMetadata, homeMetadata, notFoundMetadata, noteJsonLd, noteMetadata, pageUrl, site, websitePersonJsonLd, type PageMetadata } from "../src/data/site.ts";
 
 const managedTagPattern = /<title>[\s\S]*?<\/title>\s*|<link\s+rel="canonical"[^>]*>\s*|<meta\s+(?:name|property)="(?:description|robots|twitter:[^"]+|og:[^"]+|article:[^"]+)"[^>]*>\s*|<script\s+type="application\/ld\+json"\s+data-jsonld="[^"]+">[\s\S]*?<\/script>\s*/g;
@@ -129,6 +129,23 @@ function homeBody() {
   ].join("");
 }
 
+function cvBody() {
+  return [
+    '<noscript><main data-prerendered="cv">',
+    `<h1>${escapeHtml(cvPageCopy.title)}</h1><p>${escapeHtml(cvPageCopy.summary)}</p>`,
+    `<p><a href="${escapeHtml(profile.cvPath)}">Open CV (PDF)</a></p>`,
+    '<p><a href="/">Back to home</a></p></main></noscript>',
+  ].join("");
+}
+
+function notFoundBody() {
+  return [
+    '<noscript><main data-prerendered="404"><h1>Page not found</h1>',
+    `<p>${escapeHtml(notFoundMetadata.description)}</p>`,
+    '<p><a href="/">Back to home</a></p></main></noscript>',
+  ].join("");
+}
+
 function withBody(shell: string, body: string) {
   // Fail the build rather than silently shipping metadata-only note shells if
   // the emitted root element ever stops matching.
@@ -193,8 +210,8 @@ async function generateStaticPages(outDir: string) {
   const otherShell = index.replace(heroPreloadPattern, "");
   const home = withBody(withMetadata(index, homeMetadata, { id: "website-person", data: websitePersonJsonLd }), homeBody());
   await writeFile(indexPath, home);
-  await writeFile(resolve(outDir, "cv.html"), withMetadata(otherShell, cvMetadata));
-  await writeFile(resolve(outDir, "404.html"), withMetadata(otherShell, notFoundMetadata));
+  await writeFile(resolve(outDir, "cv.html"), withBody(withMetadata(otherShell, cvMetadata), cvBody()));
+  await writeFile(resolve(outDir, "404.html"), withBody(withMetadata(otherShell, notFoundMetadata), notFoundBody()));
 
   await Promise.all(notes.map(async (note) => {
     const directory = resolve(outDir, "notes");

@@ -102,3 +102,25 @@ test.describe("production security headers", () => {
     }
   });
 });
+
+test.describe("static route navigation", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("the home CV link leads to the real PDF", async ({ page, request }) => {
+    await page.goto("/");
+    await page.getByRole("link", { name: "Curriculum vitae" }).click();
+    await expect(page.getByRole("heading", { name: "Curriculum Vitae." })).toBeVisible();
+    const link = page.getByRole("link", { name: "Open CV (PDF)" });
+    await expect(link).toBeVisible();
+    const response = await request.get((await link.getAttribute("href"))!);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("application/pdf");
+  });
+
+  test("a missing page returns 404 and offers a working route home", async ({ page }) => {
+    expect((await page.goto("/missing-page"))?.status()).toBe(404);
+    await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+    await page.getByRole("link", { name: "Back to home" }).click();
+    await expect(page.getByRole("heading", { name: "Gabriele Viganò", exact: true })).toBeVisible();
+  });
+});
