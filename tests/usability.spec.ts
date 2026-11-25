@@ -134,6 +134,13 @@ test("printing the home page before scrolling shows the final statistics", async
   await page.emulateMedia({ media: "print" });
   const values = page.locator(".proof-stat > p:first-child");
   await expect(values).toHaveText(["16TB", "500+", "1,000", "Education"], { useInnerText: true });
+  // innerText also counts clipped sr-only text, so check the printed copy is laid out for real.
+  const printed = values.locator(":scope > span > span:not([aria-hidden])");
+  await expect(printed).toHaveCount(3);
+  for (const span of await printed.all()) {
+    await expect(span).toHaveCSS("position", "static");
+    expect((await span.boundingBox())?.width ?? 0).toBeGreaterThan(8);
+  }
 });
 
 test("printed notes expose their full reading flow", async ({ page }) => {
