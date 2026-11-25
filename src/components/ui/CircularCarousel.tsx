@@ -48,6 +48,7 @@ export function CircularCarousel<T>({
   pauseOnHover = true,
 }: CircularCarouselProps<T>) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const widthRef = useRef(0);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
   /** Last non-continuous values written per card — see updateCards. */
   const written = useRef<{ zIndex: number; interactive: boolean; active: boolean }[]>([]);
@@ -84,8 +85,7 @@ export function CircularCarousel<T>({
   const updateCards = useCallback(() => {
     const count = items.length;
     if (!count) return;
-    const root = rootRef.current;
-    const width = root?.clientWidth ?? 0;
+    const width = widthRef.current;
     const compact = width < 640;
     // Keep enough radius to expose both neighbouring cards, but retain a
     // deliberate overlap so the cards read as one ring instead of four panels
@@ -211,9 +211,15 @@ export function CircularCarousel<T>({
     // last; a different item list means different elements, and a stale entry
     // would suppress the first write to a fresh card.
     written.current = [];
-    updateCards();
-    const observer = new ResizeObserver(updateCards);
-    if (rootRef.current) observer.observe(rootRef.current);
+    const root = rootRef.current;
+    if (!root) return;
+    const measure = () => {
+      widthRef.current = root.clientWidth;
+      updateCards();
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
     return () => observer.disconnect();
   }, [updateCards]);
 
