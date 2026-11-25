@@ -1,6 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { notes } from "../../data/notes";
+import { noteIndex } from "../../data/noteIndex";
 import { notesSection } from "../../data/sections";
 import { createNoteNavigationState } from "../../lib/navigationState";
 import { FadeIn } from "../motion/FadeIn";
@@ -18,7 +18,7 @@ export function Notes() {
         subtitle={notesSection.subtitle}
       />
       <div className="note-row">
-        {notes.map((note, index) => {
+        {noteIndex.map((note, index) => {
           const to = `/notes/${note.slug}`;
           return (
             <FadeIn key={note.slug} delay={index * 0.05}>
